@@ -12,6 +12,8 @@
 const express = require('express');
 const https = require('https');
 const { URL } = require('url');
+const fs = require('fs');
+const path = require('path');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -27,6 +29,38 @@ const calendarCache = {
   records: null,
   nextAllowed: 0,
 };
+
+// Simple on-disk persistence for todos, journal and manual events so data survives restarts.
+const DATA_DIR = path.join(__dirname, 'data');
+function ensureDataDir() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (err) {
+    console.error('Failed to ensure data directory', DATA_DIR, err);
+  }
+}
+
+function loadJson(filename, fallback) {
+  try {
+    const filePath = path.join(DATA_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(raw || 'null') || fallback;
+    }
+  } catch (err) {
+    console.error('Failed to load', filename, err);
+  }
+  return fallback;
+}
+
+function saveJson(filename, data) {
+  try {
+    const filePath = path.join(DATA_DIR, filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Failed to save', filename, err);
+  }
+}
 
 /**
  * Flexible HTTPS JSON fetcher using Node core modules.
@@ -261,8 +295,10 @@ function formatEventDate(date) {
   });
 }
 
-const manualEvents = [];
-const todoItems = [];
+ensureDataDir();
+const manualEvents = loadJson('events.json', []);
+const todoItems = loadJson('todos.json', []);
+const journalEntries = loadJson('journal.json', []);
 
 function getUpcomingEvents() {
   return manualEvents
@@ -310,6 +346,9 @@ app.post('/events', (req, res) => {
     date,
   });
 
+  // persist manual events
+  saveJson('events.json', manualEvents);
+
   res.redirect('/?message=' + encodeURIComponent('Event added.'));
 });
 
@@ -321,10 +360,108 @@ app.post('/events/delete', (req, res) => {
   const index = manualEvents.findIndex((event) => event.id === id);
   if (index >= 0) {
     manualEvents.splice(index, 1);
+    // persist manual events after removal
+    saveJson('events.json', manualEvents);
     res.redirect('/?message=' + encodeURIComponent('Event removed.'));
   } else {
     res.redirect('/?message=' + encodeURIComponent('Event not found.'));
   }
+});
+
+app.use(express.json());
+
+app.get('/todo-card.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'todo-card.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/journal.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'journal.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/animated-title.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'animated-title.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+/**
+ * Journal API (calendar POV)
+ * ------------------------------------------------
+ * GET  /api/journal?month=YYYY-MM  → entries for month (local time)
+ * POST /api/journal                 → { dateISO, title, note, pnl, mood, tags }
+ * DELETE /api/journal/:id
+ */
+app.get('/api/journal', (req, res) => {
+  const monthParam = String(req.query.month || '').trim();
+  let start, end;
+  if (/^\d{4}-\d{2}$/.test(monthParam)) {
+    const [y, m] = monthParam.split('-').map((v) => Number(v));
+    start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+    end = new Date(y, m, 0, 23, 59, 59, 999);
+  } else {
+    const now = new Date();
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  }
+  const entries = journalEntries
+    .filter((e) => {
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  res.json(entries);
+});
+
+app.post('/api/journal', (req, res) => {
+  const { dateISO, title, note, pnl, mood, tags } = req.body || {};
+  const parsedDate = new Date(String(dateISO || ''));
+  const cleanTitle = String(title || '').trim();
+  const cleanNote = String(note || '').trim();
+  const cleanMood = String(mood || '').trim();
+  const cleanTags = Array.isArray(tags)
+    ? tags.map((t) => String(t).trim()).filter(Boolean)
+    : String(tags || '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+  const cleanPnl = Number(pnl);
+
+  if (!cleanTitle || Number.isNaN(parsedDate.getTime())) {
+    return res.status(400).json({ error: 'Provide a valid dateISO and title.' });
+  }
+
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const entry = {
+    id,
+    date: parsedDate.toISOString(),
+    title: cleanTitle,
+    note: cleanNote,
+    pnl: Number.isFinite(cleanPnl) ? cleanPnl : null,
+    mood: cleanMood || null,
+    tags: cleanTags,
+  };
+  journalEntries.push(entry);
+  // persist journal entries
+  saveJson('journal.json', journalEntries);
+  res.json(entry);
+});
+
+app.delete('/api/journal/:id', (req, res) => {
+  const { id } = req.params;
+  const idx = journalEntries.findIndex((e) => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  journalEntries.splice(idx, 1);
+  // persist journal entries after deletion
+  saveJson('journal.json', journalEntries);
+  res.json({ success: true });
+});
+
+app.get('/api/todos', (req, res) => {
+  res.json(todoItems.map((item) => ({ id: item.id, text: item.text, done: item.completed })));
 });
 
 app.post('/todos', (req, res) => {
@@ -339,7 +476,27 @@ app.post('/todos', (req, res) => {
     text,
     completed: false,
   });
+  // persist todos
+  saveJson('todos.json', todoItems);
   res.redirect('/?message=' + encodeURIComponent('Task added.'));
+});
+
+app.post('/api/todos', (req, res) => {
+  const { text } = req.body || {};
+  const trimmedText = (text || '').trim();
+  if (!trimmedText) {
+    return res.status(400).json({ error: 'Please enter a to-do item.' });
+  }
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const newItem = {
+    id,
+    text: trimmedText,
+    completed: false,
+  };
+  todoItems.push(newItem);
+  // persist todos
+  saveJson('todos.json', todoItems);
+  res.json({ id: newItem.id, text: newItem.text, done: newItem.completed });
 });
 
 app.post('/todos/toggle', (req, res) => {
@@ -349,7 +506,21 @@ app.post('/todos/toggle', (req, res) => {
     return res.redirect('/?message=' + encodeURIComponent('Task not found.'));
   }
   item.completed = !item.completed;
+  // persist todos after toggle
+  saveJson('todos.json', todoItems);
   res.redirect('/');
+});
+
+app.post('/api/todos/toggle', (req, res) => {
+  const { id } = req.body || {};
+  const item = todoItems.find((todo) => todo.id === id);
+  if (!item) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  item.completed = !item.completed;
+  // persist todos after toggle
+  saveJson('todos.json', todoItems);
+  res.json({ id: item.id, text: item.text, done: item.completed });
 });
 
 app.post('/todos/delete', (req, res) => {
@@ -359,7 +530,21 @@ app.post('/todos/delete', (req, res) => {
     return res.redirect('/?message=' + encodeURIComponent('Task not found.'));
   }
   todoItems.splice(index, 1);
+  // persist todos after deletion
+  saveJson('todos.json', todoItems);
   res.redirect('/?message=' + encodeURIComponent('Task removed.'));
+});
+
+app.delete('/api/todos/:id', (req, res) => {
+  const { id } = req.params;
+  const index = todoItems.findIndex((todo) => todo.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+  todoItems.splice(index, 1);
+  // persist todos after deletion
+  saveJson('todos.json', todoItems);
+  res.json({ success: true });
 });
 
 app.get('/', async (req, res) => {
@@ -473,6 +658,10 @@ app.get('/', async (req, res) => {
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Alphalabs Data Trading</title>
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+      <script src="https://cdn.tailwindcss.com"></script>
       <style>
         body {
           font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -487,6 +676,17 @@ app.get('/', async (req, res) => {
           background: linear-gradient(135deg, #0f172a, #1e293b);
           box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
         }
+        .gooey-wrap { position: relative; filter: url(#title-threshold); text-align: right; }
+        .gooey-layer {
+          position: absolute;
+          right: 0;
+          top: 0;
+          display: inline-block;
+          user-select: none;
+          text-align: right;
+          font-size: clamp(28px, 4.2vw, 60px);
+          line-height: 1.2;
+        }
 
         h1, h2 {
           margin: 0 0 0.5rem;
@@ -494,8 +694,30 @@ app.get('/', async (req, res) => {
 
         main {
           padding: 1.5rem;
+        }
+
+        .bento-grid {
           display: grid;
-          gap: 2rem;
+          grid-template-columns: 1fr;
+          gap: 1.25rem;
+          align-items: start;
+        }
+        @media (min-width: 900px) {
+          .bento-grid { grid-template-columns: 1fr 1fr; }
+          .col-right { grid-column: 2; }
+        }
+
+        .col-left, .col-right {
+          display: grid;
+          gap: 1.25rem;
+          align-content: start;
+        }
+
+        /* Span helpers for bento layout */
+        @media (min-width: 900px) {
+          .bento-grid .full { grid-column: 1 / -1; }
+          .bento-grid .wide { grid-column: span 2; }
+          .bento-grid .tall { grid-row: span 2; }
         }
 
         section {
@@ -536,6 +758,53 @@ app.get('/', async (req, res) => {
         .events {
           display: grid;
           gap: 1rem;
+        }
+
+        /* Scroll container to keep events within a single bento card */
+        .events-scroll {
+          max-height: 360px;
+          overflow: auto;
+          padding-right: 0.25rem; /* small scroll gutter */
+        }
+
+        .events-card-min {
+          min-height: 340px;
+        }
+
+        /* Playful + easy event form */
+        .add-event {
+          position: relative;
+        }
+        .add-event .field-row {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0.5rem;
+        }
+        @media (min-width: 700px) {
+          .add-event .field-row.two {
+            grid-template-columns: 1fr 1fr;
+          }
+        }
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          margin-top: 0.25rem;
+        }
+        .chip {
+          padding: 0.35rem 0.6rem;
+          border-radius: 999px;
+          background: rgba(59, 130, 246, 0.15);
+          border: 1px solid rgba(59, 130, 246, 0.35);
+          color: #bfdbfe;
+          font-size: 0.8rem;
+          cursor: pointer;
+          user-select: none;
+        }
+        .chip:hover { background: rgba(59, 130, 246, 0.25); }
+        .tz-hint {
+          font-size: 0.8rem;
+          color: rgba(226, 232, 240, 0.75);
         }
 
         .event-card {
@@ -876,12 +1145,14 @@ app.get('/', async (req, res) => {
     </head>
     <body>
       <header>
-        <h1>Alphalabs Data Trading</h1>
+        <div id="animated-title-root" style="position: relative; height: 3.2rem; width: 100%;"></div>
         <p>Live currency strength snapshot and high-impact event timers</p>
       </header>
       <main>
-        ${message ? `<div class="message">${escapeHtml(message)}</div>` : ''}
-        ${errorMsg ? `<div class="error">${escapeHtml(errorMsg)}</div>` : ''}
+        <div class="bento-grid">
+        ${message ? `<div class="message full">${escapeHtml(message)}</div>` : ''}
+        ${errorMsg ? `<div class="error full">${escapeHtml(errorMsg)}</div>` : ''}
+        <div class="col-left">
         <section>
           <h2>Currency Strength (1D Change)</h2>
           <p>Source: Babypips â€¢ Watchlist: FXCM Forex â€¢ Period: 1 Day â€¢ Stream: Real-Time</p>
@@ -894,7 +1165,12 @@ app.get('/', async (req, res) => {
             </tbody>
           </table>
         </section>
-        <section>
+        <section class="todo-section">
+          <div id="todo-root"></div>
+        </section>
+        </div>
+        <div class="col-right">
+        <section class="events-card-min col-right">
           <h2>Upcoming High Impact News</h2>
           <p>
             Events are shown from two sources:
@@ -909,38 +1185,48 @@ app.get('/', async (req, res) => {
               ${nextEventPanel}
             </div>
           </div>
-          ${
-            combinedEvents.length === 0
-              ? '<p class="next-empty">No events yet. Use the form below to add the high impact releases you care about.</p>'
-              : '<div class="events"></div>'
-          }
-          <form method="POST" action="/events" class="add-event">
+          <div class="events-scroll">
+            <div class="events"></div>
+          </div>
+          <form method="POST" action="/events" class="add-event" id="add-event-form">
             <h3>Add Event</h3>
-            <label>
-              Title
-              <input name="title" required placeholder="Event title" />
-            </label>
-            <label>
-              Country (e.g. USD)
-              <input name="country" required maxlength="3" placeholder="Currency code" />
-            </label>
-            <label>
-              Date & Time
-              <input type="datetime-local" name="datetime" required />
-            </label>
+            <div class="field-row two">
+              <label>
+                Title
+                <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
+              </label>
+              <label>
+                Country (e.g. USD)
+                <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
+              </label>
+            </div>
+            <div class="field-row two">
+              <label>
+                Date
+                <input id="event-date" type="date" required />
+              </label>
+              <label>
+                Time
+                <input id="event-time" type="time" step="60" required />
+              </label>
+            </div>
+            <input id="event-datetime-hidden" type="hidden" name="datetime" />
+            <div class="chips" id="dt-presets">
+              <span class="chip" data-mins="30">+30m</span>
+              <span class="chip" data-mins="60">+1h</span>
+              <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
+              <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
+              <span class="chip" data-preset="market-open">Next Market Open</span>
+            </div>
+            <div class="tz-hint" id="tz-hint"></div>
             <button type="submit">Add Event</button>
           </form>
         </section>
-        <section class="todo-section">
-          <h2>Trading To-Do List</h2>
-          <p>Capture your trading prep and follow-up tasks in one place. Mark items done as you complete them.</p>
-          <form method="POST" action="/todos" class="add-todo">
-            <input name="task" required placeholder="Add a task (e.g. review USD news sentiment)" />
-            <button type="submit">Add Task</button>
-          </form>
-          <ul class="todo-list">
-            ${todoListHtml}
-          </ul>
+        </div>
+        </div>
+        <section class="full">
+          <h2>Trading Journal (Calendar)</h2>
+          <div id="journal-root" class="mt-2"></div>
         </section>
       </main>
       <footer>
@@ -1051,6 +1337,13 @@ app.get('/', async (req, res) => {
           const container = document.querySelector('.events');
           if (!container) return;
           container.innerHTML = '';
+          if (!events || events.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'next-empty';
+            empty.textContent = 'No events yet. Add one below or wait for the feed.';
+            container.appendChild(empty);
+            return;
+          }
           events.forEach((event) => container.appendChild(createEventCard(event)));
           const firstCard = container.firstElementChild;
           if (firstCard) {
@@ -1135,6 +1428,132 @@ app.get('/', async (req, res) => {
           updateCountdowns();
           updateNextEventCountdown();
         }, 1000);
+        
+        function pad2(n) { return String(n).padStart(2, '0'); }
+        function formatForDatetimeLocal(d) {
+          const yyyy = d.getFullYear();
+          const mm = pad2(d.getMonth() + 1);
+          const dd = pad2(d.getDate());
+          const hh = pad2(d.getHours());
+          const mi = pad2(d.getMinutes());
+          return yyyy + '-' + mm + '-' + dd + 'T' + hh + ':' + mi;
+        }
+
+        function computeNextMonday(base) {
+          const d = new Date(base);
+          const day = d.getDay(); // Sun=0..Sat=6, want Mon=1
+          const diff = (8 - (day || 7));
+          d.setDate(d.getDate() + diff - 1); // move to next Monday
+          return d;
+        }
+
+        function nextMarketOpen(base) {
+          // Simple heuristic: next weekday at 09:00 local time
+          const d = new Date(base);
+          d.setDate(d.getDate() + 1);
+          d.setHours(9, 0, 0, 0);
+          // If weekend, push to Monday 09:00
+          while ([0,6].includes(d.getDay())) {
+            d.setDate(d.getDate() + 1);
+          }
+          return d;
+        }
+
+        function initEventPresets() {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
+          const tzHint = document.getElementById('tz-hint');
+          if (tzHint) tzHint.textContent = 'Times in ' + tz;
+          const dateInput = document.getElementById('event-date');
+          const timeInput = document.getElementById('event-time');
+          const hiddenInput = document.getElementById('event-datetime-hidden');
+          const presetRow = document.getElementById('dt-presets');
+          if (!dateInput || !timeInput) return;
+
+          function syncHidden() {
+            if (!dateInput.value || !timeInput.value) return;
+            const parts = dateInput.value.split('-');
+            const tparts = timeInput.value.split(':');
+            if (parts.length !== 3 || tparts.length < 2) return;
+            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), Number(tparts[0]), Number(tparts[1]), 0, 0);
+            if (hiddenInput) hiddenInput.value = d.toISOString();
+          }
+
+          dateInput.addEventListener('input', syncHidden);
+          timeInput.addEventListener('input', syncHidden);
+
+          // Initialize defaults: today, next rounded hour
+          (function initDefaults() {
+            const now = new Date();
+            const dstr = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
+            dateInput.value = dstr;
+            const mins = now.getMinutes();
+            const nextHour = new Date(now);
+            if (mins > 30) { nextHour.setHours(now.getHours() + 1, 0, 0, 0); } else { nextHour.setMinutes(30, 0, 0); }
+            timeInput.value = pad2(nextHour.getHours()) + ':' + pad2(nextHour.getMinutes());
+            syncHidden();
+          })();
+
+          presetRow.addEventListener('click', (e) => {
+            const el = e.target.closest('.chip');
+            if (!el) return;
+            const now = new Date();
+            let target = null;
+            if (el.dataset.mins) {
+              target = new Date(now.getTime() + Number(el.dataset.mins) * 60000);
+            } else if (el.dataset.preset === 'tomorrow-9') {
+              target = new Date(now);
+              target.setDate(now.getDate() + 1);
+              target.setHours(9, 0, 0, 0);
+            } else if (el.dataset.preset === 'next-mon-830') {
+              target = computeNextMonday(now);
+              target.setHours(8, 30, 0, 0);
+            } else if (el.dataset.preset === 'market-open') {
+              target = nextMarketOpen(now);
+            }
+            if (target) {
+              const dstr = target.getFullYear() + '-' + pad2(target.getMonth() + 1) + '-' + pad2(target.getDate());
+              const tstr = pad2(target.getHours()) + ':' + pad2(target.getMinutes());
+              dateInput.value = dstr;
+              timeInput.value = tstr;
+              dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+              timeInput.dispatchEvent(new Event('input', { bubbles: true }));
+              syncHidden();
+            }
+          });
+
+          const form = document.getElementById('add-event-form');
+          if (form) {
+            form.addEventListener('submit', function(){
+              syncHidden();
+            });
+          }
+        }
+
+        initEventPresets();
+
+  // Animated title will be mounted by React component (animated-title.jsx).
+      </script>
+      <script type="text/babel">
+        // Load the simple animated title immediately
+        try {
+          const root = document.getElementById('animated-title-root');
+          if (root) {
+            const s = document.createElement('script');
+            s.type = 'text/babel';
+            s.src = '/animated-title.jsx';
+            document.body.appendChild(s);
+          }
+        } catch (e) {
+          console.error('Failed to load animated title:', e);
+        }
+      </script>
+  <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
+      <script type="text/babel" data-presets="env,react">
+        const root = ReactDOM.createRoot(document.getElementById('todo-root'));
+        root.render(React.createElement(TodoCard));
+        const jroot = ReactDOM.createRoot(document.getElementById('journal-root'));
+        jroot.render(React.createElement(JournalCalendar));
       </script>
     </body>
   </html>`;
