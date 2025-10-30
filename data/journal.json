@@ -9,5 +9,50 @@
     "tags": [
       "red sign trade"
     ]
+  },
+  {
+    "id": "mhda8bcz1ml5fe",
+    "date": "2025-10-29T17:00:00.000Z",
+    "title": "EUROZONE GDP YoY",
+    "note": "JANGAN CLOE MANUAL",
+    "pnl": -80,
+    "mood": null,
+    "tags": []
+  },
+  {
+    "id": "mhdab0oxma2k8e",
+    "date": "2025-10-29T17:00:00.000Z",
+    "title": "JPY COMENTARY LOSS PINDAHIN STOPLOSS",
+    "note": "",
+    "pnl": 0,
+    "mood": null,
+    "tags": []
+  },
+  {
+    "id": "mhdah0eqam751l",
+    "date": "2025-10-28T17:00:00.000Z",
+    "title": "cad overnight rate",
+    "note": "resultnya same as expected, kita coba trade comentarynya > harus MSS 30 menit dikonfirmasi sama hasil speech",
+    "pnl": -80,
+    "mood": null,
+    "tags": []
+  },
+  {
+    "id": "mhdahfzov5a4ey",
+    "date": "2025-10-28T17:00:00.000Z",
+    "title": "AUD",
+    "note": "Late entry",
+    "pnl": 100,
+    "mood": null,
+    "tags": []
+  },
+  {
+    "id": "mhdcpeha2vg7pu",
+    "date": "2025-10-28T17:00:00.000Z",
+    "title": "OVERALL THIS WEEK",
+    "note": "VER2 \nJangan entry commentary kalo hasilnya same as expected\nTP swing H1 terdekat\njangan stoploss manual, jangan geser stoplsos",
+    "pnl": 0,
+    "mood": null,
+    "tags": []
   }
 ]

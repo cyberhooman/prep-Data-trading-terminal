@@ -1,0 +1,20 @@
+# Ignore data directory - prevent restart when user data changes
+data/
+
+# Ignore backup files
+*.backup*.js
+index.js.new
+index.js.backup*
+
+# Ignore temporary files
+temp_*.js
+ff.json
+
+# Ignore git and IDE files (auto-excluded by Node but listed for clarity)
+.git/
+.claude/
+.vscode/
+.idea/
+
+# Ignore node_modules (auto-excluded by Node)
+node_modules/

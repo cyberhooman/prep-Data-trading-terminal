@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 5 bash -c \"while ! curl -s http://localhost:3000 > nul 2>&1; do sleep 0.5; done && echo ''Server is up''\")",
+      "Bash(node test_currency_api.js:*)",
+      "Bash(node test_periods.js:*)",
+      "Bash(node test_lists.js:*)",
+      "Bash(node test_schema.js:*)",
+      "Bash(node test_with_stream.js:*)",
+      "Bash(node test_indicators.js:*)",
+      "Bash(node index.js:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill //F //PID 34304)",
+      "WebSearch",
+      "WebFetch(domain:www.freeforexapi.com)",
+      "Bash(node test_analytics_api.js:*)",
+      "Bash(node test_free_forex.js:*)",
+      "Bash(awk:*)",
+      "Bash(xargs kill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

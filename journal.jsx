@@ -286,3 +286,7 @@ function JournalCalendar() {
   );
 }
 
+// Make component globally available for React mounting
+if (typeof window !== 'undefined') {
+  window.JournalCalendar = JournalCalendar;
+}

@@ -131,6 +131,18 @@ function TodoCard() {
     }
   };
 
+  const markAllDone = async () => {
+    try {
+      await Promise.all(
+        items
+          .filter((item) => !item.done)
+          .map((item) => toggleItem(item.id))
+      );
+    } catch (error) {
+      console.error('Error marking all done:', error);
+    }
+  };
+
   const allDone = useMemo(() => items.length > 0 && items.every((i) => i.done), [items]);
 
   useEffect(() => {
@@ -186,7 +198,7 @@ function TodoCard() {
           </button>
         </div>
       ) : (
-        <button className="text-slate-100 font-semibold text-sm hover:text-slate-300">Done</button>
+        <button onClick={markAllDone} className="text-slate-100 font-semibold text-sm hover:text-slate-300 transition">Done</button>
       )}
     </div>
   );
@@ -215,31 +227,31 @@ function TodoCard() {
             {items.map((item) => (
               <li
                 key={item.id}
-                className={`flex items-center gap-3 px-2 py-1 rounded-lg transition ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition ${
                   item.done ? "bg-slate-800/70" : ""
                 }`}
               >
-                <label className="relative inline-flex items-center justify-center w-6 h-6">
+                <label className="relative inline-flex items-center justify-center w-5 h-5 flex-shrink-0">
                   <input
                     type="checkbox"
                     checked={item.done}
                     onChange={() => toggleItem(item.id)}
-                    className="peer appearance-none absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    className="peer appearance-none absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                   />
                   <span
-                    className={`flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-200 ease-out transform ${
+                    className={`flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-200 ease-out ${
                       item.done
-                        ? "bg-emerald-500 border-emerald-500 scale-95"
-                        : "border-slate-500 bg-slate-800 scale-100"
+                        ? "bg-emerald-500 border-emerald-500"
+                        : "border-slate-500 bg-slate-800"
                     }`}
                   >
                     <svg
-                      className={`w-3 h-3 text-white transition-opacity duration-200 ${
+                      className={`w-3 h-3 text-white transition-opacity duration-200 pointer-events-none ${
                         item.done ? "opacity-100" : "opacity-0"
                       }`}
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                       viewBox="0 0 12 9"
                     >
                       <path d="M1 4.2L4 7L11 1" strokeLinecap="round" strokeLinejoin="round" />
@@ -248,8 +260,8 @@ function TodoCard() {
                 </label>
 
                 <span
-                  className={`text-sm transition-all duration-200 ${
-                    item.done ? "font-semibold text-slate-100 translate-x-[2px]" : "text-slate-100"
+                  className={`text-sm transition-all duration-200 flex-1 ${
+                    item.done ? "font-semibold text-slate-100" : "text-slate-100"
                   }`}
                 >
                   {item.text}
@@ -291,3 +303,7 @@ function TodoCard() {
   );
 }
 
+// Make component globally available for React mounting
+if (typeof window !== 'undefined') {
+  window.TodoCard = TodoCard;
+}

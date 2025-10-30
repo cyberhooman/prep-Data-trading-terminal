@@ -14,6 +14,8 @@ const https = require('https');
 const { URL } = require('url');
 const fs = require('fs');
 const path = require('path');
+const { WebSocketServer } = require('ws');
+const compression = require('compression');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -28,6 +30,13 @@ const calendarCache = {
   timestamp: 0,
   records: null,
   nextAllowed: 0,
+};
+
+// Currency strength cache
+const currencyStrengthCache = {
+  timestamp: 0,
+  data: null,
+  ttl: 5 * 60 * 1000, // 5 minutes cache
 };
 
 // Simple on-disk persistence for todos, journal and manual events so data survives restarts.
@@ -104,172 +113,211 @@ function fetchJson(url, options = {}) {
   });
 }
 
-/**
- * Load high-impact Forex Factory events.
- * @returns {Promise<Array<{title:string,country:string,date:Date,impact:string,rawDate:string}>>}
- */
+
 function convertCalendarRecords(records) {
+  if (!Array.isArray(records)) {
+    console.warn('Invalid records format:', records);
+    return [];
+  }
+  
   return records
-    .filter((item) => item.impact === 'High')
+    .filter((item) => {
+      if (!item || typeof item !== 'object') {
+        console.warn('Invalid calendar item:', item);
+        return false;
+      }
+      return item.impact === 'High';
+    })
     .map((item) => {
+      if (!item.date) {
+        console.warn('Missing date for event:', item);
+        return null;
+      }
       const eventDate = new Date(item.date);
+      if (isNaN(eventDate.getTime())) {
+        console.warn('Invalid date for event:', item);
+        return null;
+      }
       return {
         id: `auto-${item.date}-${item.title}`,
         title: item.title,
         country: item.country,
         impact: item.impact,
-        date: eventDate,
-        source: 'auto',
+        date: eventDate.toISOString(),
+        source: 'auto'
       };
     })
-    .filter((item) => item.date.getTime() > Date.now())
-    .sort((a, b) => a.date - b.date);
+    .filter(item => item !== null)
+    .filter(item => new Date(item.date).getTime() > Date.now())
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 async function loadHighImpactEvents() {
   const now = Date.now();
-  const cacheFresh = calendarCache.records && now - calendarCache.timestamp < CALENDAR_CACHE_TTL;
-  const waitRemaining = calendarCache.nextAllowed - now;
 
-  if (cacheFresh) {
-    return convertCalendarRecords(calendarCache.records);
-  }
+  try {
+    console.log('Fetching calendar data...');
+    const data = await fetchJson(FA_ECON_CAL_URL, {
+      headers: {
+        'User-Agent': 'MarketCountdownWeb/1.0',
+        'Accept': 'application/json',
+      }
+    });
+    
+    if (!Array.isArray(data)) {
+      console.error('Invalid calendar data format:', data);
+      return [];
+    }
 
-  if (waitRemaining > 0) {
-    if (calendarCache.records) {
+    // Update cache
+    calendarCache.records = data;
+    calendarCache.timestamp = now;
+    calendarCache.nextAllowed = now + CALENDAR_CACHE_TTL;
+
+    return convertCalendarRecords(data);
+  } catch (err) {
+    console.error('Calendar fetch error:', err);
+    if (Array.isArray(calendarCache.records)) {
+      console.log('Using cached records');
       return convertCalendarRecords(calendarCache.records);
     }
-    const minutes = Math.ceil(waitRemaining / 60000);
-    throw new Error(`High-impact calendar temporarily unavailable. Please try again in about ${minutes} minute(s).`);
+    return [];
   }
-
-  if (!cacheFresh) {
-    try {
-      const data = await fetchJson(FA_ECON_CAL_URL, {
-        headers: {
-          'User-Agent': 'MarketCountdownWeb/1.0',
-          'Accept': 'application/json',
-        },
-      });
-      const records = Array.isArray(data) ? data : Array.isArray(data?.value) ? data.value : null;
-      if (!records) {
-        throw new Error('Unexpected calendar structure.');
-      }
-      calendarCache.records = records;
-      calendarCache.timestamp = Date.now();
-      calendarCache.nextAllowed = calendarCache.timestamp + CALENDAR_CACHE_TTL;
-    } catch (err) {
-      const rateLimited =
-        /429|rate limited|request denied|too many/i.test(err.message) ||
-        err.message.includes('<!DOCTYPE html>');
-      if (calendarCache.records) {
-        console.warn(`Calendar fetch failed (${err.message}). Falling back to cached copy.`);
-        if (rateLimited) {
-          calendarCache.nextAllowed = Date.now() + CALENDAR_RATE_LIMIT_DELAY;
-        } else {
-          calendarCache.timestamp = Date.now();
-          calendarCache.nextAllowed = calendarCache.timestamp + CALENDAR_CACHE_TTL;
-        }
-      } else {
-        if (rateLimited) {
-          calendarCache.nextAllowed = Date.now() + CALENDAR_RATE_LIMIT_DELAY;
-          throw new Error('High-impact calendar is temporarily rate limited. Please try again in about 5 minutes.');
-        }
-        throw new Error('Unable to download the high-impact calendar feed.');
-      }
-    }
-  }
-
-  const records = calendarCache.records || [];
-  return convertCalendarRecords(records);
 }
 
 /**
- * Load MarketMilk currency strength (1 day change).
- * @returns {Promise<Array<{id:string,name:string,title:string,value:number}>>}
+ * Calculate currency strength based on 24-hour price changes
+ * Uses the free Frankfurter API (based on ECB data)
  */
 async function loadCurrencyStrength() {
-  const symbolsQuery = {
-    query: `
-      query ($listId: ID!) {
-        symbols(listId: $listId) {
-          id
-          name
-          title
-        }
-      }
-    `,
-    variables: { listId: FOREX_LIST_ID },
-  };
+  const now = Date.now();
 
-  const chartQuery = {
-    query: `
-      query ($listId: ID!, $period: Period!, $stream: Stream!) {
-        watchlistChart(
-          listId: $listId,
-          indicators: [{ name: "change", fields: ["pct"] }],
-          normalize: false,
-          period: $period,
-          streamId: $stream
-        ) {
-          values {
-            symbolId
-            values
-          }
-        }
-      }
-    `,
-    variables: { listId: FOREX_LIST_ID, period: DEFAULT_PERIOD, stream: DEFAULT_STREAM },
-  };
-
-  const [symbolsResponse, chartResponse] = await Promise.all([
-    fetchJson(MARKETMILK_API, {
-      method: 'POST',
-      headers: {
-        'User-Agent': 'MarketCountdownWeb/1.0',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(symbolsQuery),
-    }),
-    fetchJson(MARKETMILK_API, {
-      method: 'POST',
-      headers: {
-        'User-Agent': 'MarketCountdownWeb/1.0',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(chartQuery),
-    }),
-  ]);
-
-  const symbols = symbolsResponse?.data?.symbols ?? [];
-  const timeline = chartResponse?.data?.watchlistChart?.values ?? [];
-  if (!Array.isArray(symbols) || symbols.length === 0 || !Array.isArray(timeline)) {
-    throw new Error('Unable to load currency strength data.');
+  // Return cached data if still fresh
+  if (currencyStrengthCache.data && (now - currencyStrengthCache.timestamp) < currencyStrengthCache.ttl) {
+    console.log('Using cached currency strength data');
+    return currencyStrengthCache.data;
   }
 
-  const latestSnapshot = timeline[timeline.length - 1] || [];
-  const valueMap = new Map();
-  latestSnapshot.forEach((entry) => {
-    const [, value] = entry.values || [];
-    valueMap.set(entry.symbolId, value);
-  });
+  try {
+    console.log('Fetching fresh currency strength data from Frankfurter API');
 
-  return symbols
-    .map((symbol) => ({
-      id: symbol.id,
-      name: symbol.name,
-      title: symbol.title,
-      value: valueMap.get(symbol.id),
-    }))
-    .filter((item) => typeof item.value === 'number')
-    .sort((a, b) => b.value - a.value);
+    // Get current rates
+    const currentRatesUrl = 'https://api.frankfurter.app/latest?from=USD';
+    const currentData = await fetchJson(currentRatesUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Alphalabs-Trading-App' }
+    });
+
+    // Get rates from 24 hours ago
+    const yesterday = new Date(now - 24 * 60 * 60 * 1000);
+    const dateStr = yesterday.toISOString().split('T')[0];
+    const historicalRatesUrl = `https://api.frankfurter.app/${dateStr}?from=USD`;
+    const historicalData = await fetchJson(historicalRatesUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Alphalabs-Trading-App' }
+    });
+
+    if (!currentData?.rates || !historicalData?.rates) {
+      throw new Error('Invalid response from Frankfurter API');
+    }
+
+    // Define major currencies to track
+    const majorCurrencies = ['EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'USD'];
+
+    const strengthData = [];
+
+    // Calculate strength for each currency (except USD which is the base)
+    for (const currency of majorCurrencies) {
+      if (currency === 'USD') {
+        // For USD, we need to calculate based on how other currencies performed
+        // Average the inverse changes of all other currencies
+        let totalChange = 0;
+        let count = 0;
+
+        for (const otherCurrency of majorCurrencies) {
+          if (otherCurrency === 'USD') continue;
+
+          const currentRate = currentData.rates[otherCurrency];
+          const historicalRate = historicalData.rates[otherCurrency];
+
+          if (currentRate && historicalRate) {
+            // If rate increased, USD weakened (takes more of that currency to buy 1 USD)
+            // So we invert: -(changePercent) = USD strength
+            const changePercent = ((currentRate - historicalRate) / historicalRate) * 100;
+            totalChange -= changePercent; // Invert the change
+            count++;
+          }
+        }
+
+        const avgChange = count > 0 ? totalChange / count : 0;
+
+        strengthData.push({
+          id: 'USD',
+          name: 'USD',
+          title: 'U.S. Dollar',
+          value: avgChange,
+        });
+      } else {
+        const currentRate = currentData.rates[currency];
+        const historicalRate = historicalData.rates[currency];
+
+        if (currentRate && historicalRate) {
+          // Calculate percentage change
+          // If rate increased (e.g., 0.85 -> 0.90), currency weakened (takes more to buy 1 USD)
+          // So we invert: -(changePercent) = currency strength
+          const changePercent = ((currentRate - historicalRate) / historicalRate) * 100;
+          const strength = -changePercent; // Invert: negative change = stronger
+
+          strengthData.push({
+            id: currency,
+            name: currency,
+            title: getCurrencyName(currency),
+            value: strength,
+          });
+        }
+      }
+    }
+
+    // Sort by strength (highest to lowest)
+    strengthData.sort((a, b) => b.value - a.value);
+
+    if (strengthData.length === 0) {
+      throw new Error('No currency data available');
+    }
+
+    console.log('Successfully calculated currency strength for', strengthData.length, 'currencies');
+
+    // Cache the result
+    currencyStrengthCache.data = strengthData;
+    currencyStrengthCache.timestamp = now;
+
+    return strengthData;
+  } catch (err) {
+    console.error('Failed to load currency strength:', err.message);
+    // Return cached data if available, otherwise throw error
+    if (currencyStrengthCache.data) {
+      console.log('Returning stale cached currency strength data');
+      return currencyStrengthCache.data;
+    }
+    throw new Error(`Currency strength calculation failed: ${err.message}`);
+  }
 }
 
-/**
- * Escape HTML.
- * @param {string} str
- * @returns {string}
- */
+// Helper function to get full currency names
+function getCurrencyName(code) {
+  const names = {
+    'EUR': 'Euro',
+    'GBP': 'British Pound',
+    'JPY': 'Japanese Yen',
+    'CHF': 'Swiss Franc',
+    'CAD': 'Canadian Dollar',
+    'AUD': 'Australian Dollar',
+    'NZD': 'New Zealand Dollar',
+    'USD': 'U.S. Dollar',
+  };
+  return names[code] || code;
+}
+
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -279,11 +327,6 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
-/**
- * Format event time for display.
- * @param {Date} date
- * @returns {string}
- */
 function formatEventDate(date) {
   return date.toLocaleString(undefined, {
     weekday: 'short',
@@ -296,31 +339,82 @@ function formatEventDate(date) {
 }
 
 ensureDataDir();
-const manualEvents = loadJson('events.json', []);
+
+let manualEvents = loadJson('events.json', []).map(event => ({
+  ...event,
+  date: new Date(event.date).toISOString()
+}));
+
 const todoItems = loadJson('todos.json', []);
 const journalEntries = loadJson('journal.json', []);
+const quickNotes = loadJson('notes.json', []);
 
 function getUpcomingEvents() {
+  const now = Date.now();
   return manualEvents
-    .filter((event) => event.date.getTime() > Date.now())
-    .map((event) => ({ ...event, source: 'manual' }))
-    .sort((a, b) => a.date - b.date);
+    .filter((event) => {
+      try {
+        const eventDate = new Date(event.date);
+        return !isNaN(eventDate.getTime()) && eventDate.getTime() > now;
+      } catch (e) {
+        console.error('Invalid date in event:', event);
+        return false;
+      }
+    })
+    .map((event) => ({
+      id: event.id,
+      title: event.title,
+      country: event.country,
+      date: event.date,
+      source: 'manual'
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 async function gatherEvents() {
-  const manualUpcoming = getUpcomingEvents();
+  console.log('Gathering events...');
+  const manualUpcoming = getUpcomingEvents() || [];
+  console.log('Manual events:', manualUpcoming);
+  
   let autoEvents = [];
   let autoError = null;
+  
   try {
-    autoEvents = await loadHighImpactEvents();
+    const loadedEvents = await loadHighImpactEvents();
+    autoEvents = Array.isArray(loadedEvents) ? loadedEvents : [];
+    console.log('Auto events loaded:', autoEvents);
   } catch (err) {
+    console.error('Error loading auto events:', err);
     autoError = err.message.replace(/<[^>]+>/g, '').trim();
+    autoEvents = [];
   }
-  const combinedEvents = [...manualUpcoming, ...autoEvents].sort((a, b) => a.date - b.date);
+
+  // Ensure both arrays are valid before combining
+  const validManual = Array.isArray(manualUpcoming) ? manualUpcoming : [];
+  const validAuto = Array.isArray(autoEvents) ? autoEvents : [];
+  
+  const combinedEvents = [...validManual, ...validAuto].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return dateA.getTime() - dateB.getTime();
+  });
+  
   return { manualUpcoming, autoEvents, combinedEvents, autoError };
 }
 
 const app = express();
+
+// Enable gzip/deflate compression
+app.use(compression());
+
+// Serve static files with caching
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+  maxAge: '1y',
+  etag: true,
+  lastModified: true,
+  immutable: true
+}));
+
 app.use(express.urlencoded({ extended: true }));
 
 app.post('/events', (req, res) => {
@@ -343,7 +437,7 @@ app.post('/events', (req, res) => {
     id,
     title: trimmedTitle,
     country: trimmedCountry.slice(0, 3),
-    date,
+    date: date.toISOString(),
   });
 
   // persist manual events
@@ -384,6 +478,12 @@ app.get('/journal.jsx', (req, res) => {
 
 app.get('/animated-title.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'animated-title.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/quick-notes.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'quick-notes.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -457,6 +557,54 @@ app.delete('/api/journal/:id', (req, res) => {
   journalEntries.splice(idx, 1);
   // persist journal entries after deletion
   saveJson('journal.json', journalEntries);
+  res.json({ success: true });
+});
+
+/**
+ * Quick Notes API
+ * ------------------------------------------------
+ * GET  /api/notes  → get today's notes
+ * POST /api/notes  → { text, type }
+ * DELETE /api/notes/:id
+ */
+app.get('/api/notes', (req, res) => {
+  // Get today's notes (last 24 hours)
+  const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+  const todaysNotes = quickNotes
+    .filter((note) => new Date(note.timestamp).getTime() > oneDayAgo)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  res.json(todaysNotes);
+});
+
+app.post('/api/notes', (req, res) => {
+  const { text, type } = req.body || {};
+  const cleanText = String(text || '').trim();
+  const cleanType = String(type || 'note').trim();
+
+  if (!cleanText) {
+    return res.status(400).json({ error: 'Note text is required' });
+  }
+
+  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const note = {
+    id,
+    text: cleanText,
+    type: cleanType,
+    timestamp: new Date().toISOString(),
+  };
+  quickNotes.push(note);
+  // persist notes
+  saveJson('notes.json', quickNotes);
+  res.json(note);
+});
+
+app.delete('/api/notes/:id', (req, res) => {
+  const { id } = req.params;
+  const idx = quickNotes.findIndex((n) => n.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Note not found' });
+  quickNotes.splice(idx, 1);
+  // persist notes after deletion
+  saveJson('notes.json', quickNotes);
   res.json({ success: true });
 });
 
@@ -552,14 +700,17 @@ app.get('/', async (req, res) => {
   let manualUpcoming = [];
   let autoEvents = [];
   let combinedEvents = [];
-  let errorMsg = null;
+  let errorMsg = '';
   const message = req.query.message ? String(req.query.message) : '';
 
   try {
-    strengthData = await loadCurrencyStrength().catch((err) => {
-      errorMsg = `Currency strength error: ${err.message}`;
-      return [];
-    });
+    try {
+      strengthData = await loadCurrencyStrength();
+    } catch (currencyErr) {
+      console.error('Currency strength loading failed:', currencyErr.message);
+      errorMsg = `Currency Strength: ${currencyErr.message}`;
+      strengthData = [];
+    }
     const { manualUpcoming: manualList, autoEvents: autoList, combinedEvents: combined, autoError } =
       await gatherEvents();
     manualUpcoming = manualList;
@@ -573,27 +724,28 @@ app.get('/', async (req, res) => {
   }
 
   const eventsJson = JSON.stringify(
-    combinedEvents.map((event) => ({
-      id: event.id,
-      title: event.title,
-      country: event.country,
-      timestamp: event.date.getTime(),
-      formatted: formatEventDate(event.date),
-      source: event.source,
-    })),
+    combinedEvents.map((event) => {
+      const eventDate = new Date(event.date);
+      return {
+        id: event.id,
+        title: event.title,
+        country: event.country,
+        timestamp: eventDate.getTime(),
+        formatted: formatEventDate(eventDate),
+        source: event.source,
+      };
+    })
   );
   const nextEvent = combinedEvents[0] || null;
   const nextEventJson = JSON.stringify(
-    nextEvent
-      ? {
-          id: nextEvent.id,
-          title: nextEvent.title,
-          country: nextEvent.country,
-          timestamp: nextEvent.date.getTime(),
-          formatted: formatEventDate(nextEvent.date),
-          source: nextEvent.source,
-        }
-      : null,
+    nextEvent ? {
+      id: nextEvent.id,
+      title: nextEvent.title,
+      country: nextEvent.country,
+      timestamp: new Date(nextEvent.date).getTime(),
+      formatted: formatEventDate(new Date(nextEvent.date)),
+      source: nextEvent.source,
+    } : null
   );
 
   const nextEventPanel = nextEvent
@@ -605,51 +757,21 @@ app.get('/', async (req, res) => {
             ${nextEvent.source === 'manual' ? 'Manual' : 'Auto'}
           </span>
         </div>
-        <div class="next-event-meta">Scheduled: ${escapeHtml(formatEventDate(nextEvent.date))}</div>
+        <div class="next-event-meta">Scheduled: ${formatEventDate(new Date(nextEvent.date))}</div>
         <div class="countdown next-countdown" id="next-event-countdown">Loading...</div>
       </div>
     `
     : '<p class="next-empty">No upcoming events yet. Use the form below to add one.</p>';
 
-  const todoListHtml =
-    todoItems.length > 0
-      ? todoItems
-          .map((item) => {
-            const statusClass = item.completed ? 'todo-item done' : 'todo-item';
-            const buttonLabel = item.completed ? 'Mark Active' : 'Mark Done';
-            return `
-              <li class="${statusClass}">
-                <span class="todo-text">${escapeHtml(item.text)}</span>
-                <div class="todo-actions">
-                  <form method="POST" action="/todos/toggle">
-                    <input type="hidden" name="id" value="${item.id}" />
-                    <button type="submit" class="secondary">${buttonLabel}</button>
-                  </form>
-                  <form method="POST" action="/todos/delete">
-                    <input type="hidden" name="id" value="${item.id}" />
-                    <button type="submit" class="danger">Remove</button>
-                  </form>
-                </div>
-              </li>
-            `;
-          })
-          .join('')
-      : '<li class="todo-empty">No tasks yet. Capture your next trading actions here.</li>';
-
   const strengthRows = strengthData
-    .map((item, index) => {
-      const rank = String(index + 1).padStart(2, ' ');
-      const trendSymbol = item.value > 0 ? '&#9650;' : item.value < 0 ? '&#9660;' : '&#8226;';
-      const pct = (item.value * 100).toFixed(2);
-      const label = `${item.name} â€“ ${item.title}`;
-      return `
-        <tr>
-          <td>${rank}</td>
-          <td>${escapeHtml(label)}</td>
-          <td class="${item.value > 0 ? 'pos' : item.value < 0 ? 'neg' : 'flat'}">${trendSymbol} ${pct}%</td>
-        </tr>
-      `;
-    })
+    .map(
+      (c, idx) => `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${c.value >= 0 ? '+' : ''}${c.value.toFixed(2)}%</td>
+      </tr>`
+    )
     .join('');
 
   const html = `<!DOCTYPE html>
@@ -657,491 +779,22 @@ app.get('/', async (req, res) => {
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Alphalabs Data Trading</title>
-      <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-      <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+      <title>Alphalabs Data Trading | Live Currency Strength & Economic Events</title>
+      <meta name="description" content="Real-time currency strength tracking and high-impact forex economic event countdowns. Track USD, EUR, GBP, JPY and other major currencies with live data updates.">
+      <meta name="keywords" content="currency strength, forex trading, economic calendar, forex events, trading dashboard, currency pairs, forex analysis">
+      <meta property="og:title" content="Alphalabs Data Trading | Live Currency Strength & Economic Events">
+      <meta property="og:description" content="Real-time currency strength tracking and high-impact forex economic event countdowns.">
+      <meta property="og:type" content="website">
+      <meta name="twitter:card" content="summary_large_image">
+      <link rel="canonical" href="http://localhost:${PORT}/">
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" defer></script>
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" defer></script>
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
       <script src="https://cdn.tailwindcss.com"></script>
-      <style>
-        body {
-          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          margin: 0;
-          padding: 0;
-          background: #0c1117;
-          color: #f8fafc;
-        }
-
-        header {
-          padding: 1.5rem;
-          background: linear-gradient(135deg, #0f172a, #1e293b);
-          box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.1);
-        }
-        .gooey-wrap { position: relative; filter: url(#title-threshold); text-align: right; }
-        .gooey-layer {
-          position: absolute;
-          right: 0;
-          top: 0;
-          display: inline-block;
-          user-select: none;
-          text-align: right;
-          font-size: clamp(28px, 4.2vw, 60px);
-          line-height: 1.2;
-        }
-
-        h1, h2 {
-          margin: 0 0 0.5rem;
-        }
-
-        main {
-          padding: 1.5rem;
-        }
-
-        .bento-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 1.25rem;
-          align-items: start;
-        }
-        @media (min-width: 900px) {
-          .bento-grid { grid-template-columns: 1fr 1fr; }
-          .col-right { grid-column: 2; }
-        }
-
-        .col-left, .col-right {
-          display: grid;
-          gap: 1.25rem;
-          align-content: start;
-        }
-
-        /* Span helpers for bento layout */
-        @media (min-width: 900px) {
-          .bento-grid .full { grid-column: 1 / -1; }
-          .bento-grid .wide { grid-column: span 2; }
-          .bento-grid .tall { grid-row: span 2; }
-        }
-
-        section {
-          background: rgba(148, 163, 184, 0.05);
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          border-radius: 12px;
-          padding: 1.5rem;
-          box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 1rem;
-        }
-
-        th, td {
-          padding: 0.75rem;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-          text-align: left;
-        }
-
-        th {
-          text-transform: uppercase;
-          font-size: 0.75rem;
-          letter-spacing: 0.08em;
-          color: rgba(226, 232, 240, 0.8);
-        }
-
-        tr:last-child td {
-          border-bottom: none;
-        }
-
-        .pos { color: #10b981; }
-        .neg { color: #f87171; }
-        .flat { color: #e2e8f0; }
-
-        .events {
-          display: grid;
-          gap: 1rem;
-        }
-
-        /* Scroll container to keep events within a single bento card */
-        .events-scroll {
-          max-height: 360px;
-          overflow: auto;
-          padding-right: 0.25rem; /* small scroll gutter */
-        }
-
-        .events-card-min {
-          min-height: 340px;
-        }
-
-        /* Playful + easy event form */
-        .add-event {
-          position: relative;
-        }
-        .add-event .field-row {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 0.5rem;
-        }
-        @media (min-width: 700px) {
-          .add-event .field-row.two {
-            grid-template-columns: 1fr 1fr;
-          }
-        }
-        .chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.4rem;
-          margin-top: 0.25rem;
-        }
-        .chip {
-          padding: 0.35rem 0.6rem;
-          border-radius: 999px;
-          background: rgba(59, 130, 246, 0.15);
-          border: 1px solid rgba(59, 130, 246, 0.35);
-          color: #bfdbfe;
-          font-size: 0.8rem;
-          cursor: pointer;
-          user-select: none;
-        }
-        .chip:hover { background: rgba(59, 130, 246, 0.25); }
-        .tz-hint {
-          font-size: 0.8rem;
-          color: rgba(226, 232, 240, 0.75);
-        }
-
-        .event-card {
-          display: grid;
-          gap: 0.25rem;
-          padding: 1rem;
-          border-radius: 12px;
-          border: 1px solid rgba(148, 163, 184, 0.15);
-          background: rgba(15, 23, 42, 0.6);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .event-card.primary-card {
-          border-color: rgba(59, 130, 246, 0.35);
-          box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
-        }
-
-        .event-card::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-          pointer-events: none;
-          background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.2), transparent 55%);
-          opacity: 0;
-          transition: opacity 0.4s ease;
-        }
-
-        .event-card.highlight::after {
-          opacity: 1;
-        }
-
-        .event-title {
-          font-weight: 600;
-          font-size: 1.05rem;
-        }
-
-        .event-meta {
-          font-size: 0.9rem;
-          color: rgba(226, 232, 240, 0.75);
-        }
-
-        .countdown {
-          font-family: "SF Mono", "Roboto Mono", monospace;
-          font-size: 1.4rem;
-          margin-top: 0.5rem;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #38bdf8;
-          transition: color 0.4s ease, transform 0.4s ease;
-        }
-
-        .countdown.urgent {
-          color: #f97316;
-          transform: scale(1.05);
-        }
-
-        .countdown.started {
-          color: #22c55e;
-        }
-
-        footer {
-          padding: 1rem 1.5rem;
-          font-size: 0.8rem;
-          color: rgba(148, 163, 184, 0.6);
-          text-align: center;
-        }
-
-        .error {
-          border: 1px solid rgba(248, 113, 113, 0.3);
-          background: rgba(248, 113, 113, 0.08);
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-          color: #fecaca;
-        }
-
-        form.add-event {
-          display: grid;
-          gap: 0.75rem;
-          margin-top: 1rem;
-        }
-
-        form.add-event label {
-          display: flex;
-          flex-direction: column;
-          font-size: 0.9rem;
-          color: rgba(226, 232, 240, 0.8);
-        }
-
-        form.add-event input, form.add-event button {
-          margin-top: 0.25rem;
-        }
-
-        input, button {
-          border-radius: 8px;
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          padding: 0.6rem 0.75rem;
-          background: rgba(15, 23, 42, 0.7);
-          color: inherit;
-        }
-
-        button {
-          cursor: pointer;
-          background: #2563eb;
-          border-color: rgba(37, 99, 235, 0.6);
-          font-weight: 600;
-        }
-
-        button:hover {
-          background: #1d4ed8;
-        }
-
-        .delete-form {
-          margin-top: 0.75rem;
-        }
-
-        .delete-form button {
-          background: rgba(248, 113, 113, 0.15);
-          border-color: rgba(248, 113, 113, 0.3);
-        }
-
-        .delete-form button:hover {
-          background: rgba(248, 113, 113, 0.25);
-        }
-
-        .message {
-          border: 1px solid rgba(59, 130, 246, 0.35);
-          background: rgba(59, 130, 246, 0.12);
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-          color: #bae6fd;
-        }
-
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          font-size: 0.7rem;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          margin-left: 0.5rem;
-          padding: 0.15rem 0.4rem;
-          border-radius: 999px;
-          background: rgba(148, 163, 184, 0.2);
-          color: #e2e8f0;
-        }
-
-        .badge.manual {
-          background: rgba(59, 130, 246, 0.25);
-          color: #bfdbfe;
-        }
-
-        .badge.auto {
-          background: rgba(16, 185, 129, 0.25);
-          color: #bbf7d0;
-        }
-
-        .next-event-wrapper {
-          margin-top: 1.25rem;
-          display: grid;
-          gap: 0.75rem;
-        }
-
-        .next-event-wrapper h3 {
-          margin: 0;
-          font-size: 1rem;
-          color: rgba(226, 232, 240, 0.85);
-          letter-spacing: 0.02em;
-        }
-
-        .next-event-card {
-          margin-top: 1rem;
-          padding: 1.25rem;
-          border-radius: 16px;
-          border: 1px solid rgba(59, 130, 246, 0.35);
-          background: linear-gradient(135deg, rgba(37, 99, 235, 0.32), rgba(56, 189, 248, 0.18));
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.45);
-          display: grid;
-          gap: 0.75rem;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .next-event-card::after {
-          content: '';
-          position: absolute;
-          inset: -40% auto auto -20%;
-          width: 220px;
-          height: 220px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.45), transparent 70%);
-          opacity: 0.6;
-          pointer-events: none;
-          transform: translate3d(0, 0, 0);
-        }
-
-        .next-event-title {
-          font-weight: 600;
-          font-size: 1.05rem;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-          align-items: center;
-        }
-
-        .next-event-meta {
-          font-size: 0.9rem;
-          color: rgba(226, 232, 240, 0.75);
-        }
-
-        @keyframes nextCountdownGlow {
-          0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 30px 45px rgba(59, 130, 246, 0.35);
-          }
-          50% {
-            transform: scale(1.08);
-            box-shadow: 0 36px 70px rgba(14, 165, 233, 0.55);
-          }
-        }
-
-        .next-countdown {
-          font-family: "Roboto Mono", "SFMono-Regular", monospace;
-          font-size: clamp(2.4rem, 6vw, 3.6rem);
-          font-weight: 700;
-          color: #f8fafc;
-          padding: 1rem 1.75rem;
-          border-radius: 1.2rem;
-          background: linear-gradient(135deg, rgba(37, 99, 235, 0.55), rgba(56, 189, 248, 0.35));
-          text-shadow: 0 0 16px rgba(59, 130, 246, 0.65);
-          box-shadow: 0 30px 45px rgba(15, 23, 42, 0.5);
-          transition: transform 0.6s ease, box-shadow 0.6s ease, color 0.4s ease;
-          display: inline-flex;
-          justify-content: center;
-        }
-
-        .next-countdown.urgent {
-          color: #fde68a;
-          animation: nextCountdownGlow 1.6s ease-in-out infinite;
-          text-shadow: 0 0 20px rgba(253, 224, 71, 0.8);
-          box-shadow: 0 40px 75px rgba(234, 179, 8, 0.48);
-        }
-
-        .next-empty {
-          margin-top: 1rem;
-          font-style: italic;
-          color: rgba(226, 232, 240, 0.7);
-        }
-
-        .todo-section {
-          display: grid;
-          gap: 1rem;
-        }
-
-        form.add-todo {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.75rem;
-          margin-top: 1rem;
-        }
-
-        form.add-todo input[name="task"] {
-          flex: 1 1 240px;
-        }
-
-        .todo-list {
-          list-style: none;
-          margin: 0;
-          padding: 0;
-          display: grid;
-          gap: 0.75rem;
-        }
-
-        .todo-item {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          padding: 0.75rem 1rem;
-          border-radius: 10px;
-          border: 1px solid rgba(148, 163, 184, 0.25);
-          background: rgba(15, 23, 42, 0.55);
-        }
-
-        .todo-item.done {
-          border-color: rgba(34, 197, 94, 0.4);
-          background: rgba(34, 197, 94, 0.08);
-        }
-
-        .todo-item.done .todo-text {
-          text-decoration: line-through;
-          opacity: 0.75;
-        }
-
-        .todo-text {
-          flex: 1;
-        }
-
-        .todo-actions {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .todo-actions form {
-          margin: 0;
-        }
-
-        .todo-empty {
-          padding: 1rem;
-          border-radius: 10px;
-          border: 1px dashed rgba(148, 163, 184, 0.4);
-          background: rgba(148, 163, 184, 0.08);
-          text-align: center;
-          font-style: italic;
-          color: rgba(226, 232, 240, 0.75);
-        }
-
-        button.secondary {
-          background: rgba(37, 99, 235, 0.18);
-          border-color: rgba(37, 99, 235, 0.3);
-        }
-
-        button.secondary:hover {
-          background: rgba(37, 99, 235, 0.26);
-        }
-
-        button.danger {
-          background: rgba(248, 113, 113, 0.15);
-          border-color: rgba(248, 113, 113, 0.3);
-        }
-
-        button.danger:hover {
-          background: rgba(248, 113, 113, 0.24);
-        }
-      </style>
+      <link rel="stylesheet" href="/public/styles.css">
     </head>
     <body>
       <header>
@@ -1149,13 +802,85 @@ app.get('/', async (req, res) => {
         <p>Live currency strength snapshot and high-impact event timers</p>
       </header>
       <main>
-        <div class="bento-grid">
-        ${message ? `<div class="message full">${escapeHtml(message)}</div>` : ''}
-        ${errorMsg ? `<div class="error full">${escapeHtml(errorMsg)}</div>` : ''}
-        <div class="col-left">
-        <section>
-          <h2>Currency Strength (1D Change)</h2>
-          <p>Source: Babypips â€¢ Watchlist: FXCM Forex â€¢ Period: 1 Day â€¢ Stream: Real-Time</p>
+        ${message ? `<div class="message" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(message)}</div>` : ''}
+        ${errorMsg ? `<div class="error" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(errorMsg)}</div>` : ''}
+
+        <!-- Large Featured Countdown at Top -->
+        <section class="next-countdown-featured" style="max-width: 1480px; margin: 0 auto 1.5rem auto;">
+          <div class="next-event-wrapper">
+            <h2 style="margin-bottom: 1rem; font-size: 1.5rem;">Next Event Countdown</h2>
+            <div id="next-event-panel">
+              ${nextEventPanel}
+            </div>
+          </div>
+        </section>
+
+        <!-- Todo List and Quick Notes Side by Side -->
+        <div class="bento-grid" style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <div class="col-left">
+            <div id="todo-root"></div>
+          </div>
+          <div class="col-right">
+            <div id="notes-root"></div>
+          </div>
+        </div>
+
+        <!-- Upcoming Events (Limited to 3) -->
+        <section class="events-section" style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <h2 style="margin-bottom: 1rem;">Upcoming High Impact News</h2>
+          <p style="margin-bottom: 1rem; font-size: 0.9rem; color: rgba(226, 232, 240, 0.75);">
+            Currently tracking ${manualUpcoming.length} manual and ${autoEvents.length} automatic events.
+          </p>
+          <div class="events-preview">
+            <div class="events-limited"></div>
+          </div>
+          <button id="toggle-events-btn" class="toggle-events-btn" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">
+            Show All Events & Add Event
+          </button>
+          <div id="events-expanded" style="display: none; margin-top: 1rem;">
+            <div class="events-scroll" style="max-height: 400px; overflow-y: auto; padding: 0.5rem 0; margin-bottom: 1rem;">
+              <div class="events-all"></div>
+            </div>
+            <form method="POST" action="/events" class="add-event" id="add-event-form">
+              <h3 style="margin-bottom: 0.75rem;">Add Event</h3>
+              <div class="field-row two">
+                <label>
+                  Title
+                  <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
+                </label>
+                <label>
+                  Country (e.g. USD)
+                  <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
+                </label>
+              </div>
+              <div class="field-row two">
+                <label>
+                  Date
+                  <input id="event-date" type="date" required />
+                </label>
+                <label>
+                  Time
+                  <input id="event-time" type="time" step="60" required />
+                </label>
+              </div>
+              <input id="event-datetime-hidden" type="hidden" name="datetime" />
+              <div class="chips" id="dt-presets">
+                <span class="chip" data-mins="30">+30m</span>
+                <span class="chip" data-mins="60">+1h</span>
+                <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
+                <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
+                <span class="chip" data-preset="market-open">Next Market Open</span>
+              </div>
+              <div class="tz-hint" id="tz-hint"></div>
+              <button type="submit">Add Event</button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Currency Strength -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.7); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
+          <h2>Currency Strength (24H Change)</h2>
+          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.75); margin-bottom: 1rem;">Source: European Central Bank (via Frankfurter API) • Major Currencies • 24-Hour Change</p>
           <table>
             <thead>
               <tr><th>#</th><th>Currency</th><th>Change</th></tr>
@@ -1165,72 +890,15 @@ app.get('/', async (req, res) => {
             </tbody>
           </table>
         </section>
-        <section class="todo-section">
-          <div id="todo-root"></div>
-        </section>
-        </div>
-        <div class="col-right">
-        <section class="events-card-min col-right">
-          <h2>Upcoming High Impact News</h2>
-          <p>
-            Events are shown from two sources:
-            <strong> automatic calendar</strong> (Forex Factory high-impact feed) and your
-            <strong> manual entries</strong> using the form below. Manual items appear first.
-            <br />
-            Currently tracking ${manualUpcoming.length} manual and ${autoEvents.length} automatic events.
-          </p>
-          <div class="next-event-wrapper">
-            <h3>Next Event Countdown</h3>
-            <div id="next-event-panel">
-              ${nextEventPanel}
-            </div>
-          </div>
-          <div class="events-scroll">
-            <div class="events"></div>
-          </div>
-          <form method="POST" action="/events" class="add-event" id="add-event-form">
-            <h3>Add Event</h3>
-            <div class="field-row two">
-              <label>
-                Title
-                <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
-              </label>
-              <label>
-                Country (e.g. USD)
-                <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
-              </label>
-            </div>
-            <div class="field-row two">
-              <label>
-                Date
-                <input id="event-date" type="date" required />
-              </label>
-              <label>
-                Time
-                <input id="event-time" type="time" step="60" required />
-              </label>
-            </div>
-            <input id="event-datetime-hidden" type="hidden" name="datetime" />
-            <div class="chips" id="dt-presets">
-              <span class="chip" data-mins="30">+30m</span>
-              <span class="chip" data-mins="60">+1h</span>
-              <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
-              <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
-              <span class="chip" data-preset="market-open">Next Market Open</span>
-            </div>
-            <div class="tz-hint" id="tz-hint"></div>
-            <button type="submit">Add Event</button>
-          </form>
-        </section>
-        </div>
-        </div>
-        <section class="full">
-          <h2>Trading Journal (Calendar)</h2>
-          <div id="journal-root" class="mt-2"></div>
+
+        <!-- Trading Journal (Below Fold) -->
+        <section class="full" style="max-width: 1480px; margin: 0 auto;">
+          <h2 style="margin-bottom: 1rem;">Trading Journal (Calendar)</h2>
+          <div id="journal-root"></div>
         </section>
       </main>
       <footer>
-        Updated on demand â€¢ Times are shown in your local timezone â€¢ Final 3 minutes include an audible tick
+        Updated on demand • Times are shown in your local timezone • Final 3 minutes include an audible tick
       </footer>
       <script>
         const THREE_MINUTES = 3 * 60 * 1000;
@@ -1334,21 +1002,56 @@ app.get('/', async (req, res) => {
         }
 
         function renderEvents() {
-          const container = document.querySelector('.events');
-          if (!container) return;
-          container.innerHTML = '';
+          // Render limited events (first 3)
+          const limitedContainer = document.querySelector('.events-limited');
+          const allContainer = document.querySelector('.events-all');
+
+          if (!limitedContainer || !allContainer) return;
+
+          limitedContainer.innerHTML = '';
+          allContainer.innerHTML = '';
+
           if (!events || events.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'next-empty';
-            empty.textContent = 'No events yet. Add one below or wait for the feed.';
-            container.appendChild(empty);
+            empty.style.cssText = 'padding: 2rem; text-align: center; font-style: italic; color: rgba(226, 232, 240, 0.7);';
+            empty.textContent = 'No upcoming events. Add one using the form below.';
+            limitedContainer.appendChild(empty);
             return;
           }
-          events.forEach((event) => container.appendChild(createEventCard(event)));
-          const firstCard = container.firstElementChild;
-          if (firstCard) {
-            firstCard.classList.add('primary-card');
-            firstCard.dataset.primary = 'true';
+
+          // Show first 3 events in limited view
+          const limitedEvents = events.slice(0, 3);
+          limitedEvents.forEach((event) => {
+            const card = createEventCard(event);
+            limitedContainer.appendChild(card);
+          });
+
+          // Show all events in expanded view
+          events.forEach((event) => {
+            const card = createEventCard(event);
+            allContainer.appendChild(card);
+          });
+
+          // Hide toggle button if 3 or fewer events
+          const toggleBtn = document.getElementById('toggle-events-btn');
+          if (toggleBtn) {
+            toggleBtn.style.display = events.length <= 3 ? 'none' : 'block';
+          }
+        }
+
+        // Toggle events expand/collapse
+        function setupEventsToggle() {
+          const toggleBtn = document.getElementById('toggle-events-btn');
+          const expandedSection = document.getElementById('events-expanded');
+          let isExpanded = false;
+
+          if (toggleBtn && expandedSection) {
+            toggleBtn.addEventListener('click', () => {
+              isExpanded = !isExpanded;
+              expandedSection.style.display = isExpanded ? 'block' : 'none';
+              toggleBtn.textContent = isExpanded ? 'Hide Events & Form' : 'Show All Events & Add Event';
+            });
           }
         }
 
@@ -1422,13 +1125,14 @@ app.get('/', async (req, res) => {
         }
 
         renderEvents();
+        setupEventsToggle();
         updateCountdowns();
         updateNextEventCountdown();
         setInterval(() => {
           updateCountdowns();
           updateNextEventCountdown();
         }, 1000);
-        
+
         function pad2(n) { return String(n).padStart(2, '0'); }
         function formatForDatetimeLocal(d) {
           const yyyy = d.getFullYear();
@@ -1548,12 +1252,33 @@ app.get('/', async (req, res) => {
         }
       </script>
   <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         const root = ReactDOM.createRoot(document.getElementById('todo-root'));
         root.render(React.createElement(TodoCard));
+        const nroot = ReactDOM.createRoot(document.getElementById('notes-root'));
+        nroot.render(React.createElement(QuickNotes));
         const jroot = ReactDOM.createRoot(document.getElementById('journal-root'));
         jroot.render(React.createElement(JournalCalendar));
+      </script>
+      <script>
+        // Live reload WebSocket connection
+        (function() {
+          const ws = new WebSocket('ws://' + window.location.host);
+          ws.onopen = () => console.log('[Live Reload] Connected');
+          ws.onmessage = (event) => {
+            if (event.data === 'reload') {
+              console.log('[Live Reload] Reloading page...');
+              window.location.reload();
+            }
+          };
+          ws.onclose = () => {
+            console.log('[Live Reload] Disconnected. Retrying in 2s...');
+            setTimeout(() => window.location.reload(), 2000);
+          };
+          ws.onerror = (err) => console.log('[Live Reload] Error:', err);
+        })();
       </script>
     </body>
   </html>`;
@@ -1793,6 +1518,24 @@ app.get('/next', async (req, res) => {
         update();
         setInterval(update, 1000);
       </script>
+      <script>
+        // Live reload WebSocket connection
+        (function() {
+          const ws = new WebSocket('ws://' + window.location.host);
+          ws.onopen = () => console.log('[Live Reload] Connected');
+          ws.onmessage = (event) => {
+            if (event.data === 'reload') {
+              console.log('[Live Reload] Reloading page...');
+              window.location.reload();
+            }
+          };
+          ws.onclose = () => {
+            console.log('[Live Reload] Disconnected. Retrying in 2s...');
+            setTimeout(() => window.location.reload(), 2000);
+          };
+          ws.onerror = (err) => console.log('[Live Reload] Error:', err);
+        })();
+      </script>
     </body>
   </html>`;
 
@@ -1800,8 +1543,51 @@ app.get('/next', async (req, res) => {
   res.send(html);
   });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Alphalabs data trading server running on http://localhost:${PORT}`);
+});
+
+// WebSocket server for live reload
+const wss = new WebSocketServer({ server });
+const wsClients = new Set();
+
+wss.on('connection', (ws) => {
+  console.log('Live reload client connected');
+  wsClients.add(ws);
+
+  ws.on('close', () => {
+    wsClients.delete(ws);
+    console.log('Live reload client disconnected');
+  });
+});
+
+function notifyReload() {
+  wsClients.forEach((client) => {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      client.send('reload');
+    }
+  });
+  console.log(`Sent reload signal to ${wsClients.size} client(s)`);
+}
+
+// Watch JSX files for changes
+const jsxFiles = [
+  path.join(__dirname, 'todo-card.jsx'),
+  path.join(__dirname, 'journal.jsx'),
+  path.join(__dirname, 'quick-notes.jsx'),
+  path.join(__dirname, 'animated-title.jsx'),
+];
+
+jsxFiles.forEach((file) => {
+  if (fs.existsSync(file)) {
+    fs.watch(file, { persistent: true }, (eventType) => {
+      if (eventType === 'change') {
+        console.log(`File changed: ${path.basename(file)}`);
+        notifyReload();
+      }
+    });
+    console.log(`Watching: ${path.basename(file)}`);
+  }
 });
 
 
