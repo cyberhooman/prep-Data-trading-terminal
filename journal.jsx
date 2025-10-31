@@ -71,7 +71,7 @@ function DataScoreRadar({ entries }) {
   const guideCircles = [2, 4, 6, 8, 10];
 
   return (
-    <div className="rounded-xl border border-slate-700 p-3 bg-slate-900/60 flex flex-col">
+    <div className="rounded-xl border border-slate-700 p-3 bg-slate-900/60 flex flex-col min-h-[240px]">
       <h3 className="text-sm font-semibold mb-2">Data Score</h3>
       <div className="flex-1 flex flex-col items-center justify-center">
         <svg viewBox="0 0 200 200" className="w-full max-w-[180px]">
@@ -199,34 +199,36 @@ function ProgressTracker({ entries }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
-      <h3 className="text-sm font-semibold mb-3">Progress Tracker</h3>
-      <div className="flex gap-1">
-        {weeks.map((week, wIdx) => (
-          <div key={wIdx} className="flex flex-col gap-1">
-            {week.map((day, dIdx) => (
+    <div className="rounded-xl border border-slate-700 p-3 bg-slate-900/60 flex flex-col min-h-[240px]">
+      <h3 className="text-sm font-semibold mb-2">Progress Tracker</h3>
+      <div className="flex-1 flex flex-col justify-between">
+        <div className="flex gap-1 justify-center items-center flex-1">
+          {weeks.map((week, wIdx) => (
+            <div key={wIdx} className="flex flex-col gap-1 flex-1">
+              {week.map((day, dIdx) => (
+                <div
+                  key={dIdx}
+                  className="w-full aspect-square rounded-sm"
+                  style={{ backgroundColor: getHeatColor(day.totalPnL, day.count) }}
+                  title={`${day.date.toLocaleDateString()}: ${day.count} trades, $${day.totalPnL.toFixed(2)}`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
+          <span>Less</span>
+          <div className="flex gap-1">
+            {[0.3, 0.5, 0.7, 0.9].map(opacity => (
               <div
-                key={dIdx}
-                className="w-3 h-3 rounded-sm"
-                style={{ backgroundColor: getHeatColor(day.totalPnL, day.count) }}
-                title={`${day.date.toLocaleDateString()}: ${day.count} trades, $${day.totalPnL.toFixed(2)}`}
+                key={opacity}
+                className="w-2.5 h-2.5 rounded-sm"
+                style={{ backgroundColor: `rgba(34, 197, 94, ${opacity})` }}
               />
             ))}
           </div>
-        ))}
-      </div>
-      <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
-        <span>Less</span>
-        <div className="flex gap-1">
-          {[0.3, 0.5, 0.7, 0.9].map(opacity => (
-            <div
-              key={opacity}
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: `rgba(34, 197, 94, ${opacity})` }}
-            />
-          ))}
+          <span>More</span>
         </div>
-        <span>More</span>
       </div>
     </div>
   );
@@ -274,51 +276,53 @@ function AccountBalanceChart({ entries }) {
   const pathData = points ? `M ${points}` : '';
 
   return (
-    <div className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
-      <h3 className="text-sm font-semibold mb-3">Account Balance</h3>
-      <div className="flex items-baseline gap-2 mb-2">
-        <div className="text-2xl font-bold text-slate-100">
-          ${balanceData[balanceData.length - 1]?.balance.toFixed(2) || '0.00'}
+    <div className="rounded-xl border border-slate-700 p-3 bg-slate-900/60 flex flex-col min-h-[240px]">
+      <h3 className="text-sm font-semibold mb-2">Account Balance</h3>
+      <div className="flex-1 flex flex-col justify-between">
+        <div className="flex items-baseline gap-2">
+          <div className="text-xl font-bold text-slate-100">
+            ${balanceData[balanceData.length - 1]?.balance.toFixed(2) || '0.00'}
+          </div>
+          <div className={`text-xs ${balanceData[balanceData.length - 1]?.balance >= 10000 ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {balanceData[balanceData.length - 1]?.balance >= 10000 ? '+' : ''}
+            {((balanceData[balanceData.length - 1]?.balance || 10000) - 10000).toFixed(2)}
+          </div>
         </div>
-        <div className={`text-sm ${balanceData[balanceData.length - 1]?.balance >= 10000 ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {balanceData[balanceData.length - 1]?.balance >= 10000 ? '+' : ''}
-          {((balanceData[balanceData.length - 1]?.balance || 10000) - 10000).toFixed(2)}
-        </div>
-      </div>
-      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-20">
-        {/* Grid lines */}
-        {[0, 25, 50, 75, 100].map(pct => {
-          const y = svgHeight - (pct / 100) * svgHeight;
-          return (
-            <line
-              key={pct}
-              x1={padding}
-              y1={y}
-              x2={svgWidth - padding}
-              y2={y}
-              stroke="rgba(148, 163, 184, 0.1)"
-              strokeWidth="1"
-            />
-          );
-        })}
+        <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full flex-1" style={{ minHeight: '120px' }}>
+          {/* Grid lines */}
+          {[0, 25, 50, 75, 100].map(pct => {
+            const y = svgHeight - (pct / 100) * svgHeight;
+            return (
+              <line
+                key={pct}
+                x1={padding}
+                y1={y}
+                x2={svgWidth - padding}
+                y2={y}
+                stroke="rgba(148, 163, 184, 0.1)"
+                strokeWidth="1"
+              />
+            );
+          })}
 
-        {/* Balance line */}
-        {pathData && (
-          <>
-            <polyline
-              points={points}
-              fill="none"
-              stroke="rgb(99, 102, 241)"
-              strokeWidth="2"
-            />
-            {/* Area under curve */}
-            <polygon
-              points={`${padding},${svgHeight - padding} ${points} ${svgWidth - padding},${svgHeight - padding}`}
-              fill="rgba(99, 102, 241, 0.1)"
-            />
-          </>
-        )}
-      </svg>
+          {/* Balance line */}
+          {pathData && (
+            <>
+              <polyline
+                points={points}
+                fill="none"
+                stroke="rgb(99, 102, 241)"
+                strokeWidth="2.5"
+              />
+              {/* Area under curve */}
+              <polygon
+                points={`${padding},${svgHeight - padding} ${points} ${svgWidth - padding},${svgHeight - padding}`}
+                fill="rgba(99, 102, 241, 0.15)"
+              />
+            </>
+          )}
+        </svg>
+      </div>
     </div>
   );
 }
@@ -391,8 +395,9 @@ function MonthlyGoals({ entries, cursor }) {
   const goalPnL = 5000; // Monthly goal
 
   return (
-    <div className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
-      <h3 className="text-sm font-semibold mb-3">{monthName} Goals</h3>
+    <div className="rounded-xl border border-slate-700 p-3 bg-slate-900/60 flex flex-col min-h-[240px]">
+      <h3 className="text-sm font-semibold mb-2">{monthName} Goals</h3>
+      <div className="flex-1 flex flex-col justify-center">
 
       <div className="space-y-3">
         <div>
@@ -423,6 +428,7 @@ function MonthlyGoals({ entries, cursor }) {
           <div className="text-xs text-slate-400">Total Trades</div>
           <div className="text-xl font-bold text-slate-100">{stats.totalTrades}</div>
         </div>
+      </div>
       </div>
     </div>
   );

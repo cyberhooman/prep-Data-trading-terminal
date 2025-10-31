@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Database
+data/trading.db
+data/trading.db-shm
+data/trading.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Windows null device file (created by bash commands)
+nul
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Build outputs
+dist/
+build/

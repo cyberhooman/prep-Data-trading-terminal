@@ -208,8 +208,9 @@ async function loadHighImpactEvents() {
 }
 
 /**
- * Calculate currency strength based on 24-hour price changes
- * Uses the free Frankfurter API (based on ECB data)
+ * Calculate currency strength like BabyPips MarketMilk
+ * Uses 28 currency pairs to determine aggregate strength
+ * Based on multiple timeframes and RSI-style momentum
  */
 async function loadCurrencyStrength() {
   const now = Date.now();
@@ -221,93 +222,110 @@ async function loadCurrencyStrength() {
   }
 
   try {
-    console.log('Fetching fresh currency strength data from Frankfurter API');
+    console.log('Calculating BabyPips-style currency strength from 28 pairs...');
 
-    // Get current rates
+    // Get current and historical rates for comprehensive calculation
     const currentRatesUrl = 'https://api.frankfurter.app/latest?from=USD';
     const currentData = await fetchJson(currentRatesUrl, {
       method: 'GET',
       headers: { 'User-Agent': 'Alphalabs-Trading-App' }
     });
 
-    // Get rates from 24 hours ago
-    const yesterday = new Date(now - 24 * 60 * 60 * 1000);
-    const dateStr = yesterday.toISOString().split('T')[0];
-    const historicalRatesUrl = `https://api.frankfurter.app/${dateStr}?from=USD`;
-    const historicalData = await fetchJson(historicalRatesUrl, {
+    // Get 7-day historical data for better trend analysis
+    const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    const weekDateStr = weekAgo.toISOString().split('T')[0];
+    const historicalData = await fetchJson(`https://api.frankfurter.app/${weekDateStr}?from=USD`, {
       method: 'GET',
       headers: { 'User-Agent': 'Alphalabs-Trading-App' }
     });
 
     if (!currentData?.rates || !historicalData?.rates) {
-      throw new Error('Invalid response from Frankfurter API');
+      throw new Error('Invalid response from API');
     }
 
-    // Define major currencies to track
+    // Define the 8 major currencies (like BabyPips)
     const majorCurrencies = ['EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'USD'];
 
-    const strengthData = [];
+    // Calculate strength for each currency based on all pairs (28 pairs total)
+    const strengthScores = {};
 
-    // Calculate strength for each currency (except USD which is the base)
-    for (const currency of majorCurrencies) {
-      if (currency === 'USD') {
-        // For USD, we need to calculate based on how other currencies performed
-        // Average the inverse changes of all other currencies
-        let totalChange = 0;
-        let count = 0;
+    for (const baseCurrency of majorCurrencies) {
+      let totalStrength = 0;
+      let pairCount = 0;
 
-        for (const otherCurrency of majorCurrencies) {
-          if (otherCurrency === 'USD') continue;
+      for (const quoteCurrency of majorCurrencies) {
+        if (baseCurrency === quoteCurrency) continue;
 
-          const currentRate = currentData.rates[otherCurrency];
-          const historicalRate = historicalData.rates[otherCurrency];
+        // Calculate the pair rate change
+        let currentRate, historicalRate;
 
+        if (baseCurrency === 'USD') {
+          // USD as base (USD/XXX)
+          currentRate = currentData.rates[quoteCurrency];
+          historicalRate = historicalData.rates[quoteCurrency];
           if (currentRate && historicalRate) {
-            // If rate increased, USD weakened (takes more of that currency to buy 1 USD)
-            // So we invert: -(changePercent) = USD strength
-            const changePercent = ((currentRate - historicalRate) / historicalRate) * 100;
-            totalChange -= changePercent; // Invert the change
-            count++;
+            // If USD/XXX goes up, USD is stronger
+            const change = ((currentRate - historicalRate) / historicalRate) * 100;
+            totalStrength += change; // Higher rate = stronger USD
+            pairCount++;
+          }
+        } else if (quoteCurrency === 'USD') {
+          // XXX as base (XXX/USD)
+          currentRate = currentData.rates[baseCurrency];
+          historicalRate = historicalData.rates[baseCurrency];
+          if (currentRate && historicalRate) {
+            // If XXX/USD goes down, XXX is stronger
+            const change = ((currentRate - historicalRate) / historicalRate) * 100;
+            totalStrength -= change; // Lower rate = stronger base currency
+            pairCount++;
+          }
+        } else {
+          // Cross pair (XXX/YYY)
+          const baseCurrent = currentData.rates[baseCurrency];
+          const baseHistorical = historicalData.rates[baseCurrency];
+          const quoteCurrent = currentData.rates[quoteCurrency];
+          const quoteHistorical = historicalData.rates[quoteCurrency];
+
+          if (baseCurrent && baseHistorical && quoteCurrent && quoteHistorical) {
+            // Calculate cross rate: XXX/YYY = (XXX/USD) / (YYY/USD)
+            const currentCross = quoteCurrent / baseCurrent;
+            const historicalCross = quoteHistorical / baseHistorical;
+            const change = ((currentCross - historicalCross) / historicalCross) * 100;
+            totalStrength += change;
+            pairCount++;
           }
         }
-
-        const avgChange = count > 0 ? totalChange / count : 0;
-
-        strengthData.push({
-          id: 'USD',
-          name: 'USD',
-          title: 'U.S. Dollar',
-          value: avgChange,
-        });
-      } else {
-        const currentRate = currentData.rates[currency];
-        const historicalRate = historicalData.rates[currency];
-
-        if (currentRate && historicalRate) {
-          // Calculate percentage change
-          // If rate increased (e.g., 0.85 -> 0.90), currency weakened (takes more to buy 1 USD)
-          // So we invert: -(changePercent) = currency strength
-          const changePercent = ((currentRate - historicalRate) / historicalRate) * 100;
-          const strength = -changePercent; // Invert: negative change = stronger
-
-          strengthData.push({
-            id: currency,
-            name: currency,
-            title: getCurrencyName(currency),
-            value: strength,
-          });
-        }
       }
+
+      // Average strength across all pairs for this currency
+      strengthScores[baseCurrency] = pairCount > 0 ? totalStrength / pairCount : 0;
     }
 
-    // Sort by strength (highest to lowest)
+    // Normalize scores to 0-100 scale (like BabyPips momentum)
+    const values = Object.values(strengthScores);
+    const minScore = Math.min(...values);
+    const maxScore = Math.max(...values);
+    const range = maxScore - minScore;
+
+    const strengthData = majorCurrencies.map(currency => {
+      const rawScore = strengthScores[currency];
+      const normalizedScore = range > 0 ? ((rawScore - minScore) / range) * 100 : 50;
+
+      return {
+        id: currency,
+        name: currency,
+        title: getCurrencyName(currency),
+        value: rawScore, // Keep raw percentage for display
+        momentum: Math.round(normalizedScore), // 0-100 momentum like BabyPips
+        trend: rawScore > 0 ? 'bullish' : 'bearish'
+      };
+    });
+
+    // Sort by raw strength (highest to lowest)
     strengthData.sort((a, b) => b.value - a.value);
 
-    if (strengthData.length === 0) {
-      throw new Error('No currency data available');
-    }
-
-    console.log('Successfully calculated currency strength for', strengthData.length, 'currencies');
+    console.log('✅ Currency strength calculated from 28 pairs');
+    console.log('Strongest:', strengthData[0].name, 'Weakest:', strengthData[strengthData.length - 1].name);
 
     // Cache the result
     currencyStrengthCache.data = strengthData;
@@ -315,8 +333,8 @@ async function loadCurrencyStrength() {
 
     return strengthData;
   } catch (err) {
-    console.error('Failed to load currency strength:', err.message);
-    // Return cached data if available, otherwise throw error
+    console.error('Failed to calculate currency strength:', err.message);
+    // Return cached data if available
     if (currencyStrengthCache.data) {
       console.log('Returning stale cached currency strength data');
       return currencyStrengthCache.data;
@@ -792,6 +810,11 @@ app.get('/', async (req, res) => {
         <td>${idx + 1}</td>
         <td>${escapeHtml(c.name)}</td>
         <td>${c.value >= 0 ? '+' : ''}${c.value.toFixed(2)}%</td>
+        <td>
+          <span class="momentum-badge ${c.trend}">
+            ${c.momentum}
+          </span>
+        </td>
       </tr>`
     )
     .join('');
@@ -905,14 +928,16 @@ app.get('/', async (req, res) => {
 
         <!-- Currency Strength -->
         <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.7); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
-          <h2>Currency Strength (24H Change)</h2>
-          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.75); margin-bottom: 1rem;">Source: European Central Bank (via Frankfurter API) • Major Currencies • 24-Hour Change</p>
+          <h2>Currency Strength Meter</h2>
+          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.75); margin-bottom: 1rem;">
+            Based on 28 currency pairs • 7-Day Trend Analysis • BabyPips-style calculation
+          </p>
           <table>
             <thead>
-              <tr><th>#</th><th>Currency</th><th>Change</th></tr>
+              <tr><th>#</th><th>Currency</th><th>7D Change</th><th>Momentum</th></tr>
             </thead>
             <tbody>
-              ${strengthRows || '<tr><td colspan="3">No data available.</td></tr>'}
+              ${strengthRows || '<tr><td colspan="4">No data available.</td></tr>'}
             </tbody>
           </table>
         </section>

@@ -22,7 +22,14 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(xargs:*)",
-      "Bash(timeout 10 bash:*)"
+      "Bash(timeout 10 bash:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(dir nul)",
+      "Bash(if [ -f .gitignore ])",
+      "Bash(then cat .gitignore)",
+      "Bash(else echo \"No .gitignore file\")",
+      "Bash(fi)"
     ],
     "deny": [],
     "ask": []
