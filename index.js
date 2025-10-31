@@ -461,6 +461,11 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
 
 app.use(express.urlencoded({ extended: true }));
 
+// Trust proxy for Railway deployment (required for secure cookies behind proxy)
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-change-this-in-production',
@@ -468,6 +473,8 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
