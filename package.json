@@ -4,8 +4,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "nodemon index.js",
-    "start:prod": "SET NODE_ENV=production&& node index.js",
+    "dev:express": "nodemon index.js",
+    "start": "node index.js",
+    "start:prod": "NODE_ENV=production node index.js",
     "migrate": "node migrate.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
