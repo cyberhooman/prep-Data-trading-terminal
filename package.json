@@ -2,6 +2,9 @@
   "name": "journaling-app-ccc_alpha",
   "version": "1.0.0",
   "main": "index.js",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "nodemon index.js",
     "dev:express": "nodemon index.js",
