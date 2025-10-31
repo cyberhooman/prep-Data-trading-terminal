@@ -2,10 +2,7 @@
 nixPkgs = ["python3"]
 
 [phases.install]
-cmds = ["npm ci"]
-
-[phases.build]
-cmds = []
+cmds = ["npm install"]
 
 [start]
 cmd = "node index.js"
