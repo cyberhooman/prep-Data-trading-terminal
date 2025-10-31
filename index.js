@@ -23,8 +23,8 @@ const MARKETMILK_API = 'https://marketmilk.babypips.com/api';
 const FOREX_LIST_ID = 'fxcm:forex';
 const DEFAULT_PERIOD = 'ONE_DAY';
 const DEFAULT_STREAM = 'REAL_TIME';
-const CALENDAR_CACHE_TTL = 60 * 60 * 1000 + 30 * 1000; // roughly one hour between refreshes
-const CALENDAR_RATE_LIMIT_DELAY = 5 * 60 * 1000; // wait 5 minutes after a 429 before retrying
+const CALENDAR_CACHE_TTL = 3 * 60 * 60 * 1000; // 3 hours between refreshes (avoid rate limit)
+const CALENDAR_RATE_LIMIT_DELAY = 30 * 60 * 1000; // wait 30 minutes after a 429 before retrying
 
 const calendarCache = {
   timestamp: 0,
@@ -155,32 +155,54 @@ function convertCalendarRecords(records) {
 async function loadHighImpactEvents() {
   const now = Date.now();
 
+  // Check if we should use cache (respect rate limits)
+  if (now < calendarCache.nextAllowed && Array.isArray(calendarCache.records)) {
+    console.log('Using cached calendar data (rate limit protection)');
+    return convertCalendarRecords(calendarCache.records);
+  }
+
   try {
-    console.log('Fetching calendar data...');
+    console.log('Fetching fresh calendar data...');
     const data = await fetchJson(FA_ECON_CAL_URL, {
       headers: {
-        'User-Agent': 'MarketCountdownWeb/1.0',
+        'User-Agent': 'AlphalabsTrading/1.0',
         'Accept': 'application/json',
       }
     });
-    
+
     if (!Array.isArray(data)) {
-      console.error('Invalid calendar data format:', data);
+      console.error('Invalid calendar data format (not an array)');
+      // If we have cache, use it
+      if (Array.isArray(calendarCache.records)) {
+        console.log('Using cached records due to invalid format');
+        return convertCalendarRecords(calendarCache.records);
+      }
       return [];
     }
 
-    // Update cache
+    // Update cache on success
     calendarCache.records = data;
     calendarCache.timestamp = now;
     calendarCache.nextAllowed = now + CALENDAR_CACHE_TTL;
+    console.log(`Calendar data updated. Next refresh allowed at: ${new Date(calendarCache.nextAllowed).toLocaleString()}`);
 
     return convertCalendarRecords(data);
   } catch (err) {
-    console.error('Calendar fetch error:', err);
+    console.error('Calendar fetch error:', err.message);
+
+    // If we got rate limited, increase cache time
+    if (err.message.includes('429') || err.message.includes('Rate Limited')) {
+      console.log('Rate limited! Extending cache time...');
+      calendarCache.nextAllowed = now + CALENDAR_RATE_LIMIT_DELAY;
+    }
+
+    // Use cache if available
     if (Array.isArray(calendarCache.records)) {
-      console.log('Using cached records');
+      console.log(`Using cached records (${calendarCache.records.length} events)`);
       return convertCalendarRecords(calendarCache.records);
     }
+
+    console.log('No cached data available, returning empty array');
     return [];
   }
 }
@@ -835,46 +857,50 @@ app.get('/', async (req, res) => {
             <div class="events-limited"></div>
           </div>
           <button id="toggle-events-btn" class="toggle-events-btn" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">
-            Show All Events & Add Event
+            Show All Events
           </button>
           <div id="events-expanded" style="display: none; margin-top: 1rem;">
             <div class="events-scroll" style="max-height: 400px; overflow-y: auto; padding: 0.5rem 0; margin-bottom: 1rem;">
               <div class="events-all"></div>
             </div>
-            <form method="POST" action="/events" class="add-event" id="add-event-form">
-              <h3 style="margin-bottom: 0.75rem;">Add Event</h3>
-              <div class="field-row two">
-                <label>
-                  Title
-                  <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
-                </label>
-                <label>
-                  Country (e.g. USD)
-                  <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
-                </label>
-              </div>
-              <div class="field-row two">
-                <label>
-                  Date
-                  <input id="event-date" type="date" required />
-                </label>
-                <label>
-                  Time
-                  <input id="event-time" type="time" step="60" required />
-                </label>
-              </div>
-              <input id="event-datetime-hidden" type="hidden" name="datetime" />
-              <div class="chips" id="dt-presets">
-                <span class="chip" data-mins="30">+30m</span>
-                <span class="chip" data-mins="60">+1h</span>
-                <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
-                <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
-                <span class="chip" data-preset="market-open">Next Market Open</span>
-              </div>
-              <div class="tz-hint" id="tz-hint"></div>
-              <button type="submit">Add Event</button>
-            </form>
           </div>
+        </section>
+
+        <!-- PERMANENT MANUAL EVENT FORM - ALWAYS VISIBLE -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 2px solid rgba(99, 102, 241, 0.4); background: rgba(15, 23, 42, 0.85); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
+          <form method="POST" action="/events" class="add-event" id="add-event-form">
+            <h3 style="margin-bottom: 0.75rem; font-size: 1.25rem; color: rgb(129, 140, 248);">📝 Add Manual Event</h3>
+            <div class="field-row two">
+              <label>
+                Title
+                <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
+              </label>
+              <label>
+                Country (e.g. USD)
+                <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
+              </label>
+            </div>
+            <div class="field-row two">
+              <label>
+                Date
+                <input id="event-date" type="date" required />
+              </label>
+              <label>
+                Time
+                <input id="event-time" type="time" step="60" required />
+              </label>
+            </div>
+            <input id="event-datetime-hidden" type="hidden" name="datetime" />
+            <div class="chips" id="dt-presets">
+              <span class="chip" data-mins="30">+30m</span>
+              <span class="chip" data-mins="60">+1h</span>
+              <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
+              <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
+              <span class="chip" data-preset="market-open">Next Market Open</span>
+            </div>
+            <div class="tz-hint" id="tz-hint"></div>
+            <button type="submit">Add Event</button>
+          </form>
         </section>
 
         <!-- Currency Strength -->
@@ -1040,7 +1066,7 @@ app.get('/', async (req, res) => {
           }
         }
 
-        // Toggle events expand/collapse
+        // Toggle events expand/collapse (form is now always visible)
         function setupEventsToggle() {
           const toggleBtn = document.getElementById('toggle-events-btn');
           const expandedSection = document.getElementById('events-expanded');
@@ -1050,7 +1076,7 @@ app.get('/', async (req, res) => {
             toggleBtn.addEventListener('click', () => {
               isExpanded = !isExpanded;
               expandedSection.style.display = isExpanded ? 'block' : 'none';
-              toggleBtn.textContent = isExpanded ? 'Hide Events & Form' : 'Show All Events & Add Event';
+              toggleBtn.textContent = isExpanded ? 'Hide All Events' : 'Show All Events';
             });
           }
         }
@@ -1570,19 +1596,20 @@ function notifyReload() {
   console.log(`Sent reload signal to ${wsClients.size} client(s)`);
 }
 
-// Watch JSX files for changes
-const jsxFiles = [
+// Watch JSX and CSS files for changes
+const watchedFiles = [
   path.join(__dirname, 'todo-card.jsx'),
   path.join(__dirname, 'journal.jsx'),
   path.join(__dirname, 'quick-notes.jsx'),
   path.join(__dirname, 'animated-title.jsx'),
+  path.join(__dirname, 'public', 'styles.css'),
 ];
 
-jsxFiles.forEach((file) => {
+watchedFiles.forEach((file) => {
   if (fs.existsSync(file)) {
     fs.watch(file, { persistent: true }, (eventType) => {
       if (eventType === 'change') {
-        console.log(`File changed: ${path.basename(file)}`);
+        console.log(`File changed: ${path.basename(file)} - Reloading clients...`);
         notifyReload();
       }
     });

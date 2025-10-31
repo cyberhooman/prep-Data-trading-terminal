@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Alphalabs Data Trading | Live Currency Strength & Economic Events</title>
+      <meta name="description" content="Real-time currency strength tracking and high-impact forex economic event countdowns. Track USD, EUR, GBP, JPY and other major currencies with live data updates.">
+      <meta name="keywords" content="currency strength, forex trading, economic calendar, forex events, trading dashboard, currency pairs, forex analysis">
+      <meta property="og:title" content="Alphalabs Data Trading | Live Currency Strength & Economic Events">
+      <meta property="og:description" content="Real-time currency strength tracking and high-impact forex economic event countdowns.">
+      <meta property="og:type" content="website">
+      <meta name="twitter:card" content="summary_large_image">
+      <link rel="canonical" href="http://localhost:3000/">
+      <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" defer></script>
+      <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" defer></script>
+      <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+      <script src="https://cdn.tailwindcss.com"></script>
+      <link rel="stylesheet" href="/public/styles.css">
+    </head>
+    <body>
+      <header>
+        <div id="animated-title-root" style="position: relative; height: 3.2rem; width: 100%;"></div>
+        <p>Live currency strength snapshot and high-impact event timers</p>
+      </header>
+      <main>
+        
+        
+
+        <!-- Large Featured Countdown at Top -->
+        <section class="next-countdown-featured" style="max-width: 1480px; margin: 0 auto 1.5rem auto;">
+          <div class="next-event-wrapper">
+            <h2 style="margin-bottom: 1rem; font-size: 1.5rem;">Next Event Countdown</h2>
+            <div id="next-event-panel">
+              
+      <div class="next-event-card">
+        <div class="next-event-title">
+          [CAD] GDP m/m
+          <span class="badge auto">
+            Auto
+          </span>
+        </div>
+        <div class="next-event-meta">Scheduled: Fri, Oct 31, 07:30 PM GMT+7</div>
+        <div class="countdown next-countdown" id="next-event-countdown">Loading...</div>
+      </div>
+    
+            </div>
+          </div>
+        </section>
+
+        <!-- Todo List and Quick Notes Side by Side -->
+        <div class="bento-grid" style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <div class="col-left">
+            <div id="todo-root"></div>
+          </div>
+          <div class="col-right">
+            <div id="notes-root"></div>
+          </div>
+        </div>
+
+        <!-- Upcoming Events (Limited to 3) -->
+        <section class="events-section" style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <h2 style="margin-bottom: 1rem;">Upcoming High Impact News</h2>
+          <p style="margin-bottom: 1rem; font-size: 0.9rem; color: rgba(226, 232, 240, 0.75);">
+            Currently tracking 0 manual and 1 automatic events.
+          </p>
+          <div class="events-preview">
+            <div class="events-limited"></div>
+          </div>
+          <button id="toggle-events-btn" class="toggle-events-btn" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">
+            Show All Events
+          </button>
+          <div id="events-expanded" style="display: none; margin-top: 1rem;">
+            <div class="events-scroll" style="max-height: 400px; overflow-y: auto; padding: 0.5rem 0; margin-bottom: 1rem;">
+              <div class="events-all"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PERMANENT MANUAL EVENT FORM - ALWAYS VISIBLE -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 2px solid rgba(99, 102, 241, 0.4); background: rgba(15, 23, 42, 0.85); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
+          <form method="POST" action="/events" class="add-event" id="add-event-form">
+            <h3 style="margin-bottom: 0.75rem; font-size: 1.25rem; color: rgb(129, 140, 248);">📝 Add Manual Event</h3>
+            <div class="field-row two">
+              <label>
+                Title
+                <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
+              </label>
+              <label>
+                Country (e.g. USD)
+                <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
+              </label>
+            </div>
+            <div class="field-row two">
+              <label>
+                Date
+                <input id="event-date" type="date" required />
+              </label>
+              <label>
+                Time
+                <input id="event-time" type="time" step="60" required />
+              </label>
+            </div>
+            <input id="event-datetime-hidden" type="hidden" name="datetime" />
+            <div class="chips" id="dt-presets">
+              <span class="chip" data-mins="30">+30m</span>
+              <span class="chip" data-mins="60">+1h</span>
+              <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
+              <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
+              <span class="chip" data-preset="market-open">Next Market Open</span>
+            </div>
+            <div class="tz-hint" id="tz-hint"></div>
+            <button type="submit">Add Event</button>
+          </form>
+        </section>
+
+        <!-- Currency Strength -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.7); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
+          <h2>Currency Strength (24H Change)</h2>
+          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.75); margin-bottom: 1rem;">Source: European Central Bank (via Frankfurter API) • Major Currencies • 24-Hour Change</p>
+          <table>
+            <thead>
+              <tr><th>#</th><th>Currency</th><th>Change</th></tr>
+            </thead>
+            <tbody>
+              
+      <tr>
+        <td>1</td>
+        <td>EUR</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>GBP</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>JPY</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>CHF</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>CAD</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>AUD</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>NZD</td>
+        <td>+0.00%</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>USD</td>
+        <td>+0.00%</td>
+      </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <!-- Trading Journal (Below Fold) -->
+        <section class="full" style="max-width: 1480px; margin: 0 auto;">
+          <h2 style="margin-bottom: 1rem;">Trading Journal (Calendar)</h2>
+          <div id="journal-root"></div>
+        </section>
+      </main>
+      <footer>
+        Updated on demand • Times are shown in your local timezone • Final 3 minutes include an audible tick
+      </footer>
+      <script>
+        const THREE_MINUTES = 3 * 60 * 1000;
+        const events = [{"id":"auto-2025-10-31T08:30:00-04:00-GDP m/m","title":"GDP m/m","country":"CAD","timestamp":1761913800000,"formatted":"Fri, Oct 31, 07:30 PM GMT+7","source":"auto"}];
+        const nextEventData = {"id":"auto-2025-10-31T08:30:00-04:00-GDP m/m","title":"GDP m/m","country":"CAD","timestamp":1761913800000,"formatted":"Fri, Oct 31, 07:30 PM GMT+7","source":"auto"};
+        let nextWarned = false;
+        let nextAnnounced = false;
+        let countdownSoundTimer = null;
+        let sharedAudioCtx = null;
+
+        function formatDuration(ms) {
+          if (ms <= 0) return '00:00:00';
+          const totalSeconds = Math.floor(ms / 1000);
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+        }
+
+        function getAudioContext() {
+          if (!sharedAudioCtx) {
+            sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (sharedAudioCtx.state === 'suspended') {
+            sharedAudioCtx.resume();
+          }
+          return sharedAudioCtx;
+        }
+
+        function scheduleTick(ctx, startAt) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.00001, startAt);
+          gain.gain.exponentialRampToValueAtTime(0.22, startAt + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.00001, startAt + 0.22);
+          osc.frequency.value = 880;
+          osc.connect(gain).connect(ctx.destination);
+          osc.start(startAt);
+          osc.stop(startAt + 0.24);
+        }
+
+        function playTick() {
+          const ctx = getAudioContext();
+          const now = ctx.currentTime;
+          scheduleTick(ctx, now);
+          scheduleTick(ctx, now + 0.28);
+        }
+
+        function announceStart(title, country) {
+          const ctx = getAudioContext();
+          const baseTime = ctx.currentTime;
+          for (let i = 0; i < 3; i++) {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const offset = baseTime + i * 0.3;
+            gain.gain.setValueAtTime(0.00001, offset);
+            gain.gain.exponentialRampToValueAtTime(0.3, offset + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.00001, offset + 0.25);
+            osc.frequency.value = 660;
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(offset);
+            osc.stop(offset + 0.26);
+          }
+          if ('speechSynthesis' in window) {
+            const msg = new SpeechSynthesisUtterance(`${country} ${title} is starting now`);
+            window.speechSynthesis.speak(msg);
+          }
+        }
+
+        function startCountdownSound() {
+          if (countdownSoundTimer) return;
+          playTick();
+          countdownSoundTimer = setInterval(() => {
+            playTick();
+          }, 1000);
+        }
+
+        function stopCountdownSound() {
+          if (!countdownSoundTimer) return;
+          clearInterval(countdownSoundTimer);
+          countdownSoundTimer = null;
+        }
+
+        function createEventCard(event) {
+          const card = document.createElement('div');
+          card.className = 'event-card';
+          card.dataset.timestamp = event.timestamp;
+          card.dataset.eventId = event.id;
+          const badge = event.source === 'manual' ? '<span class="badge manual">Manual</span>' : '<span class="badge auto">Auto</span>';
+          card.innerHTML = `
+            <div class="event-title">[${event.country}] ${event.title} ${badge}</div>
+            <div class="event-meta">Scheduled: ${event.formatted}</div>
+            <div class="countdown">Loading...</div>
+            ${event.source === 'manual' ? `<form class="delete-form" method="POST" action="/events/delete">
+              <input type="hidden" name="id" value="${event.id}">
+              <button type="submit">Remove</button>
+            </form>` : ''}
+          `;
+          return card;
+        }
+
+        function renderEvents() {
+          // Render limited events (first 3)
+          const limitedContainer = document.querySelector('.events-limited');
+          const allContainer = document.querySelector('.events-all');
+
+          if (!limitedContainer || !allContainer) return;
+
+          limitedContainer.innerHTML = '';
+          allContainer.innerHTML = '';
+
+          if (!events || events.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'next-empty';
+            empty.style.cssText = 'padding: 2rem; text-align: center; font-style: italic; color: rgba(226, 232, 240, 0.7);';
+            empty.textContent = 'No upcoming events. Add one using the form below.';
+            limitedContainer.appendChild(empty);
+            return;
+          }
+
+          // Show first 3 events in limited view
+          const limitedEvents = events.slice(0, 3);
+          limitedEvents.forEach((event) => {
+            const card = createEventCard(event);
+            limitedContainer.appendChild(card);
+          });
+
+          // Show all events in expanded view
+          events.forEach((event) => {
+            const card = createEventCard(event);
+            allContainer.appendChild(card);
+          });
+
+          // Hide toggle button if 3 or fewer events
+          const toggleBtn = document.getElementById('toggle-events-btn');
+          if (toggleBtn) {
+            toggleBtn.style.display = events.length <= 3 ? 'none' : 'block';
+          }
+        }
+
+        // Toggle events expand/collapse (form is now always visible)
+        function setupEventsToggle() {
+          const toggleBtn = document.getElementById('toggle-events-btn');
+          const expandedSection = document.getElementById('events-expanded');
+          let isExpanded = false;
+
+          if (toggleBtn && expandedSection) {
+            toggleBtn.addEventListener('click', () => {
+              isExpanded = !isExpanded;
+              expandedSection.style.display = isExpanded ? 'block' : 'none';
+              toggleBtn.textContent = isExpanded ? 'Hide All Events' : 'Show All Events';
+            });
+          }
+        }
+
+        function updateCountdowns() {
+          const now = Date.now();
+          document.querySelectorAll('.event-card').forEach((card) => {
+            const timestamp = Number(card.dataset.timestamp);
+            const diff = timestamp - now;
+            const countdownEl = card.querySelector('.countdown');
+
+            if (diff <= 0) {
+              countdownEl.textContent = 'In progress!';
+              countdownEl.classList.add('started');
+              card.classList.add('highlight');
+              if (!card.dataset.started) {
+                if (!card.dataset.primary) {
+                  announceStart(card.querySelector('.event-title').textContent.replace(/\[.*?\]\s*/,'').trim(), card.querySelector('.event-title').textContent.match(/\[(.*?)\]/)?.[1] || '');
+                }
+                card.dataset.started = 'true';
+              }
+              return;
+            }
+
+            countdownEl.textContent = formatDuration(diff);
+            if (diff <= THREE_MINUTES) {
+              countdownEl.classList.add('urgent');
+              card.classList.add('highlight');
+              if (!card.dataset.warned && !card.dataset.primary) {
+                playTick();
+                card.dataset.warned = 'true';
+              }
+            } else {
+              countdownEl.classList.remove('urgent');
+              card.classList.remove('highlight');
+              card.dataset.warned = '';
+            }
+          });
+        }
+
+        function updateNextEventCountdown() {
+          if (!nextEventData) return;
+          const countdownEl = document.getElementById('next-event-countdown');
+          if (!countdownEl) return;
+          const diff = nextEventData.timestamp - Date.now();
+          if (diff <= 0) {
+            countdownEl.textContent = 'IN SESSION';
+            countdownEl.classList.add('started');
+            countdownEl.classList.remove('urgent');
+            stopCountdownSound();
+            if (!nextAnnounced) {
+              announceStart(nextEventData.title, nextEventData.country);
+              nextAnnounced = true;
+            }
+            return;
+          }
+
+          countdownEl.textContent = formatDuration(diff);
+          if (diff <= THREE_MINUTES) {
+            countdownEl.classList.add('urgent');
+            if (!nextWarned) {
+              startCountdownSound();
+              nextWarned = true;
+            }
+          } else {
+            countdownEl.classList.remove('urgent');
+            if (nextWarned) {
+              stopCountdownSound();
+            }
+            nextWarned = false;
+          }
+        }
+
+        renderEvents();
+        setupEventsToggle();
+        updateCountdowns();
+        updateNextEventCountdown();
+        setInterval(() => {
+          updateCountdowns();
+          updateNextEventCountdown();
+        }, 1000);
+
+        function pad2(n) { return String(n).padStart(2, '0'); }
+        function formatForDatetimeLocal(d) {
+          const yyyy = d.getFullYear();
+          const mm = pad2(d.getMonth() + 1);
+          const dd = pad2(d.getDate());
+          const hh = pad2(d.getHours());
+          const mi = pad2(d.getMinutes());
+          return yyyy + '-' + mm + '-' + dd + 'T' + hh + ':' + mi;
+        }
+
+        function computeNextMonday(base) {
+          const d = new Date(base);
+          const day = d.getDay(); // Sun=0..Sat=6, want Mon=1
+          const diff = (8 - (day || 7));
+          d.setDate(d.getDate() + diff - 1); // move to next Monday
+          return d;
+        }
+
+        function nextMarketOpen(base) {
+          // Simple heuristic: next weekday at 09:00 local time
+          const d = new Date(base);
+          d.setDate(d.getDate() + 1);
+          d.setHours(9, 0, 0, 0);
+          // If weekend, push to Monday 09:00
+          while ([0,6].includes(d.getDay())) {
+            d.setDate(d.getDate() + 1);
+          }
+          return d;
+        }
+
+        function initEventPresets() {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
+          const tzHint = document.getElementById('tz-hint');
+          if (tzHint) tzHint.textContent = 'Times in ' + tz;
+          const dateInput = document.getElementById('event-date');
+          const timeInput = document.getElementById('event-time');
+          const hiddenInput = document.getElementById('event-datetime-hidden');
+          const presetRow = document.getElementById('dt-presets');
+          if (!dateInput || !timeInput) return;
+
+          function syncHidden() {
+            if (!dateInput.value || !timeInput.value) return;
+            const parts = dateInput.value.split('-');
+            const tparts = timeInput.value.split(':');
+            if (parts.length !== 3 || tparts.length < 2) return;
+            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), Number(tparts[0]), Number(tparts[1]), 0, 0);
+            if (hiddenInput) hiddenInput.value = d.toISOString();
+          }
+
+          dateInput.addEventListener('input', syncHidden);
+          timeInput.addEventListener('input', syncHidden);
+
+          // Initialize defaults: today, next rounded hour
+          (function initDefaults() {
+            const now = new Date();
+            const dstr = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
+            dateInput.value = dstr;
+            const mins = now.getMinutes();
+            const nextHour = new Date(now);
+            if (mins > 30) { nextHour.setHours(now.getHours() + 1, 0, 0, 0); } else { nextHour.setMinutes(30, 0, 0); }
+            timeInput.value = pad2(nextHour.getHours()) + ':' + pad2(nextHour.getMinutes());
+            syncHidden();
+          })();
+
+          presetRow.addEventListener('click', (e) => {
+            const el = e.target.closest('.chip');
+            if (!el) return;
+            const now = new Date();
+            let target = null;
+            if (el.dataset.mins) {
+              target = new Date(now.getTime() + Number(el.dataset.mins) * 60000);
+            } else if (el.dataset.preset === 'tomorrow-9') {
+              target = new Date(now);
+              target.setDate(now.getDate() + 1);
+              target.setHours(9, 0, 0, 0);
+            } else if (el.dataset.preset === 'next-mon-830') {
+              target = computeNextMonday(now);
+              target.setHours(8, 30, 0, 0);
+            } else if (el.dataset.preset === 'market-open') {
+              target = nextMarketOpen(now);
+            }
+            if (target) {
+              const dstr = target.getFullYear() + '-' + pad2(target.getMonth() + 1) + '-' + pad2(target.getDate());
+              const tstr = pad2(target.getHours()) + ':' + pad2(target.getMinutes());
+              dateInput.value = dstr;
+              timeInput.value = tstr;
+              dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+              timeInput.dispatchEvent(new Event('input', { bubbles: true }));
+              syncHidden();
+            }
+          });
+
+          const form = document.getElementById('add-event-form');
+          if (form) {
+            form.addEventListener('submit', function(){
+              syncHidden();
+            });
+          }
+        }
+
+        initEventPresets();
+
+  // Animated title will be mounted by React component (animated-title.jsx).
+      </script>
+      <script type="text/babel">
+        // Load the simple animated title immediately
+        try {
+          const root = document.getElementById('animated-title-root');
+          if (root) {
+            const s = document.createElement('script');
+            s.type = 'text/babel';
+            s.src = '/animated-title.jsx';
+            document.body.appendChild(s);
+          }
+        } catch (e) {
+          console.error('Failed to load animated title:', e);
+        }
+      </script>
+  <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
+      <script type="text/babel" data-presets="env,react">
+        const root = ReactDOM.createRoot(document.getElementById('todo-root'));
+        root.render(React.createElement(TodoCard));
+        const nroot = ReactDOM.createRoot(document.getElementById('notes-root'));
+        nroot.render(React.createElement(QuickNotes));
+        const jroot = ReactDOM.createRoot(document.getElementById('journal-root'));
+        jroot.render(React.createElement(JournalCalendar));
+      </script>
+      <script>
+        // Live reload WebSocket connection
+        (function() {
+          const ws = new WebSocket('ws://' + window.location.host);
+          ws.onopen = () => console.log('[Live Reload] Connected');
+          ws.onmessage = (event) => {
+            if (event.data === 'reload') {
+              console.log('[Live Reload] Reloading page...');
+              window.location.reload();
+            }
+          };
+          ws.onclose = () => {
+            console.log('[Live Reload] Disconnected. Retrying in 2s...');
+            setTimeout(() => window.location.reload(), 2000);
+          };
+          ws.onerror = (err) => console.log('[Live Reload] Error:', err);
+        })();
+      </script>
+    </body>
+  </html>

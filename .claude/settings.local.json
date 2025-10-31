@@ -17,7 +17,12 @@
       "Bash(node test_analytics_api.js:*)",
       "Bash(node test_free_forex.js:*)",
       "Bash(awk:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(npm start)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(xargs:*)",
+      "Bash(timeout 10 bash:*)"
     ],
     "deny": [],
     "ask": []
