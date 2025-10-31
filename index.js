@@ -7,6 +7,8 @@
  *
  * The timers flash and play a louder tick during the final 3 minutes before an event,
  * and announce when an event starts.
+ *
+ * Auto-reload enabled via nodemon - server restarts on file changes.
  */
 
 const express = require('express');
@@ -837,36 +839,40 @@ app.get('/', async (req, res) => {
       <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
       <script src="https://cdn.tailwindcss.com"></script>
-      <link rel="stylesheet" href="/public/styles.css">
+      <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
     </head>
     <body>
       <header>
-        <div id="animated-title-root" style="position: relative; height: 3.2rem; width: 100%;"></div>
-        <p>Live currency strength snapshot and high-impact event timers</p>
+        <div style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto;">
+          <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            Alphalabs Data Trading
+          </h1>
+          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.7);">Live currency strength snapshot and high-impact event timers</p>
+        </div>
       </header>
       <main>
         ${message ? `<div class="message" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(message)}</div>` : ''}
         ${errorMsg ? `<div class="error" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(errorMsg)}</div>` : ''}
 
-        <!-- Large Featured Countdown at Top -->
-        <section class="next-countdown-featured" style="max-width: 1480px; margin: 0 auto 1.5rem auto;">
-          <div class="next-event-wrapper">
-            <h2 style="margin-bottom: 1rem; font-size: 1.5rem;">Next Event Countdown</h2>
+        <!-- BENTO LAYOUT: Event Countdown, Notes, Todo List -->
+        <div class="bento-container" style="max-width: 1480px; margin: 0 auto 2rem;">
+          <!-- Large Event Countdown Box (Full Width) -->
+          <div class="bento-box bento-countdown">
+            <h2 style="margin-bottom: 1rem; font-size: 1.5rem; font-weight: 700;">⏰ Next Event Countdown</h2>
             <div id="next-event-panel">
               ${nextEventPanel}
             </div>
           </div>
-        </section>
 
-        <!-- Todo List and Quick Notes Side by Side -->
-        <div class="bento-grid" style="max-width: 1480px; margin: 0 auto 1.5rem;">
-          <div class="col-left">
-            <div id="todo-root"></div>
-          </div>
-          <div class="col-right">
+          <!-- Quick Notes & Warnings Box (Left) -->
+          <div class="bento-box bento-notes">
             <div id="notes-root"></div>
+          </div>
+
+          <!-- Todo List Box (Right) -->
+          <div class="bento-box bento-todos">
+            <div id="todo-root"></div>
           </div>
         </div>
 
