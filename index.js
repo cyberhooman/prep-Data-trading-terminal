@@ -495,13 +495,14 @@ app.get('/login', (req, res) => {
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Login - Alphalabs Trading</title>
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+      <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           min-height: 100vh;
           overflow: hidden;
+          background: #000;
         }
         #shader-bg {
           position: fixed;
@@ -510,6 +511,11 @@ app.get('/login', (req, res) => {
           width: 100%;
           height: 100%;
           z-index: 0;
+        }
+        #shader-bg canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
         }
         .content-wrapper {
           position: relative;
