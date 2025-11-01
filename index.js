@@ -591,7 +591,7 @@ app.get('/login', (req, res) => {
       <div id="shader-bg"></div>
       <div class="content-wrapper">
         <div class="login-container">
-          <h1>🚀 Alphalabs Trading</h1>
+          <h1>🚀 Alphalabs Terminal</h1>
           <p>Sign in with your Google account to access your trading dashboard</p>
 
           <a href="/auth/google" class="google-btn">
