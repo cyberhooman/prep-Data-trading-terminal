@@ -1767,8 +1767,9 @@ app.get('/next', async (req, res) => {
   res.send(html);
   });
 
-const server = app.listen(PORT, () => {
-  console.log(`Alphalabs data trading server running on http://localhost:${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Alphalabs data trading server running on http://0.0.0.0:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // WebSocket server for live reload
