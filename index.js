@@ -393,6 +393,7 @@ let manualEvents = loadJson('events.json', []).map(event => ({
 const todoItems = loadJson('todos.json', []);
 const journalEntries = loadJson('journal.json', []);
 const quickNotes = loadJson('notes.json', []);
+const accountSettings = loadJson('account-settings.json', { startingBalance: 10000 });
 
 function getUpcomingEvents() {
   const now = Date.now();
@@ -889,6 +890,28 @@ app.delete('/api/journal/:id', (req, res) => {
   // persist journal entries after deletion
   saveJson('journal.json', journalEntries);
   res.json({ success: true });
+});
+
+/**
+ * Account Settings API
+ * ------------------------------------------------
+ * GET  /api/account-settings  → get account settings
+ * PUT  /api/account-settings  → { startingBalance }
+ */
+app.get('/api/account-settings', (req, res) => {
+  res.json(accountSettings);
+});
+
+app.put('/api/account-settings', (req, res) => {
+  const { startingBalance } = req.body || {};
+
+  if (typeof startingBalance === 'number' && startingBalance >= 0) {
+    accountSettings.startingBalance = startingBalance;
+    saveJson('account-settings.json', accountSettings);
+    res.json(accountSettings);
+  } else {
+    res.status(400).json({ error: 'Invalid starting balance' });
+  }
 });
 
 /**

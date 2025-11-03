@@ -235,15 +235,15 @@ function ProgressTracker({ entries }) {
 }
 
 // Account Balance Chart Component
-function AccountBalanceChart({ entries }) {
+function AccountBalanceChart({ entries, startingBalance = 10000, onEditBalance }) {
   const balanceData = useMemo(() => {
     if (entries.length === 0) return [];
 
     // Sort entries by date
     const sorted = [...entries].sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Starting balance
-    let balance = 10000; // Default starting balance
+    // Starting balance from prop
+    let balance = startingBalance;
     const data = [{ date: sorted[0]?.date, balance: balance }];
 
     sorted.forEach(entry => {
@@ -252,7 +252,7 @@ function AccountBalanceChart({ entries }) {
     });
 
     return data;
-  }, [entries]);
+  }, [entries, startingBalance]);
 
   const { minBalance, maxBalance } = useMemo(() => {
     if (balanceData.length === 0) return { minBalance: 10000, maxBalance: 10000 };
@@ -275,17 +275,34 @@ function AccountBalanceChart({ entries }) {
 
   const pathData = points ? `M ${points}` : '';
 
+  const currentBalance = balanceData[balanceData.length - 1]?.balance || startingBalance;
+  const balanceChange = currentBalance - startingBalance;
+
   return (
     <div className="rounded-xl border border-slate-700 p-3 bg-slate-900/60 flex flex-col min-h-[240px]">
-      <h3 className="text-sm font-semibold mb-2">Account Balance</h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-semibold">Account Balance</h3>
+        {onEditBalance && (
+          <button
+            onClick={onEditBalance}
+            className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 transition-colors"
+          >
+            Set Start
+          </button>
+        )}
+      </div>
       <div className="flex-1 flex flex-col justify-between">
-        <div className="flex items-baseline gap-2">
-          <div className="text-xl font-bold text-slate-100">
-            ${balanceData[balanceData.length - 1]?.balance.toFixed(2) || '0.00'}
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline gap-2">
+            <div className="text-xl font-bold text-slate-100">
+              ${currentBalance.toFixed(2)}
+            </div>
+            <div className={`text-xs ${balanceChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+              {balanceChange >= 0 ? '+' : ''}${balanceChange.toFixed(2)}
+            </div>
           </div>
-          <div className={`text-xs ${balanceData[balanceData.length - 1]?.balance >= 10000 ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {balanceData[balanceData.length - 1]?.balance >= 10000 ? '+' : ''}
-            {((balanceData[balanceData.length - 1]?.balance || 10000) - 10000).toFixed(2)}
+          <div className="text-[10px] text-slate-400">
+            Start: ${startingBalance.toFixed(2)}
           </div>
         </div>
         <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full flex-1" style={{ minHeight: '120px' }}>
@@ -443,6 +460,9 @@ function JournalCalendar() {
   const [editingId, setEditingId] = useState(null);
   const formRef = useRef(null);
   const savedScrollPos = useRef(null);
+  const [startingBalance, setStartingBalance] = useState(10000);
+  const [editingBalance, setEditingBalance] = useState(false);
+  const [tempBalance, setTempBalance] = useState('');
 
   const monthKey = useMemo(() => formatMonthKey(cursor), [cursor]);
 
@@ -464,6 +484,14 @@ function JournalCalendar() {
       cancelled = true;
     };
   }, [monthKey]);
+
+  // Load starting balance
+  useEffect(() => {
+    fetch('/api/account-settings')
+      .then(res => res.json())
+      .then(data => setStartingBalance(data.startingBalance || 10000))
+      .catch(() => setStartingBalance(10000));
+  }, []);
 
   // Restore scroll position after editing starts
   useEffect(() => {
@@ -660,13 +688,88 @@ function JournalCalendar() {
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
+  async function saveStartingBalance() {
+    const balance = parseFloat(tempBalance);
+    if (isNaN(balance) || balance < 0) {
+      alert('Please enter a valid balance');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/account-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startingBalance: balance }),
+      });
+
+      if (res.ok) {
+        setStartingBalance(balance);
+        setEditingBalance(false);
+        setTempBalance('');
+      }
+    } catch (error) {
+      console.error('Error saving balance:', error);
+      alert('Failed to save balance');
+    }
+  }
+
+  // Calculate current balance
+  const totalPnL = useMemo(() => {
+    return entries.reduce((sum, entry) => sum + (entry.pnl || 0), 0);
+  }, [entries]);
+
+  const currentBalance = startingBalance + totalPnL;
+
   return (
     <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-4 text-slate-100">
+      {/* Starting Balance Modal */}
+      {editingBalance && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingBalance(false)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold mb-4">Set Starting Balance</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">Starting Balance ($)</label>
+                <input
+                  type="number"
+                  value={tempBalance}
+                  onChange={(e) => setTempBalance(e.target.value)}
+                  placeholder={startingBalance.toString()}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={saveStartingBalance}
+                  className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors font-semibold"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingBalance(false);
+                    setTempBalance('');
+                  }}
+                  className="px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <DataScoreRadar entries={entries} />
         <ProgressTracker entries={entries} />
-        <AccountBalanceChart entries={entries} />
+        <AccountBalanceChart
+          entries={entries}
+          startingBalance={startingBalance}
+          onEditBalance={() => setEditingBalance(true)}
+        />
         <MonthlyGoals entries={entries} cursor={cursor} />
       </div>
 
