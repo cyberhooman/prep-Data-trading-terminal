@@ -1229,6 +1229,36 @@ app.get('/', async (req, res) => {
     )
     .join('');
 
+  const userProfile = req.user || null;
+  const userPrimaryEmail =
+    userProfile && Array.isArray(userProfile.emails) && userProfile.emails.length > 0
+      ? userProfile.emails[0]?.value || ''
+      : '';
+  const userAvatar =
+    userProfile && Array.isArray(userProfile.photos) && userProfile.photos.length > 0
+      ? userProfile.photos[0]?.value || ''
+      : '';
+  const userDisplayName = userProfile
+    ? userProfile.displayName || userPrimaryEmail || 'Trader'
+    : '';
+
+  const authControlsHtml = userProfile
+    ? `
+          <div class="auth-controls">
+            ${userAvatar ? `<img src="${escapeHtml(userAvatar)}" alt="User avatar" class="auth-avatar" />` : ''}
+            <div class="auth-user">
+              <strong>${escapeHtml(userDisplayName)}</strong>
+              ${userPrimaryEmail ? `<span>${escapeHtml(userPrimaryEmail)}</span>` : ''}
+            </div>
+            <a href="/logout" class="auth-button logout" title="Sign out of this dashboard">⎋ Logout</a>
+          </div>
+        `
+    : `
+          <div class="auth-controls">
+            <a href="/login" class="auth-button login" title="Sign in to your dashboard">🔑 Login</a>
+          </div>
+        `;
+
   const html = `<!DOCTYPE html>
   <html lang="en">
     <head>
@@ -1249,14 +1279,75 @@ app.get('/', async (req, res) => {
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <script src="https://cdn.tailwindcss.com"></script>
       <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
+      <style>
+        .auth-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .auth-avatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 9999px;
+          border: 2px solid rgba(96, 165, 250, 0.35);
+          object-fit: cover;
+        }
+        .auth-user {
+          text-align: right;
+          line-height: 1.2;
+        }
+        .auth-user strong {
+          font-size: 0.95rem;
+          color: #e2e8f0;
+          font-weight: 600;
+        }
+        .auth-user span {
+          display: block;
+          font-size: 0.75rem;
+          color: rgba(226, 232, 240, 0.6);
+        }
+        .auth-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.45rem 1rem;
+          border-radius: 9999px;
+          text-decoration: none;
+          font-weight: 600;
+          transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
+        }
+        .auth-button.login {
+          background: rgba(79, 70, 229, 0.22);
+          border: 1px solid rgba(99, 102, 241, 0.5);
+          color: #c7d2fe;
+        }
+        .auth-button.login:hover {
+          background: rgba(99, 102, 241, 0.32);
+          border-color: rgba(129, 140, 248, 0.7);
+          color: #eef2ff;
+        }
+        .auth-button.logout {
+          background: rgba(248, 113, 113, 0.2);
+          border: 1px solid rgba(248, 113, 113, 0.45);
+          color: #fecaca;
+        }
+        .auth-button.logout:hover {
+          background: rgba(248, 113, 113, 0.3);
+          border-color: rgba(248, 113, 113, 0.65);
+          color: #fee2e2;
+        }
+      </style>
     </head>
     <body>
       <header>
         <div style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto;">
-          <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-            Alphalabs Data Trading
-          </h1>
-          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.7);">Live currency strength snapshot and high-impact event timers</p>
+          <div>
+            <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+              Alphalabs Data Trading
+            </h1>
+            <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.7);">Live currency strength snapshot and high-impact event timers</p>
+          </div>
+          ${authControlsHtml}
         </div>
       </header>
       <main>
