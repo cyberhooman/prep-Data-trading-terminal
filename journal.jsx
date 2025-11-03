@@ -1,4 +1,4 @@
-const { useEffect, useMemo, useState } = React;
+const { useEffect, useMemo, useState, useRef } = React;
 
 function startOfMonth(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -441,6 +441,8 @@ function JournalCalendar() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [form, setForm] = useState({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
   const [editingId, setEditingId] = useState(null);
+  const formRef = useRef(null);
+  const savedScrollPos = useRef(null);
 
   const monthKey = useMemo(() => formatMonthKey(cursor), [cursor]);
 
@@ -462,6 +464,14 @@ function JournalCalendar() {
       cancelled = true;
     };
   }, [monthKey]);
+
+  // Restore scroll position after editing starts
+  useEffect(() => {
+    if (savedScrollPos.current !== null) {
+      window.scrollTo(0, savedScrollPos.current);
+      savedScrollPos.current = null;
+    }
+  }, [editingId]);
 
   const days = useMemo(() => {
     const start = startOfMonth(cursor);
@@ -586,18 +596,23 @@ function JournalCalendar() {
   }
 
   function startEdit(entry) {
+    // Save current scroll position to ref
+    savedScrollPos.current = window.scrollY || window.pageYOffset;
+
+    // Strip out image markdown from note for editing
+    const noteWithoutImages = (entry.note || '').replace(/!\[.*?\]\(data:image\/[^)]+\)/g, '').trim();
+
+    // Update all state at once
     setEditingId(entry.id);
     setSelectedDate(new Date(entry.date));
     setForm({
       title: entry.title,
-      note: entry.note || '',
+      note: noteWithoutImages,
       pnl: entry.pnl !== null ? String(entry.pnl) : '',
       mood: entry.mood || '',
       tags: Array.isArray(entry.tags) ? entry.tags.join(', ') : '',
       images: []
     });
-    // Scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function cancelEdit() {
@@ -709,7 +724,7 @@ function JournalCalendar() {
 
       {/* Entry Form and List */}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
+        <div ref={formRef} className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
           <div className="font-semibold text-lg mb-1">
             {editingId ? 'Edit Entry' : 'Add Entry'} {selectedDate && `- ${selectedDate.toLocaleDateString()}`}
           </div>
@@ -880,13 +895,23 @@ function JournalCalendar() {
                     </div>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => startEdit(e)}
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          startEdit(e);
+                        }}
                         className="px-3 py-1 rounded-md text-xs bg-blue-600/20 hover:bg-blue-600 border border-blue-600/50 transition-colors"
                       >
                         Edit
                       </button>
                       <button
-                        onClick={() => removeEntry(e.id)}
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          removeEntry(e.id);
+                        }}
                         className="px-3 py-1 rounded-md text-xs bg-rose-600/20 hover:bg-rose-600 border border-rose-600/50 transition-colors"
                       >
                         Delete
