@@ -391,9 +391,58 @@ let manualEvents = loadJson('events.json', []).map(event => ({
 }));
 
 const todoItems = loadJson('todos.json', []);
-const journalEntries = loadJson('journal.json', []);
 const quickNotes = loadJson('notes.json', []);
-const accountSettings = loadJson('account-settings.json', { startingBalance: 10000 });
+// Account settings are now per-user, loaded on demand
+const userAccountSettings = {};
+
+const journalEntryCache = new Map();
+let legacyJournalLoaded = false;
+let legacyJournalEntries = [];
+
+function getJournalFilename(userId) {
+  return `journal-${userId}.json`;
+}
+
+function loadLegacyJournalEntries() {
+  if (!legacyJournalLoaded) {
+    legacyJournalEntries = loadJson('journal.json', []).filter(Boolean);
+    legacyJournalLoaded = true;
+  }
+  return legacyJournalEntries;
+}
+
+function getJournalEntries(userId) {
+  if (!userId) return [];
+
+  if (!journalEntryCache.has(userId)) {
+    const filename = getJournalFilename(userId);
+    const filePath = path.join(DATA_DIR, filename);
+    let entries;
+
+    if (fs.existsSync(filePath)) {
+      entries = loadJson(filename, []);
+    } else {
+      const legacyMatches = loadLegacyJournalEntries().filter(
+        (entry) => entry && entry.userId === userId
+      );
+      entries = legacyMatches.length > 0 ? legacyMatches : [];
+      if (legacyMatches.length > 0) {
+        saveJson(filename, entries);
+      }
+    }
+
+    journalEntryCache.set(userId, entries);
+  }
+
+  return journalEntryCache.get(userId);
+}
+
+function saveJournalEntries(userId) {
+  if (!userId) return;
+  const filename = getJournalFilename(userId);
+  const entries = journalEntryCache.get(userId) || [];
+  saveJson(filename, entries);
+}
 
 function getUpcomingEvents() {
   const now = Date.now();
@@ -786,13 +835,18 @@ app.get('/quick-notes.jsx', (req, res) => {
 });
 
 /**
- * Journal API (calendar POV)
+ * Journal API (calendar POV) - USER ISOLATED
  * ------------------------------------------------
- * GET  /api/journal?month=YYYY-MM  → entries for month (local time)
+ * GET  /api/journal?month=YYYY-MM  → entries for month (local time) for current user
  * POST /api/journal                 → { dateISO, title, note, pnl, mood, tags }
  * DELETE /api/journal/:id
  */
 app.get('/api/journal', (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const userId = req.user.id;
   const monthParam = String(req.query.month || '').trim();
   let start, end;
   if (/^\d{4}-\d{2}$/.test(monthParam)) {
@@ -804,16 +858,21 @@ app.get('/api/journal', (req, res) => {
     start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
     end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
   }
-  const entries = journalEntries
-    .filter((e) => {
-      const d = new Date(e.date);
-      return d >= start && d <= end;
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-  res.json(entries);
+  const userEntries = getJournalEntries(userId);
+  const filtered = userEntries.filter((e) => {
+    const d = new Date(e.date);
+    return d >= start && d <= end;
+  });
+  filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+  res.json(filtered);
 });
 
 app.post('/api/journal', (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const userId = req.user.id;
   const { dateISO, title, note, pnl, mood, tags } = req.body || {};
   const parsedDate = new Date(String(dateISO || ''));
   const cleanTitle = String(title || '').trim();
@@ -834,6 +893,7 @@ app.post('/api/journal', (req, res) => {
   const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   const entry = {
     id,
+    userId,  // Add user ID to entry
     date: parsedDate.toISOString(),
     title: cleanTitle,
     note: cleanNote,
@@ -841,17 +901,23 @@ app.post('/api/journal', (req, res) => {
     mood: cleanMood || null,
     tags: cleanTags,
   };
-  journalEntries.push(entry);
-  // persist journal entries
-  saveJson('journal.json', journalEntries);
+  const userEntries = getJournalEntries(userId);
+  userEntries.push(entry);
+  saveJournalEntries(userId);
   res.json(entry);
 });
 
 app.put('/api/journal/:id', (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const userId = req.user.id;
   const { id } = req.params;
   const { title, note, pnl, mood, tags } = req.body || {};
-  const idx = journalEntries.findIndex((e) => e.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  const userEntries = getJournalEntries(userId);
+  const idx = userEntries.findIndex((e) => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found or access denied' });
 
   const cleanTitle = String(title || '').trim();
   const cleanNote = String(note || '').trim();
@@ -869,8 +935,8 @@ app.put('/api/journal/:id', (req, res) => {
   }
 
   // Update entry
-  journalEntries[idx] = {
-    ...journalEntries[idx],
+  userEntries[idx] = {
+    ...userEntries[idx],
     title: cleanTitle,
     note: cleanNote,
     pnl: Number.isFinite(cleanPnl) ? cleanPnl : null,
@@ -878,37 +944,67 @@ app.put('/api/journal/:id', (req, res) => {
     tags: cleanTags,
   };
 
-  saveJson('journal.json', journalEntries);
-  res.json(journalEntries[idx]);
+  saveJournalEntries(userId);
+  res.json(userEntries[idx]);
 });
 
 app.delete('/api/journal/:id', (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const userId = req.user.id;
   const { id } = req.params;
-  const idx = journalEntries.findIndex((e) => e.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found' });
-  journalEntries.splice(idx, 1);
+  const userEntries = getJournalEntries(userId);
+  const idx = userEntries.findIndex((e) => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found or access denied' });
+  userEntries.splice(idx, 1);
   // persist journal entries after deletion
-  saveJson('journal.json', journalEntries);
+  saveJournalEntries(userId);
   res.json({ success: true });
 });
 
 /**
- * Account Settings API
+ * Account Settings API - USER ISOLATED
  * ------------------------------------------------
- * GET  /api/account-settings  → get account settings
+ * GET  /api/account-settings  → get account settings for current user
  * PUT  /api/account-settings  → { startingBalance }
  */
+function getUserSettings(userId) {
+  if (!userAccountSettings[userId]) {
+    const filename = `account-settings-${userId}.json`;
+    userAccountSettings[userId] = loadJson(filename, { startingBalance: 10000 });
+  }
+  return userAccountSettings[userId];
+}
+
+function saveUserSettings(userId, settings) {
+  userAccountSettings[userId] = settings;
+  const filename = `account-settings-${userId}.json`;
+  saveJson(filename, settings);
+}
+
 app.get('/api/account-settings', (req, res) => {
-  res.json(accountSettings);
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  const settings = getUserSettings(req.user.id);
+  res.json(settings);
 });
 
 app.put('/api/account-settings', (req, res) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
   const { startingBalance } = req.body || {};
 
   if (typeof startingBalance === 'number' && startingBalance >= 0) {
-    accountSettings.startingBalance = startingBalance;
-    saveJson('account-settings.json', accountSettings);
-    res.json(accountSettings);
+    const settings = getUserSettings(req.user.id);
+    settings.startingBalance = startingBalance;
+    saveUserSettings(req.user.id, settings);
+    res.json(settings);
   } else {
     res.status(400).json({ error: 'Invalid starting balance' });
   }
