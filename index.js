@@ -946,6 +946,7 @@ app.put('/api/journal/:id', (req, res) => {
     mood: cleanMood || null,
     tags: cleanTags,
     direction: cleanDirection,
+    direction: cleanDirection,
   };
 
   saveJournalEntries(userId);
