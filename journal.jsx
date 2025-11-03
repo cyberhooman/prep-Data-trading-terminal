@@ -503,33 +503,60 @@ function JournalCalendar() {
 
   async function createEntry(e) {
     e.preventDefault();
-    if (!selectedDate || !form.title.trim()) return;
-    // Create date at noon UTC to avoid timezone issues when converting to/from ISO
-    const dateUTC = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 12, 0, 0));
+    console.log('Form submitted!', { selectedDate, form });
 
-    // Append images to note as markdown
-    let noteWithImages = form.note.trim();
-    if (form.images.length > 0) {
-      const imageMarkdown = form.images.map(img => `\n![Pasted Image](${img})`).join('\n');
-      noteWithImages = noteWithImages + imageMarkdown;
+    if (!selectedDate) {
+      alert('Please select a date from the calendar first!');
+      return;
     }
 
-    const payload = {
-      dateISO: dateUTC.toISOString(),
-      title: form.title.trim(),
-      note: noteWithImages,
-      pnl: form.pnl === '' ? null : Number(form.pnl),
-      mood: form.mood.trim(),
-      tags: form.tags,
-    };
-    const res = await fetch('/api/journal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const saved = await res.json();
-    setEntries((prev) => [...prev, saved]);
-    setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+    if (!form.title.trim()) {
+      alert('Please enter a trade title!');
+      return;
+    }
+
+    try {
+      // Create date at noon UTC to avoid timezone issues when converting to/from ISO
+      const dateUTC = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 12, 0, 0));
+
+      // Append images to note as markdown
+      let noteWithImages = form.note.trim();
+      if (form.images.length > 0) {
+        const imageMarkdown = form.images.map(img => `\n![Pasted Image](${img})`).join('\n');
+        noteWithImages = noteWithImages + imageMarkdown;
+      }
+
+      const payload = {
+        dateISO: dateUTC.toISOString(),
+        title: form.title.trim(),
+        note: noteWithImages,
+        pnl: form.pnl === '' ? null : Number(form.pnl),
+        mood: form.mood.trim(),
+        tags: form.tags,
+      };
+
+      console.log('Sending payload:', payload);
+
+      const res = await fetch('/api/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const saved = await res.json();
+      console.log('Entry saved:', saved);
+
+      setEntries((prev) => [...prev, saved]);
+      setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+      alert('Entry saved successfully!');
+    } catch (error) {
+      console.error('Error saving entry:', error);
+      alert('Failed to save entry: ' + error.message);
+    }
   }
 
   // Handle paste event for images
@@ -627,9 +654,14 @@ function JournalCalendar() {
       {/* Entry Form and List */}
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
-          <div className="font-semibold text-lg mb-3">
+          <div className="font-semibold text-lg mb-1">
             Add Entry {selectedDate && `- ${selectedDate.toLocaleDateString()}`}
           </div>
+          {!selectedDate && (
+            <div className="text-xs text-amber-400 mb-2 flex items-center gap-1">
+              <span>⚠️</span> Click a date in the calendar above to select it first
+            </div>
+          )}
           <form onSubmit={createEntry} className="space-y-3">
             <input
               className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors"
