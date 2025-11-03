@@ -546,6 +546,7 @@ app.get('/login', (req, res) => {
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Login - Alphalabs Trading</title>
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
       <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1275,6 +1276,8 @@ app.get('/', async (req, res) => {
       <meta property="og:type" content="website">
       <meta name="twitter:card" content="summary_large_image">
       <link rel="canonical" href="http://localhost:${PORT}/">
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
       <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" defer></script>
       <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" defer></script>
       <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
