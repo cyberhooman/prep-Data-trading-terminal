@@ -372,12 +372,13 @@ function escapeHtml(str) {
 }
 
 function formatEventDate(date) {
-  return date.toLocaleString(undefined, {
+  return date.toLocaleString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
     timeZoneName: 'short',
   });
 }
