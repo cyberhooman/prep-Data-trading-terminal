@@ -846,6 +846,41 @@ app.post('/api/journal', (req, res) => {
   res.json(entry);
 });
 
+app.put('/api/journal/:id', (req, res) => {
+  const { id } = req.params;
+  const { title, note, pnl, mood, tags } = req.body || {};
+  const idx = journalEntries.findIndex((e) => e.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+
+  const cleanTitle = String(title || '').trim();
+  const cleanNote = String(note || '').trim();
+  const cleanMood = String(mood || '').trim();
+  const cleanTags = Array.isArray(tags)
+    ? tags.map((t) => String(t).trim()).filter(Boolean)
+    : String(tags || '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean);
+  const cleanPnl = Number(pnl);
+
+  if (!cleanTitle) {
+    return res.status(400).json({ error: 'Title is required.' });
+  }
+
+  // Update entry
+  journalEntries[idx] = {
+    ...journalEntries[idx],
+    title: cleanTitle,
+    note: cleanNote,
+    pnl: Number.isFinite(cleanPnl) ? cleanPnl : null,
+    mood: cleanMood || null,
+    tags: cleanTags,
+  };
+
+  saveJson('journal.json', journalEntries);
+  res.json(journalEntries[idx]);
+});
+
 app.delete('/api/journal/:id', (req, res) => {
   const { id } = req.params;
   const idx = journalEntries.findIndex((e) => e.id === id);

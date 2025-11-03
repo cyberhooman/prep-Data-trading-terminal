@@ -440,6 +440,7 @@ function JournalCalendar() {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [form, setForm] = useState({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+  const [editingId, setEditingId] = useState(null);
 
   const monthKey = useMemo(() => formatMonthKey(cursor), [cursor]);
 
@@ -584,7 +585,62 @@ function JournalCalendar() {
     }
   }
 
+  function startEdit(entry) {
+    setEditingId(entry.id);
+    setSelectedDate(new Date(entry.date));
+    setForm({
+      title: entry.title,
+      note: entry.note || '',
+      pnl: entry.pnl !== null ? String(entry.pnl) : '',
+      mood: entry.mood || '',
+      tags: Array.isArray(entry.tags) ? entry.tags.join(', ') : '',
+      images: []
+    });
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+  }
+
+  async function updateEntry(e) {
+    e.preventDefault();
+    if (!editingId || !form.title.trim()) return;
+
+    try {
+      const payload = {
+        title: form.title.trim(),
+        note: form.note.trim(),
+        pnl: form.pnl === '' ? null : Number(form.pnl),
+        mood: form.mood.trim(),
+        tags: form.tags,
+      };
+
+      const res = await fetch(`/api/journal/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const updated = await res.json();
+      setEntries((prev) => prev.map((e) => (e.id === editingId ? updated : e)));
+      setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+      setEditingId(null);
+      alert('Entry updated successfully!');
+    } catch (error) {
+      console.error('Error updating entry:', error);
+      alert('Failed to update entry: ' + error.message);
+    }
+  }
+
   async function removeEntry(id) {
+    if (!confirm('Are you sure you want to delete this entry?')) return;
     await fetch(`/api/journal/${id}`, { method: 'DELETE' });
     setEntries((prev) => prev.filter((e) => e.id !== id));
   }
@@ -655,14 +711,19 @@ function JournalCalendar() {
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-slate-700 p-4 bg-slate-900/60">
           <div className="font-semibold text-lg mb-1">
-            Add Entry {selectedDate && `- ${selectedDate.toLocaleDateString()}`}
+            {editingId ? 'Edit Entry' : 'Add Entry'} {selectedDate && `- ${selectedDate.toLocaleDateString()}`}
           </div>
-          {!selectedDate && (
+          {!selectedDate && !editingId && (
             <div className="text-xs text-amber-400 mb-2 flex items-center gap-1">
               <span>⚠️</span> Click a date in the calendar above to select it first
             </div>
           )}
-          <form onSubmit={createEntry} className="space-y-3">
+          {editingId && (
+            <div className="text-xs text-blue-400 mb-2 flex items-center gap-1">
+              <span>✏️</span> Editing existing entry
+            </div>
+          )}
+          <form onSubmit={editingId ? updateEntry : createEntry} className="space-y-3">
             <input
               className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors"
               placeholder="Trade Title"
@@ -724,12 +785,23 @@ function JournalCalendar() {
                 onChange={(e) => setForm({ ...form, tags: e.target.value })}
               />
             </div>
-            <button
-              type="submit"
-              className="w-full px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors font-semibold"
-            >
-              Save Entry
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 transition-colors font-semibold"
+              >
+                {editingId ? 'Update Entry' : 'Save Entry'}
+              </button>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="px-4 py-2.5 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors font-semibold"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
@@ -806,12 +878,20 @@ function JournalCalendar() {
                         </span>
                       ))}
                     </div>
-                    <button
-                      onClick={() => removeEntry(e.id)}
-                      className="px-3 py-1 rounded-md text-xs bg-rose-600/20 hover:bg-rose-600 border border-rose-600/50 transition-colors"
-                    >
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(e)}
+                        className="px-3 py-1 rounded-md text-xs bg-blue-600/20 hover:bg-blue-600 border border-blue-600/50 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => removeEntry(e.id)}
+                        className="px-3 py-1 rounded-md text-xs bg-rose-600/20 hover:bg-rose-600 border border-rose-600/50 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
