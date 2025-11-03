@@ -439,7 +439,7 @@ function JournalCalendar() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [form, setForm] = useState({ title: '', note: '', pnl: '', mood: '', tags: '' });
+  const [form, setForm] = useState({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
 
   const monthKey = useMemo(() => formatMonthKey(cursor), [cursor]);
 
@@ -521,7 +521,33 @@ function JournalCalendar() {
     });
     const saved = await res.json();
     setEntries((prev) => [...prev, saved]);
-    setForm({ title: '', note: '', pnl: '', mood: '', tags: '' });
+    setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+  }
+
+  // Handle paste event for images
+  function handlePaste(e) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf('image') !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const imageData = event.target.result;
+          setForm(prev => ({
+            ...prev,
+            note: prev.note + `\n![Pasted Image](${imageData})\n`,
+            images: [...prev.images, imageData]
+          }));
+        };
+        reader.readAsDataURL(file);
+      }
+    }
   }
 
   async function removeEntry(id) {
@@ -605,12 +631,39 @@ function JournalCalendar() {
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               required
             />
-            <textarea
-              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors min-h-[100px] resize-none"
-              placeholder="Trade notes: setup, entry, exit, lessons learned..."
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-            />
+            <div className="space-y-2">
+              <textarea
+                className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors min-h-[100px] resize-none"
+                placeholder="Trade notes: setup, entry, exit, lessons learned... (Ctrl+V to paste images)"
+                value={form.note}
+                onChange={(e) => setForm({ ...form, note: e.target.value })}
+                onPaste={handlePaste}
+              />
+              {form.images.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {form.images.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={img}
+                        alt={`Pasted ${idx + 1}`}
+                        className="w-20 h-20 object-cover rounded border border-slate-600"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({
+                          ...prev,
+                          images: prev.images.filter((_, i) => i !== idx),
+                          note: prev.note.replace(`![Pasted Image](${img})`, '')
+                        }))}
+                        className="absolute -top-2 -right-2 w-5 h-5 bg-rose-600 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-2">
               <input
                 className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors"
@@ -662,7 +715,22 @@ function JournalCalendar() {
                     </div>
                   </div>
                   {e.note && (
-                    <div className="text-sm text-slate-300 mb-2 whitespace-pre-wrap line-clamp-3">{e.note}</div>
+                    <div className="text-sm text-slate-300 mb-2">
+                      {e.note.split(/!\[.*?\]\((data:image\/.*?)\)/).map((part, idx) => {
+                        // Check if this part is an image data URL
+                        if (part.startsWith('data:image/')) {
+                          return (
+                            <img
+                              key={idx}
+                              src={part}
+                              alt="Entry image"
+                              className="max-w-full h-auto rounded border border-slate-600 my-2"
+                            />
+                          );
+                        }
+                        return part ? <div key={idx} className="whitespace-pre-wrap">{part}</div> : null;
+                      })}
+                    </div>
                   )}
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-2 text-xs">
