@@ -456,7 +456,7 @@ function JournalCalendar() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [form, setForm] = useState({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+  const [form, setForm] = useState({ title: '', note: '', pnl: '', mood: '', tags: '', direction: 'long', images: [] });
   const [editingId, setEditingId] = useState(null);
   const formRef = useRef(null);
   const savedScrollPos = useRef(null);
@@ -565,14 +565,15 @@ function JournalCalendar() {
         noteWithImages = noteWithImages + imageMarkdown;
       }
 
-      const payload = {
-        dateISO: dateUTC.toISOString(),
-        title: form.title.trim(),
-        note: noteWithImages,
-        pnl: form.pnl === '' ? null : Number(form.pnl),
-        mood: form.mood.trim(),
-        tags: form.tags,
-      };
+        const payload = {
+          dateISO: dateUTC.toISOString(),
+          title: form.title.trim(),
+          note: noteWithImages,
+          pnl: form.pnl === '' ? null : Number(form.pnl),
+          mood: form.mood.trim(),
+          tags: form.tags,
+          direction: form.direction === 'short' ? 'short' : 'long',
+        };
 
       console.log('Sending payload:', payload);
 
@@ -590,7 +591,7 @@ function JournalCalendar() {
       console.log('Entry saved:', saved);
 
       setEntries((prev) => [...prev, saved]);
-      setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+      setForm({ title: '', note: '', pnl: '', mood: '', tags: '', direction: 'long', images: [] });
       alert('Entry saved successfully!');
     } catch (error) {
       console.error('Error saving entry:', error);
@@ -639,13 +640,14 @@ function JournalCalendar() {
       pnl: entry.pnl !== null ? String(entry.pnl) : '',
       mood: entry.mood || '',
       tags: Array.isArray(entry.tags) ? entry.tags.join(', ') : '',
+      direction: entry.direction === 'short' ? 'short' : 'long',
       images: []
     });
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+    setForm({ title: '', note: '', pnl: '', mood: '', tags: '', direction: 'long', images: [] });
   }
 
   async function updateEntry(e) {
@@ -653,13 +655,14 @@ function JournalCalendar() {
     if (!editingId || !form.title.trim()) return;
 
     try {
-      const payload = {
-        title: form.title.trim(),
-        note: form.note.trim(),
-        pnl: form.pnl === '' ? null : Number(form.pnl),
-        mood: form.mood.trim(),
-        tags: form.tags,
-      };
+        const payload = {
+          title: form.title.trim(),
+          note: form.note.trim(),
+          pnl: form.pnl === '' ? null : Number(form.pnl),
+          mood: form.mood.trim(),
+          tags: form.tags,
+          direction: form.direction === 'short' ? 'short' : 'long',
+        };
 
       const res = await fetch(`/api/journal/${editingId}`, {
         method: 'PUT',
@@ -673,7 +676,7 @@ function JournalCalendar() {
 
       const updated = await res.json();
       setEntries((prev) => prev.map((e) => (e.id === editingId ? updated : e)));
-      setForm({ title: '', note: '', pnl: '', mood: '', tags: '', images: [] });
+      setForm({ title: '', note: '', pnl: '', mood: '', tags: '', direction: 'long', images: [] });
       setEditingId(null);
       alert('Entry updated successfully!');
     } catch (error) {
@@ -878,13 +881,40 @@ function JournalCalendar() {
                       </button>
                     </div>
                   ))}
-                </div>
-              )}
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors"
-                placeholder="P&L ($)"
+          )}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs uppercase tracking-wide text-slate-400">Trade Bias</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setForm(prev => ({ ...prev, direction: 'long' }))}
+              className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                form.direction === 'long'
+                  ? 'bg-emerald-600/90 text-white border-emerald-400 shadow-md shadow-emerald-500/30'
+                  : 'bg-slate-800 border-slate-600 text-slate-200 hover:border-emerald-400/70 hover:text-emerald-200'
+              }`}
+            >
+              Long
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm(prev => ({ ...prev, direction: 'short' }))}
+              className={`px-3 py-2 rounded-lg border text-sm font-semibold transition-colors ${
+                form.direction === 'short'
+                  ? 'bg-rose-600/90 text-white border-rose-400 shadow-md shadow-rose-500/30'
+                  : 'bg-slate-800 border-slate-600 text-slate-200 hover:border-rose-400/70 hover:text-rose-200'
+              }`}
+            >
+              Short
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <input
+            className="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 focus:border-indigo-500 focus:outline-none transition-colors"
+            placeholder="P&L ($)"
                 type="number"
                 step="0.01"
                 value={form.pnl}
@@ -985,6 +1015,17 @@ function JournalCalendar() {
                   )}
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-2 text-xs">
+                      {e.direction && (
+                        <span
+                          className={`px-2 py-1 rounded border font-semibold ${
+                            e.direction === 'short'
+                              ? 'bg-rose-900/40 text-rose-300 border-rose-700/40'
+                              : 'bg-emerald-900/40 text-emerald-300 border-emerald-700/40'
+                          }`}
+                        >
+                          {e.direction.toUpperCase()}
+                        </span>
+                      )}
                       {e.mood && (
                         <span className="px-2 py-1 rounded bg-slate-800 text-slate-300">
                           {e.mood}

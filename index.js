@@ -873,7 +873,7 @@ app.post('/api/journal', (req, res) => {
   }
 
   const userId = req.user.id;
-  const { dateISO, title, note, pnl, mood, tags } = req.body || {};
+  const { dateISO, title, note, pnl, mood, tags, direction } = req.body || {};
   const parsedDate = new Date(String(dateISO || ''));
   const cleanTitle = String(title || '').trim();
   const cleanNote = String(note || '').trim();
@@ -885,6 +885,8 @@ app.post('/api/journal', (req, res) => {
         .map((t) => t.trim())
         .filter(Boolean);
   const cleanPnl = Number(pnl);
+  const cleanDirection = String(direction || '').toLowerCase() === 'short' ? 'short' : 'long';
+  const cleanDirection = String(direction || '').toLowerCase() === 'short' ? 'short' : 'long';
 
   if (!cleanTitle || Number.isNaN(parsedDate.getTime())) {
     return res.status(400).json({ error: 'Provide a valid dateISO and title.' });
@@ -914,7 +916,7 @@ app.put('/api/journal/:id', (req, res) => {
 
   const userId = req.user.id;
   const { id } = req.params;
-  const { title, note, pnl, mood, tags } = req.body || {};
+  const { title, note, pnl, mood, tags, direction } = req.body || {};
   const userEntries = getJournalEntries(userId);
   const idx = userEntries.findIndex((e) => e.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found or access denied' });
@@ -942,6 +944,7 @@ app.put('/api/journal/:id', (req, res) => {
     pnl: Number.isFinite(cleanPnl) ? cleanPnl : null,
     mood: cleanMood || null,
     tags: cleanTags,
+    direction: cleanDirection,
   };
 
   saveJournalEntries(userId);
