@@ -506,10 +506,18 @@ function JournalCalendar() {
     if (!selectedDate || !form.title.trim()) return;
     // Create date at noon UTC to avoid timezone issues when converting to/from ISO
     const dateUTC = new Date(Date.UTC(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 12, 0, 0));
+
+    // Append images to note as markdown
+    let noteWithImages = form.note.trim();
+    if (form.images.length > 0) {
+      const imageMarkdown = form.images.map(img => `\n![Pasted Image](${img})`).join('\n');
+      noteWithImages = noteWithImages + imageMarkdown;
+    }
+
     const payload = {
       dateISO: dateUTC.toISOString(),
       title: form.title.trim(),
-      note: form.note.trim(),
+      note: noteWithImages,
       pnl: form.pnl === '' ? null : Number(form.pnl),
       mood: form.mood.trim(),
       tags: form.tags,
@@ -541,7 +549,6 @@ function JournalCalendar() {
           const imageData = event.target.result;
           setForm(prev => ({
             ...prev,
-            note: prev.note + `\n![Pasted Image](${imageData})\n`,
             images: [...prev.images, imageData]
           }));
         };
@@ -652,8 +659,7 @@ function JournalCalendar() {
                         type="button"
                         onClick={() => setForm(prev => ({
                           ...prev,
-                          images: prev.images.filter((_, i) => i !== idx),
-                          note: prev.note.replace(`![Pasted Image](${img})`, '')
+                          images: prev.images.filter((_, i) => i !== idx)
                         }))}
                         className="absolute -top-2 -right-2 w-5 h-5 bg-rose-600 rounded-full text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                       >
