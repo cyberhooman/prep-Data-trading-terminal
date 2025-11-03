@@ -754,20 +754,43 @@ function JournalCalendar() {
                   </div>
                   {e.note && (
                     <div className="text-sm text-slate-300 mb-2">
-                      {e.note.split(/!\[.*?\]\((data:image\/.*?)\)/).map((part, idx) => {
-                        // Check if this part is an image data URL
-                        if (part.startsWith('data:image/')) {
-                          return (
+                      {(() => {
+                        // Parse markdown images properly
+                        const parts = [];
+                        const regex = /!\[.*?\]\((data:image\/[^)]+)\)/g;
+                        let lastIndex = 0;
+                        let match;
+
+                        while ((match = regex.exec(e.note)) !== null) {
+                          // Add text before image
+                          if (match.index > lastIndex) {
+                            const text = e.note.substring(lastIndex, match.index);
+                            if (text.trim()) {
+                              parts.push(<div key={`text-${lastIndex}`} className="whitespace-pre-wrap">{text}</div>);
+                            }
+                          }
+                          // Add image
+                          parts.push(
                             <img
-                              key={idx}
-                              src={part}
+                              key={`img-${match.index}`}
+                              src={match[1]}
                               alt="Entry image"
                               className="max-w-full h-auto rounded border border-slate-600 my-2"
                             />
                           );
+                          lastIndex = regex.lastIndex;
                         }
-                        return part ? <div key={idx} className="whitespace-pre-wrap">{part}</div> : null;
-                      })}
+
+                        // Add remaining text
+                        if (lastIndex < e.note.length) {
+                          const text = e.note.substring(lastIndex);
+                          if (text.trim()) {
+                            parts.push(<div key={`text-${lastIndex}`} className="whitespace-pre-wrap">{text}</div>);
+                          }
+                        }
+
+                        return parts.length > 0 ? parts : <div className="whitespace-pre-wrap">{e.note}</div>;
+                      })()}
                     </div>
                   )}
                   <div className="flex items-center justify-between">
