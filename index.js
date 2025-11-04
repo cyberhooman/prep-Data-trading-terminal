@@ -1441,7 +1441,7 @@ app.get('/', async (req, res) => {
         <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.7); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
           <h2>Currency Strength Meter</h2>
           <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.75); margin-bottom: 1rem;">
-            Based on 28 currency pairs • 7-Day Trend Analysis • BabyPips-style calculation
+            Based on 28 currency pairs • 7-Day Trend Analysis
           </p>
           <table>
             <thead>
