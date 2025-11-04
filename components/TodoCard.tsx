@@ -93,15 +93,13 @@ export default function TodoCard() {
 
   const toggleItem = async (id: string) => {
     try {
-      const response = await fetch('/api/todos/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+      // Delete the item when checked
+      await fetch(`/api/todos/${id}`, {
+        method: 'DELETE',
       })
-      const updatedItem = await response.json()
-      setItems((prev) => prev.map((i) => (i.id === id ? updatedItem : i)))
+      setItems((prev) => prev.filter((i) => i.id !== id))
     } catch (error) {
-      console.error('Error toggling todo:', error)
+      console.error('Error deleting todo:', error)
     }
   }
 
