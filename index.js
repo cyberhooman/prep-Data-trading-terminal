@@ -887,7 +887,6 @@ app.post('/api/journal', (req, res) => {
         .filter(Boolean);
   const cleanPnl = Number(pnl);
   const cleanDirection = String(direction || '').toLowerCase() === 'short' ? 'short' : 'long';
-  const cleanDirection = String(direction || '').toLowerCase() === 'short' ? 'short' : 'long';
 
   if (!cleanTitle || Number.isNaN(parsedDate.getTime())) {
     return res.status(400).json({ error: 'Provide a valid dateISO and title.' });
