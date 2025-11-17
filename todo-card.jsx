@@ -53,6 +53,8 @@ function TodoCard() {
   const [loading, setLoading] = useState(true);
   const [celebrating, setCelebrating] = useState(false);
   const wasAllDoneRef = useRef(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
 
   useEffect(() => {
     const updateTime = () => {
@@ -92,15 +94,13 @@ function TodoCard() {
 
   const toggleItem = async (id) => {
     try {
-      const response = await fetch('/api/todos/toggle', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
+      // Delete the item when checked
+      await fetch(`/api/todos/${id}`, {
+        method: 'DELETE',
       });
-      const updatedItem = await response.json();
-      setItems((prev) => prev.map((i) => (i.id === id ? updatedItem : i)));
+      setItems((prev) => prev.filter((i) => i.id !== id));
     } catch (error) {
-      console.error('Error toggling todo:', error);
+      console.error('Error deleting todo:', error);
     }
   };
 
@@ -115,6 +115,40 @@ function TodoCard() {
       setItems((prev) => [...prev, newItem]);
     } catch (error) {
       console.error('Error adding todo:', error);
+    }
+  };
+
+  const updateItem = async (id, text) => {
+    try {
+      const response = await fetch(`/api/todos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const updatedItem = await response.json();
+      setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)));
+      setEditingId(null);
+      setEditText("");
+    } catch (error) {
+      console.error('Error updating todo:', error);
+    }
+  };
+
+  const startEdit = (id, text) => {
+    setEditingId(id);
+    setEditText(text);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText("");
+  };
+
+  const handleEditSubmit = (id) => {
+    if (editText.trim()) {
+      updateItem(id, editText.trim());
+    } else {
+      cancelEdit();
     }
   };
 
@@ -259,13 +293,65 @@ function TodoCard() {
                   </span>
                 </label>
 
-                <span
-                  className={`text-sm transition-all duration-200 flex-1 ${
-                    item.done ? "font-semibold text-slate-100" : "text-slate-100"
-                  }`}
-                >
-                  {item.text}
-                </span>
+                {editingId === item.id ? (
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleEditSubmit(item.id);
+                        } else if (e.key === 'Escape') {
+                          cancelEdit();
+                        }
+                      }}
+                      className="flex-1 px-2 py-1 border border-slate-600 bg-slate-800 rounded text-sm text-slate-100"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => handleEditSubmit(item.id)}
+                      className="px-2 py-1 bg-emerald-500 text-white rounded text-xs font-semibold hover:bg-emerald-600"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="px-2 py-1 bg-slate-600 text-white rounded text-xs font-semibold hover:bg-slate-500"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <span
+                      className={`text-sm transition-all duration-200 flex-1 ${
+                        item.done ? "font-semibold text-slate-100" : "text-slate-100"
+                      }`}
+                    >
+                      {item.text}
+                    </span>
+                    <button
+                      onClick={() => startEdit(item.id, item.text)}
+                      className="px-2 py-1 text-slate-400 hover:text-slate-100 transition-colors text-xs"
+                      title="Edit task"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                  </>
+                )}
               </li>
             ))}
           </ul>
