@@ -69,9 +69,34 @@ function loadJson(filename, fallback) {
 function saveJson(filename, data) {
   try {
     const filePath = path.join(DATA_DIR, filename);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    const jsonData = JSON.stringify(data, null, 2);
+
+    // Write to a temporary file first
+    const tempPath = filePath + '.tmp';
+    fs.writeFileSync(tempPath, jsonData, 'utf8');
+
+    // Verify the write was successful by reading it back
+    const written = fs.readFileSync(tempPath, 'utf8');
+    if (written !== jsonData) {
+      throw new Error('Data verification failed - written data does not match');
+    }
+
+    // Atomic rename (replaces the original file)
+    fs.renameSync(tempPath, filePath);
+
+    console.log(`✓ Saved ${filename} successfully (${data.length || 0} items)`);
   } catch (err) {
-    console.error('Failed to save', filename, err);
+    console.error('❌ Failed to save', filename, err);
+    // Try to clean up temp file if it exists
+    try {
+      const tempPath = path.join(DATA_DIR, filename + '.tmp');
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+    } catch (cleanupErr) {
+      // Ignore cleanup errors
+    }
+    throw err; // Re-throw to let caller know save failed
   }
 }
 
@@ -1066,6 +1091,25 @@ app.get('/api/todos', (req, res) => {
   res.json(todoItems.map((item) => ({ id: item.id, text: item.text, done: item.completed })));
 });
 
+// Force reload todos from disk (useful for debugging/recovery)
+app.post('/api/todos/reload', (req, res) => {
+  try {
+    const reloadedTodos = loadJson('todos.json', []);
+    // Clear and repopulate the array
+    todoItems.length = 0;
+    todoItems.push(...reloadedTodos);
+    console.log(`Reloaded ${todoItems.length} todos from disk`);
+    res.json({
+      success: true,
+      message: `Reloaded ${todoItems.length} todos`,
+      todos: todoItems.map((item) => ({ id: item.id, text: item.text, done: item.completed }))
+    });
+  } catch (err) {
+    console.error('Failed to reload todos:', err);
+    res.status(500).json({ error: 'Failed to reload todos' });
+  }
+});
+
 app.post('/todos', (req, res) => {
   const { task } = req.body || {};
   const text = (task || '').trim();
@@ -1097,8 +1141,15 @@ app.post('/api/todos', (req, res) => {
   };
   todoItems.push(newItem);
   // persist todos
-  saveJson('todos.json', todoItems);
-  res.json({ id: newItem.id, text: newItem.text, done: newItem.completed });
+  try {
+    saveJson('todos.json', todoItems);
+    res.json({ id: newItem.id, text: newItem.text, done: newItem.completed });
+  } catch (err) {
+    // Rollback the push if save failed
+    const index = todoItems.findIndex(item => item.id === id);
+    if (index !== -1) todoItems.splice(index, 1);
+    res.status(500).json({ error: 'Failed to save todo item' });
+  }
 });
 
 app.post('/todos/toggle', (req, res) => {
@@ -1143,10 +1194,44 @@ app.delete('/api/todos/:id', (req, res) => {
   if (index === -1) {
     return res.status(404).json({ error: 'Task not found.' });
   }
+  const deletedItem = todoItems[index];
   todoItems.splice(index, 1);
   // persist todos after deletion
-  saveJson('todos.json', todoItems);
-  res.json({ success: true });
+  try {
+    saveJson('todos.json', todoItems);
+    res.json({ success: true });
+  } catch (err) {
+    // Rollback deletion if save failed
+    todoItems.splice(index, 0, deletedItem);
+    res.status(500).json({ error: 'Failed to delete todo item' });
+  }
+});
+
+app.put('/api/todos/:id', (req, res) => {
+  const { id } = req.params;
+  const { text } = req.body || {};
+  const trimmedText = (text || '').trim();
+
+  if (!trimmedText) {
+    return res.status(400).json({ error: 'Please enter a to-do item.' });
+  }
+
+  const item = todoItems.find((todo) => todo.id === id);
+  if (!item) {
+    return res.status(404).json({ error: 'Task not found.' });
+  }
+
+  const oldText = item.text;
+  item.text = trimmedText;
+  // persist todos after update
+  try {
+    saveJson('todos.json', todoItems);
+    res.json({ id: item.id, text: item.text, done: item.completed });
+  } catch (err) {
+    // Rollback text change if save failed
+    item.text = oldText;
+    res.status(500).json({ error: 'Failed to update todo item' });
+  }
 });
 
 app.get('/', async (req, res) => {
@@ -2108,6 +2193,18 @@ app.get('/next', async (req, res) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Alphalabs data trading server running on http://0.0.0.0:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Periodic backup of todos every 30 seconds to prevent data loss
+  setInterval(() => {
+    try {
+      saveJson('todos.json', todoItems);
+      console.log(`[Auto-save] Todos backed up at ${new Date().toLocaleTimeString()}`);
+    } catch (err) {
+      console.error('[Auto-save] Failed to backup todos:', err);
+    }
+  }, 30000); // 30 seconds
+
+  console.log('Auto-save enabled: Todos will be backed up every 30 seconds');
 });
 
 // WebSocket server for live reload
