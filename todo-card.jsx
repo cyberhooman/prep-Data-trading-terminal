@@ -6,6 +6,7 @@ function TodoCard() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [currencyTrend, setCurrencyTrend] = useState(null);
   const [editFormData, setEditFormData] = useState({
     pair: '',
     condition: 'stronger',
@@ -45,6 +46,10 @@ function TodoCard() {
 
   useEffect(() => {
     fetchItems();
+    fetchCurrencyTrend();
+    // Refresh currency trend every 5 minutes
+    const trendInterval = setInterval(fetchCurrencyTrend, 5 * 60 * 1000);
+    return () => clearInterval(trendInterval);
   }, []);
 
   const fetchItems = async () => {
@@ -56,6 +61,16 @@ function TodoCard() {
       console.error('Error fetching trading notes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCurrencyTrend = async () => {
+    try {
+      const response = await fetch('/api/currency-strength/extremes');
+      const data = await response.json();
+      setCurrencyTrend(data);
+    } catch (error) {
+      console.error('Error fetching currency trend:', error);
     }
   };
 
@@ -199,6 +214,30 @@ function TodoCard() {
         <h3 className="text-lg font-bold text-slate-100 mb-4">
           Data Trading Preparation
         </h3>
+
+        {/* Currency Trend Warning */}
+        {currencyTrend && (
+          <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
+            <div className="flex items-start gap-2">
+              <svg className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm text-indigo-200 font-bold mb-1">⚠️ Don't fight the trend</p>
+                <div className="text-xs text-slate-300 space-y-1">
+                  <div>
+                    <span className="text-emerald-400 font-semibold">Strongest:</span> {currencyTrend.strongest.currency} ({currencyTrend.strongest.title})
+                    <span className="ml-2 text-emerald-300">↑ {currencyTrend.strongest.momentum}%</span>
+                  </div>
+                  <div>
+                    <span className="text-red-400 font-semibold">Weakest:</span> {currencyTrend.weakest.currency} ({currencyTrend.weakest.title})
+                    <span className="ml-2 text-red-300">↓ {currencyTrend.weakest.momentum}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Permanent Trading Rule */}
         <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">

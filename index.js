@@ -1235,6 +1235,41 @@ app.put('/api/todos/:id', (req, res) => {
   }
 });
 
+// API endpoint to get strongest and weakest currency pairs
+app.get('/api/currency-strength/extremes', async (req, res) => {
+  try {
+    const strengthData = await loadCurrencyStrength();
+
+    if (!strengthData || strengthData.length === 0) {
+      return res.status(500).json({ error: 'Unable to load currency strength data' });
+    }
+
+    // Data is already sorted by strength (strongest first)
+    const strongest = strengthData[0];
+    const weakest = strengthData[strengthData.length - 1];
+
+    res.json({
+      strongest: {
+        currency: strongest.name,
+        title: strongest.title,
+        value: strongest.value,
+        momentum: strongest.momentum,
+        trend: strongest.trend
+      },
+      weakest: {
+        currency: weakest.name,
+        title: weakest.title,
+        value: weakest.value,
+        momentum: weakest.momentum,
+        trend: weakest.trend
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching currency extremes:', err);
+    res.status(500).json({ error: 'Failed to fetch currency strength data' });
+  }
+});
+
 app.get('/', async (req, res) => {
   let strengthData = [];
   let manualUpcoming = [];
