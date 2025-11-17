@@ -669,7 +669,7 @@ app.get('/login', (req, res) => {
       <div class="content-wrapper">
         <div class="login-container">
           <h1>🚀 Alphalabs Terminal</h1>
-          <p>Sign in with your Google account to access your trading dashboard</p>
+          <p>Welcome! Sign in or create an account with Google to access your trading dashboard</p>
 
           <a href="/auth/google" class="google-btn">
             <svg class="google-icon" viewBox="0 0 24 24">
@@ -682,7 +682,8 @@ app.get('/login', (req, res) => {
           </a>
 
           <div class="info">
-            🔒 Secure authentication via Google OAuth
+            <div style="margin-bottom: 8px;">🔒 Secure authentication via Google OAuth</div>
+            <div style="font-size: 13px; opacity: 0.8;">New here? Your account will be created automatically when you sign in for the first time</div>
           </div>
         </div>
       </div>
