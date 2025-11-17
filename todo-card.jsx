@@ -6,6 +6,13 @@ function TodoCard() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    pair: '',
+    condition: 'stronger',
+    rangeLow: '',
+    rangeHigh: '',
+    lotSize: ''
+  });
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -89,18 +96,70 @@ function TodoCard() {
     }
   };
 
-  const updateItem = async (id, text) => {
+  const updateItem = async (id) => {
     try {
+      const noteText = `${editFormData.pair} | ${editFormData.condition === 'stronger' ? '📈' : '📉'} ${editFormData.condition.toUpperCase()} | Range: ${editFormData.rangeLow}-${editFormData.rangeHigh} | Lot: ${editFormData.lotSize}`;
+
       const response = await fetch(`/api/todos/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text: noteText }),
       });
       const updatedItem = await response.json();
       setItems((prev) => prev.map((item) => (item.id === id ? updatedItem : item)));
       setEditingId(null);
+      setEditFormData({
+        pair: '',
+        condition: 'stronger',
+        rangeLow: '',
+        rangeHigh: '',
+        lotSize: ''
+      });
     } catch (error) {
       console.error('Error updating note:', error);
+    }
+  };
+
+  const startEdit = (item) => {
+    // Parse the existing note text
+    const parts = item.text.split(' | ');
+    const pair = parts[0] || '';
+    const conditionPart = parts[1] || '';
+    const condition = conditionPart.includes('STRONGER') ? 'stronger' : 'weaker';
+    const rangePart = parts[2] || '';
+    const rangeMatch = rangePart.match(/Range: ([\d.]+)-([\d.]+)/);
+    const rangeLow = rangeMatch ? rangeMatch[1] : '';
+    const rangeHigh = rangeMatch ? rangeMatch[2] : '';
+    const lotPart = parts[3] || '';
+    const lotMatch = lotPart.match(/Lot: ([\d.]+)/);
+    const lotSize = lotMatch ? lotMatch[1] : '';
+
+    setEditFormData({
+      pair,
+      condition,
+      rangeLow,
+      rangeHigh,
+      lotSize
+    });
+    setEditingId(item.id);
+    setShowAddForm(false);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditFormData({
+      pair: '',
+      condition: 'stronger',
+      rangeLow: '',
+      rangeHigh: '',
+      lotSize: ''
+    });
+  };
+
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (editFormData.pair && editFormData.rangeLow && editFormData.rangeHigh && editFormData.lotSize) {
+      updateItem(editingId);
     }
   };
 
@@ -226,6 +285,98 @@ function TodoCard() {
           </form>
         )}
 
+        {/* Edit Form */}
+        {editingId && (
+          <form onSubmit={handleEditSubmit} className="mb-4 p-4 bg-slate-800/50 border border-emerald-500/50 rounded-lg space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-semibold text-slate-100">Edit Trading Note</h4>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="text-slate-400 hover:text-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Currency Pair</label>
+                <input
+                  type="text"
+                  value={editFormData.pair}
+                  onChange={(e) => setEditFormData({...editFormData, pair: e.target.value.toUpperCase()})}
+                  placeholder="e.g., GBPCAD, USDCAD"
+                  className="w-full px-3 py-2 border border-slate-600 bg-slate-800 rounded text-sm text-slate-100 placeholder:text-slate-400"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Data Condition</label>
+                <select
+                  value={editFormData.condition}
+                  onChange={(e) => setEditFormData({...editFormData, condition: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-600 bg-slate-800 rounded text-sm text-slate-100"
+                >
+                  <option value="stronger">📈 Data Stronger</option>
+                  <option value="weaker">📉 Data Weaker</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Range Low</label>
+                <input
+                  type="text"
+                  value={editFormData.rangeLow}
+                  onChange={(e) => setEditFormData({...editFormData, rangeLow: e.target.value})}
+                  placeholder="e.g., 1.7500"
+                  className="w-full px-3 py-2 border border-slate-600 bg-slate-800 rounded text-sm text-slate-100 placeholder:text-slate-400"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Range High</label>
+                <input
+                  type="text"
+                  value={editFormData.rangeHigh}
+                  onChange={(e) => setEditFormData({...editFormData, rangeHigh: e.target.value})}
+                  placeholder="e.g., 1.7800"
+                  className="w-full px-3 py-2 border border-slate-600 bg-slate-800 rounded text-sm text-slate-100 placeholder:text-slate-400"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-300 mb-1">Lot Size</label>
+                <input
+                  type="text"
+                  value={editFormData.lotSize}
+                  onChange={(e) => setEditFormData({...editFormData, lotSize: e.target.value})}
+                  placeholder="e.g., 0.5, 1.0"
+                  className="w-full px-3 py-2 border border-slate-600 bg-slate-800 rounded text-sm text-slate-100 placeholder:text-slate-400"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-md text-sm font-semibold hover:bg-emerald-600"
+              >
+                Update Note
+              </button>
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="px-4 py-2 bg-slate-600 text-white rounded-md text-sm font-semibold hover:bg-slate-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
         {/* Trading Notes List */}
         {items.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
@@ -243,25 +394,46 @@ function TodoCard() {
                     {item.text}
                   </p>
                 </div>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="px-2 py-1 text-red-400 hover:text-red-300 transition-colors text-xs"
-                  title="Delete note"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startEdit(item)}
+                    className="px-2 py-1 text-slate-400 hover:text-slate-100 transition-colors text-xs"
+                    title="Edit note"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => deleteItem(item.id)}
+                    className="px-2 py-1 text-red-400 hover:text-red-300 transition-colors text-xs"
+                    title="Delete note"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
