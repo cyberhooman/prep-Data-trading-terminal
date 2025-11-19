@@ -458,6 +458,23 @@ input::placeholder, textarea::placeholder {
       "notes";
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto;
+    gap: 1rem;
+    min-height: auto;
+  }
+
+  .bento-box {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .bento-container {
+    gap: 0.75rem;
+  }
+
+  .bento-box {
+    padding: 1rem;
+    border-radius: 12px;
   }
 }
 
@@ -736,10 +753,10 @@ form.add-event button {
 
 .next-countdown {
   font-family: "JetBrains Mono", "Roboto Mono", monospace;
-  font-size: clamp(3.5rem, 8vw, 5.5rem);
+  font-size: clamp(2rem, 6vw, 5.5rem);
   font-weight: 700;
   color: var(--text-bright);
-  padding: 1.5rem 2.5rem;
+  padding: 1rem 1.5rem;
   border-radius: 1.5rem;
   background: linear-gradient(135deg, rgba(0, 217, 255, 0.25), rgba(0, 136, 255, 0.15));
   text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
@@ -747,7 +764,33 @@ form.add-event button {
   transition: transform 0.6s ease, box-shadow 0.6s ease, color 0.4s ease;
   display: inline-flex;
   justify-content: center;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
+  width: 100%;
+  text-align: center;
+  word-break: keep-all;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+/* Mobile countdown adjustments */
+@media (max-width: 480px) {
+  .next-countdown {
+    font-size: clamp(1.5rem, 8vw, 2.5rem);
+    padding: 0.75rem 1rem;
+    letter-spacing: 0;
+  }
+
+  .bento-countdown h2 {
+    font-size: 1.2rem !important;
+  }
+
+  .next-event-title {
+    font-size: 0.9rem;
+  }
+
+  .next-event-meta {
+    font-size: 0.8rem;
+  }
 }
 
 .next-countdown.urgent {
