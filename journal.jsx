@@ -778,25 +778,25 @@ function JournalCalendar() {
 
       {/* Calendar Section */}
       <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-lg font-bold">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="text-base sm:text-lg font-bold">
             {cursor.toLocaleString(undefined, { month: 'long', year: 'numeric' })}
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
-              className="px-2.5 py-1 rounded-md bg-slate-800 border border-slate-600 hover:bg-slate-700 transition-colors text-xs font-medium"
+              className="px-2 py-1 rounded-md bg-slate-800 border border-slate-600 hover:bg-slate-700 transition-colors text-xs font-medium"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
             >
               ← Prev
             </button>
             <button
-              className="px-2.5 py-1 rounded-md bg-indigo-600 border border-indigo-500 hover:bg-indigo-700 transition-colors text-xs font-medium"
+              className="px-2 py-1 rounded-md bg-indigo-600 border border-indigo-500 hover:bg-indigo-700 transition-colors text-xs font-medium"
               onClick={() => setCursor(startOfMonth(new Date()))}
             >
               Today
             </button>
             <button
-              className="px-2.5 py-1 rounded-md bg-slate-800 border border-slate-600 hover:bg-slate-700 transition-colors text-xs font-medium"
+              className="px-2 py-1 rounded-md bg-slate-800 border border-slate-600 hover:bg-slate-700 transition-colors text-xs font-medium"
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
             >
               Next →

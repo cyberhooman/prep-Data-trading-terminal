@@ -1411,13 +1411,36 @@ app.get('/', async (req, res) => {
           display: flex;
           align-items: center;
           gap: 0.75rem;
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          max-width: calc(100% - 2rem);
+          overflow: hidden;
         }
         .auth-avatar {
           width: 38px;
           height: 38px;
+          min-width: 38px;
           border-radius: 9999px;
           border: 2px solid rgba(96, 165, 250, 0.35);
           object-fit: cover;
+        }
+        @media (max-width: 480px) {
+          .auth-controls {
+            gap: 0.5rem;
+          }
+          .auth-avatar {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+          }
+          .auth-user {
+            display: none;
+          }
+          .auth-button {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+          }
         }
         .auth-user {
           text-align: right;
