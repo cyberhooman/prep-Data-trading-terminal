@@ -3,7 +3,12 @@
     "allow": [
       "Bash(findstr:*)",
       "Bash(dir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nOptimize codebase by removing unnecessary files and dependencies\n\nRemoved 60+ unused files including:\n- All temporary test files (temp_*.js, test_*.js)\n- Unused backup files (*.backup*.js, index-*.js)\n- Obsolete HTML files (marketmilk.html, currency_strength.html)\n- Unused migration and database files\n- Unnecessary documentation files\n\nCleaned up package.json:\n- Removed unused dependencies (better-sqlite3, lucide-react)\n- Removed obsolete npm scripts (migrate, test, dev:express)\n\nThis reduces codebase size and improves maintainability while keeping\nall essential functionality intact.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd product showcase to login page for better onboarding\n\nCreated an engaging two-column layout showcasing product features:\n- Left side: Clean login section with Google OAuth\n- Right side: Feature showcase with 4 key product highlights\n  * Real-time currency strength tracking\n  * Smart trend warnings\n  * Economic calendar with alerts\n  * Trading journal and preparation notes\n\nUI improvements:\n- Responsive grid layout (splits to single column on mobile)\n- Glassmorphic cards with hover effects\n- FREE ACCESS badge to attract users\n- Professional typography matching dashboard style\n- Smooth animations and transitions\n\nThis helps new users understand the value proposition before signing up.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git revert:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

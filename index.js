@@ -1411,11 +1411,7 @@ app.get('/', async (req, res) => {
           display: flex;
           align-items: center;
           gap: 0.75rem;
-          position: absolute;
-          top: 1rem;
-          right: 1rem;
-          max-width: calc(100% - 2rem);
-          overflow: hidden;
+          flex-shrink: 0;
         }
         .auth-avatar {
           width: 38px;
@@ -1440,6 +1436,13 @@ app.get('/', async (req, res) => {
           .auth-button {
             padding: 0.35rem 0.75rem;
             font-size: 0.8rem;
+          }
+          .header-container {
+            flex-direction: row;
+            gap: 0.5rem;
+          }
+          .header-container h1 {
+            font-size: 1.5rem !important;
           }
         }
         .auth-user {
@@ -1490,8 +1493,8 @@ app.get('/', async (req, res) => {
     </head>
     <body>
       <header>
-        <div style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto;">
-          <div>
+        <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1rem;">
+          <div style="min-width: 0; flex: 1;">
             <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
               Alphalabs Data Trading
             </h1>
