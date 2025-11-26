@@ -29,8 +29,8 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Scrape high-impact news from FinancialJuice
-   * Filters for red-flagged/important news items only
+   * Scrape ONLY red-bordered critical news from FinancialJuice
+   * Filters for active-critical class (red border indicators) only
    */
   async scrapeHighImpactNews() {
     let page = null;
@@ -73,8 +73,14 @@ class FinancialJuiceScraper {
           // Skip if no meaningful text
           if (!text || text.trim().length < 10) return;
 
-          // Check if this is a high-impact item using FinancialJuice's actual classes
+          // Check if this is a critical item (red border) using FinancialJuice's actual classes
           const isCritical = className.includes('active-critical');
+
+          // ONLY include items with red borders (active-critical class)
+          if (!isCritical) {
+            return;
+          }
+
           const isActive = className.includes('active');
 
           // Look for economic data patterns
@@ -82,11 +88,6 @@ class FinancialJuiceScraper {
 
           // Look for charts/images
           const hasChart = element.querySelector('img, canvas, svg') !== null;
-
-          // Only include critical/active items OR items with economic data OR items with charts
-          if (!isCritical && !isActive && !hasEconomicData && !hasChart) {
-            return;
-          }
 
           // Extract timestamp
           const timeElement = element.querySelector('.time');
@@ -131,7 +132,7 @@ class FinancialJuiceScraper {
         return items;
       });
 
-      console.log(`Found ${newsItems.length} news items before deduplication`);
+      console.log(`Found ${newsItems.length} red-bordered critical news items before deduplication`);
 
       // Deduplicate based on headline and timestamp
       const seen = new Set();
@@ -144,7 +145,7 @@ class FinancialJuiceScraper {
         return true;
       });
 
-      console.log(`Found ${dedupedItems.length} unique high-impact news items`);
+      console.log(`Found ${dedupedItems.length} unique red-bordered critical news items`);
 
       // Process timestamps
       const processedItems = dedupedItems.map(item => ({

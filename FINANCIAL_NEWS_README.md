@@ -1,12 +1,11 @@
 # FinancialJuice News Scraper
 
-This module scrapes high-impact financial news from FinancialJuice.com, focusing on market-moving events and economic data releases.
+This module scrapes ONLY red-bordered critical news from FinancialJuice.com, filtering for the most critical market-moving events with red signal indicators.
 
 ## Features
 
-- ✅ Scrapes high-impact news items (red/critical alerts)
+- ✅ Scrapes ONLY red-bordered critical news items (active-critical class)
 - ✅ Extracts economic data (Actual, Forecast, Previous values)
-- ✅ Captures headlines with charts/images
 - ✅ Tags and categorization (USD, EUR, Bonds, etc.)
 - ✅ Automatic deduplication
 - ✅ 1-minute caching to reduce load
@@ -133,17 +132,19 @@ class FinancialJuiceScraper {
 
 ## What Gets Scraped
 
-The scraper filters for high-impact news by looking for:
+The scraper filters ONLY for red-bordered critical news by looking for:
 
-1. **Critical/Active Items**: News marked with `active-critical` or `active` classes
-2. **Economic Data**: Items containing Actual/Forecast/Previous values
-3. **Chart Items**: News with accompanying charts or images
+1. **Critical Items ONLY**: News marked with `active-critical` class (red border on FinancialJuice)
+2. **Economic Data**: Extracts Actual/Forecast/Previous values if present
+3. **Tags**: Captures associated tags like USD, EUR, Bonds, etc.
 
 ### Example News Types Captured:
 
-- **Economic Releases**: "US PPI YoY Actual 2.7% (Forecast 2.6%, Previous 2.6%)"
-- **Market-Moving Headlines**: "WH Sr. Adviser Hassett emerges as the top pick as the Fed Chair search nears its end"
-- **Geopolitical Events**: "Ukraine agrees to terms of peace deal - US official to ABC News"
+- **Critical Economic Releases**: "US PPI YoY Actual 2.7% (Forecast 2.6%, Previous 2.6%)" [with red border]
+- **Critical Market-Moving Headlines**: Major Fed announcements, policy changes [with red border]
+- **Critical Geopolitical Events**: Major breaking news affecting markets [with red border]
+
+**Note**: Only items with red borders (active-critical class) are included. Regular news items are filtered out.
 
 ## Dependencies
 

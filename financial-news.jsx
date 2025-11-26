@@ -49,8 +49,8 @@ function FinancialNewsFeed() {
 
   if (loading && news.length === 0) {
     return React.createElement('div', { className: 'financial-news-feed loading', style: { padding: '2rem', textAlign: 'center' }},
-      React.createElement('h2', { style: { marginBottom: '1rem' }}, '📰 Market-Moving News'),
-      React.createElement('div', { className: 'news-loading' }, 'Loading news feed...')
+      React.createElement('h2', { style: { marginBottom: '1rem' }}, '🔴 Critical Market News'),
+      React.createElement('div', { className: 'news-loading' }, 'Loading critical news...')
     );
   }
 
@@ -82,7 +82,7 @@ function FinancialNewsFeed() {
           fontSize: '1.5rem',
           fontWeight: 700
         }
-      }, '📰 Market-Moving News'),
+      }, '🔴 Critical Market News'),
       React.createElement('div', {
         className: 'news-controls',
         style: {
@@ -146,7 +146,7 @@ function FinancialNewsFeed() {
               padding: '2rem',
               color: 'rgba(226, 232, 240, 0.6)'
             }
-          }, 'No high-impact news at the moment')
+          }, 'No red-bordered critical news at the moment')
         : news.map((item, index) =>
             React.createElement('div', {
               key: index,
