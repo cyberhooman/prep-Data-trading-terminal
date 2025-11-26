@@ -146,6 +146,8 @@ The scraper filters ONLY for red-bordered critical news by looking for:
 
 **Note**: Only items with red borders (active-critical class) are included. Regular news items are filtered out.
 
+**Important**: Red-bordered items only appear during truly critical market events (major breaking news, unexpected economic data, emergency announcements, etc.). It's normal for the feed to show 0 items most of the time. When you see items here, they are extremely high-priority signals that require immediate attention.
+
 ## Dependencies
 
 ```json

@@ -10,7 +10,10 @@
       "Bash(git revert:*)",
       "Bash(git commit:*)",
       "Bash(git checkout:*)",
-      "Bash(node -c:*)"
+      "Bash(node -c:*)",
+      "Bash(node test-scraper.js:*)",
+      "Bash(node debug-scraper.js:*)",
+      "Bash(node debug-scraper-detailed.js:*)"
     ],
     "deny": [],
     "ask": []
