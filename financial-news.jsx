@@ -47,6 +47,23 @@ function FinancialNewsFeed() {
     }
   };
 
+  const formatTimeAgo = (firstSeenAt) => {
+    if (!firstSeenAt) return '';
+    const now = Date.now();
+    const diff = now - firstSeenAt;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (days >= 1) {
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    } else if (hours >= 1) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      const minutes = Math.floor(diff / (1000 * 60));
+      return minutes > 0 ? `${minutes} min ago` : 'Just now';
+    }
+  };
+
   if (loading && news.length === 0) {
     return React.createElement('div', { className: 'financial-news-feed loading', style: { padding: '2rem', textAlign: 'center' }},
       React.createElement('h2', { style: { marginBottom: '1rem' }}, '🔴 Critical Market News'),
@@ -244,6 +261,16 @@ function FinancialNewsFeed() {
                     color: 'rgba(226, 232, 240, 0.5)'
                   }
                 }, formatTimestamp(item.timestamp)),
+                item.firstSeenAt && React.createElement('span', {
+                  style: {
+                    fontSize: '0.75rem',
+                    color: 'rgba(255, 107, 107, 0.7)',
+                    background: 'rgba(255, 107, 107, 0.1)',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '4px',
+                    fontWeight: 600
+                  }
+                }, `🔴 ${formatTimeAgo(item.firstSeenAt)}`),
                 item.tags.length > 0 && React.createElement('div', {
                   style: {
                     display: 'flex',

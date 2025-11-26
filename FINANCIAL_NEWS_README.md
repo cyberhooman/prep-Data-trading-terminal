@@ -5,9 +5,11 @@ This module scrapes ONLY red-bordered critical news from FinancialJuice.com, fil
 ## Features
 
 - ✅ Scrapes ONLY red-bordered critical news items (active-critical class)
+- ✅ **2-day retention** - Critical news stays visible for 2 days after first appearance
 - ✅ Extracts economic data (Actual, Forecast, Previous values)
 - ✅ Tags and categorization (USD, EUR, Bonds, etc.)
 - ✅ Automatic deduplication
+- ✅ Shows "time ago" badge for each critical alert
 - ✅ 1-minute caching to reduce load
 - ✅ Headless browser automation with Puppeteer
 
@@ -147,6 +149,8 @@ The scraper filters ONLY for red-bordered critical news by looking for:
 **Note**: Only items with red borders (active-critical class) are included. Regular news items are filtered out.
 
 **Important**: Red-bordered items only appear during truly critical market events (major breaking news, unexpected economic data, emergency announcements, etc.). It's normal for the feed to show 0 items most of the time. When you see items here, they are extremely high-priority signals that require immediate attention.
+
+**2-Day Retention**: Once a critical news item appears, it will remain visible for 2 days even if it's removed from the live FinancialJuice feed. Each item shows a "🔴 X hours/days ago" badge indicating when it first appeared, so you never miss critical market events.
 
 ## Dependencies
 

@@ -7,6 +7,8 @@ class FinancialJuiceScraper {
     this.lastFetch = null;
     this.cacheTimeout = 60000; // 1 minute cache
     this.browser = null;
+    this.newsHistory = new Map(); // Store news with first seen timestamp
+    this.retentionDays = 2; // Keep news for 2 days
   }
 
   /**
@@ -154,11 +156,41 @@ class FinancialJuiceScraper {
         scrapedAt: new Date().toISOString()
       }));
 
+      // Merge with historical items (keep for 2 days)
+      const now = Date.now();
+      const twoDaysAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
+
+      // Add new items to history with first seen timestamp
+      processedItems.forEach(item => {
+        const key = `${item.headline}-${item.timestamp}`;
+        if (!this.newsHistory.has(key)) {
+          this.newsHistory.set(key, {
+            ...item,
+            firstSeenAt: now
+          });
+        }
+      });
+
+      // Remove items older than 2 days from history
+      for (const [key, item] of this.newsHistory.entries()) {
+        if (item.firstSeenAt < twoDaysAgo) {
+          this.newsHistory.delete(key);
+        }
+      }
+
+      // Return all items from history (includes current + items from last 2 days)
+      const allItems = Array.from(this.newsHistory.values());
+
+      // Sort by first seen timestamp (newest first)
+      allItems.sort((a, b) => b.firstSeenAt - a.firstSeenAt);
+
+      console.log(`Returning ${allItems.length} items (including ${allItems.length - processedItems.length} from history)`);
+
       // Update cache
-      this.newsCache = processedItems;
+      this.newsCache = allItems;
       this.lastFetch = Date.now();
 
-      return processedItems;
+      return allItems;
     } catch (error) {
       console.error('Error scraping FinancialJuice:', error.message);
       throw error;
@@ -210,11 +242,12 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Clear cache
+   * Clear cache and history
    */
   clearCache() {
     this.newsCache = [];
     this.lastFetch = null;
+    this.newsHistory.clear();
   }
 
   /**
