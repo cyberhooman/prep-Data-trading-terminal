@@ -20,6 +20,7 @@ const { WebSocketServer } = require('ws');
 const compression = require('compression');
 const session = require('express-session');
 const { passport, ensureAuthenticated } = require('./auth');
+const financialJuiceScraper = require('./services/financialJuiceScraper');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -775,6 +776,48 @@ app.get('/logout', (req, res) => {
   });
 });
 
+// API endpoint to get high-impact news from FinancialJuice (public - no auth required)
+app.get('/api/financial-news', async (req, res) => {
+  try {
+    const news = await financialJuiceScraper.getLatestNews();
+    res.json({
+      success: true,
+      count: news.length,
+      data: news,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error fetching financial news:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch financial news',
+      message: err.message
+    });
+  }
+});
+
+// API endpoint to force refresh financial news cache (public - no auth required)
+app.post('/api/financial-news/refresh', async (req, res) => {
+  try {
+    financialJuiceScraper.clearCache();
+    const news = await financialJuiceScraper.getLatestNews();
+    res.json({
+      success: true,
+      count: news.length,
+      data: news,
+      refreshed: true,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error refreshing financial news:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to refresh financial news',
+      message: err.message
+    });
+  }
+});
+
 // Protect all routes except login and auth routes
 app.use((req, res, next) => {
   // Allow access to login, auth, and static files
@@ -857,6 +900,12 @@ app.get('/animated-title.jsx', (req, res) => {
 
 app.get('/quick-notes.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'quick-notes.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/financial-news.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'financial-news.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -1492,13 +1541,16 @@ app.get('/', async (req, res) => {
       </style>
     </head>
     <body>
-      <header>
-        <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1rem;">
-          <div style="min-width: 0; flex: 1;">
-            <h1 style="font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-              Alphalabs Data Trading
-            </h1>
-            <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.7);">Live currency strength snapshot and high-impact event timers</p>
+      <header style="padding: 1.5rem 0; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
+        <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1.5rem; padding: 0 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
+            <div>
+              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
+                Alphalabs
+              </h1>
+              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+            </div>
           </div>
           ${authControlsHtml}
         </div>
@@ -1598,6 +1650,11 @@ app.get('/', async (req, res) => {
               ${strengthRows || '<tr><td colspan="4">No data available.</td></tr>'}
             </tbody>
           </table>
+        </section>
+
+        <!-- Financial News Feed -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <div id="financial-news-root"></div>
         </section>
 
         <!-- Trading Journal (Below Fold) -->
@@ -1963,6 +2020,7 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         const root = ReactDOM.createRoot(document.getElementById('todo-root'));
         root.render(React.createElement(TodoCard));
@@ -1970,6 +2028,8 @@ app.get('/', async (req, res) => {
         nroot.render(React.createElement(QuickNotes));
         const jroot = ReactDOM.createRoot(document.getElementById('journal-root'));
         jroot.render(React.createElement(JournalCalendar));
+        const fnroot = ReactDOM.createRoot(document.getElementById('financial-news-root'));
+        fnroot.render(React.createElement(FinancialNewsFeed));
       </script>
       <script>
         // Live reload WebSocket connection
@@ -2298,6 +2358,7 @@ const watchedFiles = [
   path.join(__dirname, 'journal.jsx'),
   path.join(__dirname, 'quick-notes.jsx'),
   path.join(__dirname, 'animated-title.jsx'),
+  path.join(__dirname, 'financial-news.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 

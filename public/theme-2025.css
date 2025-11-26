@@ -82,7 +82,7 @@
 
 /* === TYPOGRAPHY === */
 /* Importing premium font families optimized for trading dashboards */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter+Tight:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 /* === BODY & MAIN === */
 * {
@@ -94,7 +94,7 @@
 html, body {
   height: 100%;
   /* Space Grotesk for headlines, Inter for body - perfect for fintech */
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background: var(--primary-bg);
   color: var(--text-primary);
   line-height: 1.6;
@@ -140,7 +140,7 @@ header {
 }
 
 header h1 {
-  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-family: "Inter Tight", "DM Sans", sans-serif;
   font-size: 2.6rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -159,7 +159,7 @@ header p {
 
 /* Typography scale */
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Space Grotesk", "Outfit", sans-serif;
+  font-family: "Inter Tight", "DM Sans", sans-serif;
   font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--text-bright);
@@ -183,7 +183,7 @@ h4 {
 
 /* Monospace for data - perfect for trading numbers */
 .mono, code, pre, .countdown, .price, .data {
-  font-family: "JetBrains Mono", "Roboto Mono", "SF Mono", monospace;
+  font-family: "IBM Plex Mono", "SF Mono", monospace;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -221,7 +221,7 @@ button, .btn {
   border: 1px solid var(--secondary-border);
   font-weight: 600;
   font-size: 0.9rem;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Inter Tight", sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--text-bright);
@@ -304,7 +304,7 @@ th {
   background: rgba(0, 217, 255, 0.15);
   border-bottom: 2px solid rgba(0, 217, 255, 0.35);
   font-weight: 600;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Inter Tight", sans-serif;
   color: var(--accent-primary);
 }
 
@@ -348,7 +348,7 @@ input, textarea, select {
   background: var(--primary-bg-alt);
   color: var(--text-primary);
   font-size: 0.95rem;
-  font-family: "Inter", sans-serif;
+  font-family: "DM Sans", sans-serif;
   transition: border-color 0.2s ease;
 }
 
@@ -574,7 +574,7 @@ input::placeholder, textarea::placeholder {
 
 /* === COUNTDOWN === */
 .countdown {
-  font-family: "JetBrains Mono", "Roboto Mono", monospace;
+  font-family: "IBM Plex Mono", monospace;
   font-size: 1.4rem;
   margin-top: 0.5rem;
   display: inline-flex;
@@ -624,7 +624,7 @@ input::placeholder, textarea::placeholder {
   border-radius: 12px;
   font-weight: 600;
   font-size: 0.85rem;
-  font-family: "JetBrains Mono", monospace;
+  font-family: "IBM Plex Mono", monospace;
 }
 
 .momentum-badge.bullish {
@@ -774,7 +774,7 @@ form.add-event button {
 }
 
 .next-countdown {
-  font-family: "JetBrains Mono", "Roboto Mono", monospace;
+  font-family: "IBM Plex Mono", monospace;
   font-size: clamp(2rem, 6vw, 5.5rem);
   font-weight: 700;
   color: var(--text-bright);
