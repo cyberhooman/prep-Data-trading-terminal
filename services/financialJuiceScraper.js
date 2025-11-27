@@ -1,4 +1,6 @@
 const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
 class FinancialJuiceScraper {
   constructor() {
@@ -9,6 +11,64 @@ class FinancialJuiceScraper {
     this.browser = null;
     this.newsHistory = new Map(); // Store news with first seen timestamp
     this.retentionDays = 2; // Keep news for 2 days
+    this.historyFile = path.join(__dirname, '..', 'data', 'news-history.json');
+
+    // Load history from file on startup
+    this.loadHistory();
+  }
+
+  /**
+   * Load news history from file
+   */
+  loadHistory() {
+    try {
+      if (fs.existsSync(this.historyFile)) {
+        const data = fs.readFileSync(this.historyFile, 'utf8');
+        const historyArray = JSON.parse(data);
+
+        // Convert array back to Map
+        this.newsHistory = new Map(historyArray.map(item => [
+          `${item.headline}-${item.timestamp}`,
+          item
+        ]));
+
+        // Clean up old items (older than 2 days)
+        const now = Date.now();
+        const twoDaysAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
+
+        for (const [key, item] of this.newsHistory.entries()) {
+          if (item.firstSeenAt < twoDaysAgo) {
+            this.newsHistory.delete(key);
+          }
+        }
+
+        console.log(`Loaded ${this.newsHistory.size} news items from history`);
+      }
+    } catch (error) {
+      console.error('Error loading news history:', error.message);
+      this.newsHistory = new Map();
+    }
+  }
+
+  /**
+   * Save news history to file
+   */
+  saveHistory() {
+    try {
+      // Ensure data directory exists
+      const dataDir = path.join(__dirname, '..', 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      // Convert Map to array for JSON serialization
+      const historyArray = Array.from(this.newsHistory.values());
+
+      fs.writeFileSync(this.historyFile, JSON.stringify(historyArray, null, 2), 'utf8');
+      console.log(`Saved ${historyArray.length} news items to history file`);
+    } catch (error) {
+      console.error('Error saving news history:', error.message);
+    }
   }
 
   /**
@@ -186,6 +246,9 @@ class FinancialJuiceScraper {
 
       console.log(`Returning ${allItems.length} items (including ${allItems.length - processedItems.length} from history)`);
 
+      // Save history to file
+      this.saveHistory();
+
       // Update cache
       this.newsCache = allItems;
       this.lastFetch = Date.now();
@@ -248,6 +311,7 @@ class FinancialJuiceScraper {
     this.newsCache = [];
     this.lastFetch = null;
     this.newsHistory.clear();
+    this.saveHistory(); // Save empty history to file
   }
 
   /**

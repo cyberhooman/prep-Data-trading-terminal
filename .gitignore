@@ -5,6 +5,7 @@ node_modules/
 data/trading.db
 data/trading.db-shm
 data/trading.db-wal
+data/news-history.json
 
 # Logs
 *.log

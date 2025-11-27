@@ -1,9 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git push)",
+      "WebFetch(domain:github.com)",
+      "Bash(test:*)",
+      "Bash(cat:*)",
+      "Bash(node index.js:*)",
+      "Bash(npm run dev:*)",
+      "Bash(rm:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(tasklist:*)",
+      "Bash(cp:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(if not exist \".claude\\skills\" mkdir .claudeskills)",
+      "Bash(if not exist .claudeskills mkdir .claudeskills)",
+      "Bash(cmd /c \"if not exist .claude\\skills mkdir .claude\\skills\")",
+      "Bash(curl:*)",
       "Bash(node -c:*)",
-      "Bash(node test-scraper.js:*)",
+      "Bash(taskkill:*)",
       "Bash(git add:*)"
     ],
     "deny": [],

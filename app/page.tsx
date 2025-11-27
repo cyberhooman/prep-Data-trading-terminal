@@ -43,12 +43,37 @@ export default function Home() {
 
   return (
     <>
-      <header>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: '1480px', margin: '0 auto' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, background: 'linear-gradient(135deg, #60a5fa, #3b82f6, #2563eb)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
-            Alphalabs Data Trading
-          </h1>
-          <p style={{ fontSize: '0.9rem', color: 'rgba(226, 232, 240, 0.7)' }}>Live currency strength snapshot and high-impact event timers</p>
+      <header className="main-header">
+        <div className="header-content">
+          {/* Left: Logo & Brand */}
+          <div className="header-brand">
+            <div className="logo-box">
+              <span className="logo-letter">A</span>
+            </div>
+            <div className="brand-text">
+              <h1 className="brand-name">Alphalabs</h1>
+              <p className="brand-tagline">DATA TRADING</p>
+            </div>
+          </div>
+
+          {/* Right: User Profile & Logout */}
+          <div className="header-user">
+            <div className="user-profile">
+              <div className="user-avatar">
+                <span className="avatar-initial">F</span>
+              </div>
+              <div className="user-info">
+                <span className="user-name">Fadly Aidil</span>
+                <span className="user-email">aaidifadly12@gmail.com</span>
+              </div>
+            </div>
+            <button className="logout-btn">
+              <svg className="logout-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -57,7 +82,7 @@ export default function Home() {
         <div className="bento-container" style={{ maxWidth: '1480px', margin: '0 auto 2rem' }}>
           {/* Large Event Countdown Box (Full Width) */}
           <div className="bento-box bento-countdown">
-            <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem', fontWeight: 700 }}>⏰ Next Event Countdown</h2>
+            <h2>⏰ Next Event Countdown</h2>
             <EventCountdown events={events} />
           </div>
 
@@ -73,9 +98,9 @@ export default function Home() {
         </div>
 
         {/* Upcoming Events (Limited to 3) */}
-        <section style={{ maxWidth: '1480px', margin: '0 auto 1.5rem' }}>
-          <h2 style={{ marginBottom: '1rem' }}>Upcoming High Impact News</h2>
-          <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'rgba(226, 232, 240, 0.75)' }}>
+        <section>
+          <h2>Upcoming High Impact News</h2>
+          <p style={{ marginBottom: '1.5rem', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
             Showing next 3 high-impact events from Forex Factory
           </p>
           <EventsList events={events.slice(0, 3)} />
@@ -83,9 +108,9 @@ export default function Home() {
 
         {/* Currency Strength Table */}
         {currencyData && (
-          <section style={{ maxWidth: '1480px', margin: '0 auto 1.5rem' }}>
-            <h2 style={{ marginBottom: '1rem' }}>Currency Strength (7-Day Trend)</h2>
-            <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'rgba(226, 232, 240, 0.75)' }}>
+          <section>
+            <h2>Currency Strength (7-Day Trend)</h2>
+            <p style={{ marginBottom: '1.5rem', fontSize: '0.95rem', color: 'var(--text-muted)' }}>
               Calculated from 28 major currency pairs • Updated every 5 minutes
             </p>
             <CurrencyStrength data={currencyData} />
@@ -93,8 +118,8 @@ export default function Home() {
         )}
 
         {/* Trading Journal */}
-        <section style={{ maxWidth: '1480px', margin: '0 auto 1.5rem' }}>
-          <h2 style={{ marginBottom: '1rem' }}>Trading Journal</h2>
+        <section>
+          <h2>Trading Journal</h2>
           <JournalCalendar />
         </section>
       </main>
