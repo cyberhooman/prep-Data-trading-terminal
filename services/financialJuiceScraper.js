@@ -10,7 +10,7 @@ class FinancialJuiceScraper {
     this.cacheTimeout = 60000; // 1 minute cache
     this.browser = null;
     this.newsHistory = new Map(); // Store news with first seen timestamp
-    this.retentionDays = 2; // Keep news for 2 days
+    this.retentionDays = 7; // Keep news for 1 week (7 days)
     this.historyFile = path.join(__dirname, '..', 'data', 'news-history.json');
 
     // Load history from file on startup
@@ -32,12 +32,12 @@ class FinancialJuiceScraper {
           item
         ]));
 
-        // Clean up old items (older than 2 days)
+        // Clean up old items (older than 1 week)
         const now = Date.now();
-        const twoDaysAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
+        const oneWeekAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
 
         for (const [key, item] of this.newsHistory.entries()) {
-          if (item.firstSeenAt < twoDaysAgo) {
+          if (item.firstSeenAt < oneWeekAgo) {
             this.newsHistory.delete(key);
           }
         }
@@ -216,9 +216,9 @@ class FinancialJuiceScraper {
         scrapedAt: new Date().toISOString()
       }));
 
-      // Merge with historical items (keep for 2 days)
+      // Merge with historical items (keep for 1 week)
       const now = Date.now();
-      const twoDaysAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
+      const oneWeekAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
 
       // Add new items to history with first seen timestamp
       processedItems.forEach(item => {
@@ -231,14 +231,14 @@ class FinancialJuiceScraper {
         }
       });
 
-      // Remove items older than 2 days from history
+      // Remove items older than 1 week from history
       for (const [key, item] of this.newsHistory.entries()) {
-        if (item.firstSeenAt < twoDaysAgo) {
+        if (item.firstSeenAt < oneWeekAgo) {
           this.newsHistory.delete(key);
         }
       }
 
-      // Return all items from history (includes current + items from last 2 days)
+      // Return all items from history (includes current + items from last week)
       const allItems = Array.from(this.newsHistory.values());
 
       // Sort by first seen timestamp (newest first)
