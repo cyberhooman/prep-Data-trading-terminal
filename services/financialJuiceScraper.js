@@ -1,6 +1,5 @@
 const puppeteer = require('puppeteer');
-const fs = require('fs');
-const path = require('path');
+const database = require('./database');
 
 class FinancialJuiceScraper {
   constructor() {
@@ -11,39 +10,41 @@ class FinancialJuiceScraper {
     this.browser = null;
     this.newsHistory = new Map(); // Store news with first seen timestamp
     this.retentionDays = 7; // Keep news for 1 week (7 days)
-    this.historyFile = path.join(__dirname, '..', 'data', 'news-history.json');
+    this.database = database;
 
-    // Load history from file on startup
-    this.loadHistory();
+    // Initialize database and load history
+    this.init();
   }
 
   /**
-   * Load news history from file
+   * Initialize database and load history
    */
-  loadHistory() {
+  async init() {
     try {
-      if (fs.existsSync(this.historyFile)) {
-        const data = fs.readFileSync(this.historyFile, 'utf8');
-        const historyArray = JSON.parse(data);
+      // Create tables if in production mode
+      await this.database.createNewsHistoryTable();
 
-        // Convert array back to Map
-        this.newsHistory = new Map(historyArray.map(item => [
-          `${item.headline}-${item.timestamp}`,
-          item
-        ]));
+      // Load history from database or file
+      await this.loadHistory();
+    } catch (error) {
+      console.error('Error initializing scraper:', error);
+    }
+  }
 
-        // Clean up old items (older than 1 week)
-        const now = Date.now();
-        const oneWeekAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
+  /**
+   * Load news history from database or file
+   */
+  async loadHistory() {
+    try {
+      const historyArray = await this.database.loadNewsHistory();
 
-        for (const [key, item] of this.newsHistory.entries()) {
-          if (item.firstSeenAt < oneWeekAgo) {
-            this.newsHistory.delete(key);
-          }
-        }
+      // Convert array back to Map
+      this.newsHistory = new Map(historyArray.map(item => [
+        `${item.headline}-${item.timestamp}`,
+        item
+      ]));
 
-        console.log(`Loaded ${this.newsHistory.size} news items from history`);
-      }
+      console.log(`Loaded ${this.newsHistory.size} news items from history`);
     } catch (error) {
       console.error('Error loading news history:', error.message);
       this.newsHistory = new Map();
@@ -51,21 +52,14 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Save news history to file
+   * Save news history to database or file
    */
-  saveHistory() {
+  async saveHistory() {
     try {
-      // Ensure data directory exists
-      const dataDir = path.join(__dirname, '..', 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-
-      // Convert Map to array for JSON serialization
+      // Convert Map to array
       const historyArray = Array.from(this.newsHistory.values());
 
-      fs.writeFileSync(this.historyFile, JSON.stringify(historyArray, null, 2), 'utf8');
-      console.log(`Saved ${historyArray.length} news items to history file`);
+      await this.database.saveNewsHistory(historyArray);
     } catch (error) {
       console.error('Error saving news history:', error.message);
     }
@@ -76,7 +70,7 @@ class FinancialJuiceScraper {
    */
   async getBrowser() {
     if (!this.browser) {
-      this.browser = await puppeteer.launch({
+      const launchOptions = {
         headless: 'new',
         args: [
           '--no-sandbox',
@@ -85,7 +79,14 @@ class FinancialJuiceScraper {
           '--disable-accelerated-2d-canvas',
           '--disable-gpu'
         ]
-      });
+      };
+
+      // Use system Chromium on Railway
+      if (process.env.NODE_ENV === 'production') {
+        launchOptions.executablePath = '/nix/store/*chromium*/bin/chromium-browser';
+      }
+
+      this.browser = await puppeteer.launch(launchOptions);
     }
     return this.browser;
   }

@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ['nodejs-20_x', 'chromium']
+
+[phases.install]
+cmds = ['npm install']
+
+[start]
+cmd = 'NODE_ENV=production node index.js'

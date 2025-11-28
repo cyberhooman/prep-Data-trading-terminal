@@ -1,274 +1,256 @@
 # Railway Deployment Guide
+## Alphalabs Data Trading Dashboard
 
-Deploy your Express.js trading dashboard to Railway.app in minutes!
-
-## Why Railway?
-
-✅ **Perfect for Express.js** - Supports traditional Node.js servers
-✅ **Free Tier** - $5/month free credit (enough for this app)
-✅ **Auto HTTPS** - Automatic SSL certificates
-✅ **GitHub Integration** - Auto-deploy on push
-✅ **Easy Environment Variables** - Simple dashboard setup
+This guide will help you deploy your trading dashboard to Railway for 70 users.
 
 ---
 
-## Step 1: Create Railway Account
+## Prerequisites
 
-1. **Go to Railway.app**
-   - Visit: https://railway.app/
-   - Click "Start a New Project"
-   - Sign in with GitHub
-
-2. **Authorize Railway**
-   - Grant Railway access to your GitHub repositories
+- [x] Railway account with Hobby plan subscription
+- [x] GitHub repository (this repo)
+- [ ] Google OAuth credentials (for user authentication)
 
 ---
 
-## Step 2: Deploy Your App
+## Step 1: Create Railway Project
 
-1. **Create New Project**
-   - Click "New Project"
-   - Select "Deploy from GitHub repo"
-   - Choose your repository: `prep-Data-trading-terminal`
+1. Go to [Railway.app](https://railway.app)
+2. Click "New Project"
+3. Select "Deploy from GitHub repo"
+4. Choose this repository: `prep-Data-trading-terminal`
+5. Railway will automatically detect Node.js and start building
 
-2. **Railway will automatically:**
-   - Detect it's a Node.js app
-   - Run `npm install`
-   - Start the app with `npm start`
+---
 
-3. **Wait for deployment** (1-2 minutes)
+## Step 2: Add PostgreSQL Database
+
+1. In your Railway project, click "+ New"
+2. Select "Database" → "PostgreSQL"
+3. Railway will automatically:
+   - Create a PostgreSQL database
+   - Generate a `DATABASE_URL` environment variable
+   - Link it to your app
+
+**Important**: The `DATABASE_URL` is automatically injected into your app. No manual configuration needed!
 
 ---
 
 ## Step 3: Configure Environment Variables
 
-1. **Open your deployed service**
-   - Click on your service in Railway dashboard
+Go to your app's "Variables" tab and add:
 
-2. **Go to Variables tab**
-   - Click "Variables" in the left sidebar
+### Required Variables:
 
-3. **Add these environment variables:**
+```env
+NODE_ENV=production
+PORT=3000
+SESSION_SECRET=<generate-random-string-32-chars>
+GOOGLE_CLIENT_ID=<your-google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<your-google-oauth-client-secret>
+GOOGLE_CALLBACK_URL=https://your-app-name.railway.app/auth/google/callback
+```
 
-   ```
-   GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+### How to Get Google OAuth Credentials:
 
-   GOOGLE_CLIENT_SECRET=your-google-client-secret
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Navigate to "APIs & Services" → "Credentials"
+4. Click "Create Credentials" → "OAuth 2.0 Client ID"
+5. Application type: "Web application"
+6. Authorized redirect URIs: Add your Railway URL + `/auth/google/callback`
+   - Example: `https://alphalabs-trading.railway.app/auth/google/callback`
+7. Copy the Client ID and Client Secret to Railway environment variables
 
-   SESSION_SECRET=your-random-session-secret
+### Generate SESSION_SECRET:
 
-   NODE_ENV=production
-   ```
+```bash
+# On your local machine, run:
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
 
-   **Get your credentials from:**
-   - Google Cloud Console → Credentials
-   - Or from your local `.env` file
-
-4. **Important:** Add `APP_URL` variable:
-   - First, get your Railway app URL (see Step 4)
-   - Then come back and add: `APP_URL=https://your-app.railway.app`
-
----
-
-## Step 4: Get Your App URL
-
-1. **Generate Public Domain**
-   - Go to "Settings" tab
-   - Scroll to "Networking"
-   - Click "Generate Domain"
-   - You'll get a URL like: `https://your-app.railway.app`
-
-2. **Save this URL** - you'll need it for Google OAuth!
+Copy the output and paste it as `SESSION_SECRET` in Railway.
 
 ---
 
-## Step 5: Update Google OAuth Settings
+## Step 4: Deploy
 
-1. **Go to Google Cloud Console**
-   - Visit: https://console.cloud.google.com/apis/credentials
-
-2. **Click on your OAuth Client ID**
-   - Find your OAuth 2.0 Client ID in the list
-
-3. **Update Authorized Redirect URIs**
-   - Add your Railway URL:
-     ```
-     https://your-app.railway.app/auth/google/callback
-     ```
-   - Keep the localhost one for local development:
-     ```
-     http://localhost:3000/auth/google/callback
-     ```
-
-4. **Update Authorized JavaScript Origins**
-   - Add:
-     ```
-     https://your-app.railway.app
-     ```
-
-5. **Click SAVE**
+1. Railway will automatically deploy when you push to `main` branch
+2. Watch the deployment logs in Railway dashboard
+3. First deployment takes ~5-10 minutes (installing Chromium for Puppeteer)
 
 ---
 
-## Step 6: Add APP_URL Environment Variable
+## Step 5: Verify Deployment
 
-Now that you have your Railway URL:
-
-1. **Go back to Railway dashboard**
-2. **Variables tab**
-3. **Add:**
-   ```
-   APP_URL=https://your-app.railway.app
-   ```
-   (Replace with your actual Railway URL)
-
-4. **The app will automatically redeploy**
+1. Open your Railway app URL: `https://your-app-name.railway.app`
+2. You should see the login page
+3. Click "Login with Google"
+4. Authorize the app
+5. You should see your trading dashboard!
 
 ---
 
-## Step 7: Test Your Deployment! 🎉
+## Architecture
 
-1. **Visit your Railway URL**
-   - `https://your-app.railway.app`
+### Development Mode (Local):
+- Uses JSON files for data storage (`data/*.json`)
+- SQLite for trading database
+- File-based news history
 
-2. **You should see the login page**
+### Production Mode (Railway):
+- Uses PostgreSQL for all data
+- News history stored in `news_history` table
+- Automatic 1-week retention cleanup
+- Survives restarts and deployments
 
-3. **Click "Continue with Google"**
+### Database Schema:
 
-4. **Sign in and access your dashboard!**
-
----
-
-## Monitoring & Logs
-
-### View Logs
-- Railway dashboard → Your service → "Deployments" tab
-- Click on latest deployment to see logs
-
-### Check Status
-- Green dot = Running
-- Red dot = Crashed (check logs)
-
-### Restart Service
-- Settings → Restart
-
----
-
-## Database Persistence
-
-Your SQLite database is stored in Railway's persistent volume:
-
-- **Data location:** `/app/data/trading.db`
-- **Automatically persisted** across deploys
-- **Backed up** by Railway
+```sql
+CREATE TABLE news_history (
+  id SERIAL PRIMARY KEY,
+  headline TEXT NOT NULL,
+  timestamp TIMESTAMPTZ,
+  economic_data JSONB,
+  tags TEXT[],
+  has_chart BOOLEAN,
+  link TEXT,
+  is_critical BOOLEAN,
+  first_seen_at BIGINT NOT NULL,
+  scraped_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(headline, timestamp)
+);
+```
 
 ---
 
-## Auto-Deployment
+## Features for 70 Users
 
-Railway automatically deploys when you push to GitHub:
-
-1. **Make changes locally**
-2. **Commit and push:**
-   ```bash
-   git add .
-   git commit -m "Your changes"
-   git push origin main
-   ```
-3. **Railway auto-deploys** (watch in dashboard)
+✅ **Multi-user Support**: Each user has isolated OAuth session
+✅ **Persistent Data**: PostgreSQL database survives restarts
+✅ **News History**: 1-week retention for critical market news
+✅ **Web Scraping**: Puppeteer with Chromium for FinancialJuice scraping
+✅ **Auto-scaling**: Railway handles traffic spikes
+✅ **HTTPS**: Automatic SSL certificates
+✅ **CDN**: Fast global delivery
 
 ---
 
-## Cost
+## Monitoring
 
-**Free Tier:**
-- $5 free credit/month
-- ~550 hours runtime
-- **This app uses ~$0.50/month** = 10 months free!
+### Railway Dashboard:
+- **Metrics**: CPU, Memory, Network usage
+- **Logs**: Real-time application logs
+- **Deployments**: History of all deployments
 
-**After free tier:**
-- Pay only for what you use
-- ~$5/month for 24/7 uptime
-
----
-
-## Environment Variables Reference
-
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `GOOGLE_CLIENT_ID` | Your Google OAuth Client ID | Google login |
-| `GOOGLE_CLIENT_SECRET` | Your Google OAuth Secret | Google login |
-| `SESSION_SECRET` | Random string | Secure sessions |
-| `APP_URL` | `https://your-app.railway.app` | OAuth redirects |
-| `NODE_ENV` | `production` | Production mode |
-| `PORT` | Auto-set by Railway | Server port |
+### Useful Logs to Watch:
+```
+Loaded X news items from history
+PostgreSQL connection pool initialized
+Alphalabs data trading server running on http://0.0.0.0:3000
+```
 
 ---
 
 ## Troubleshooting
 
-### "Error 400" on Google Login
-✅ **Fix:** Make sure you added the Railway callback URL to Google OAuth settings
+### Issue: Puppeteer fails to launch
 
-### App Crashes on Startup
-✅ **Fix:** Check Railway logs for errors
-✅ **Fix:** Make sure all environment variables are set
+**Solution**: Check that `nixpacks.toml` includes Chromium:
+```toml
+[phases.setup]
+nixPkgs = ['nodejs-20_x', 'chromium']
+```
 
-### "Module not found"
-✅ **Fix:** Railway will auto-run `npm install`, wait for deployment to finish
+### Issue: Database connection fails
 
-### Database Issues
-✅ **Fix:** Railway automatically creates persistent volumes
-✅ **Fix:** Check logs for SQLite errors
+**Solution**: Ensure PostgreSQL is added and `DATABASE_URL` is injected by Railway
 
-### Changes Not Deploying
-✅ **Fix:** Make sure you pushed to GitHub (`git push origin main`)
-✅ **Fix:** Check Railway dashboard for deployment status
+### Issue: OAuth redirect fails
 
----
+**Solution**: Update `GOOGLE_CALLBACK_URL` to match your Railway domain exactly
 
-## Advanced: Custom Domain
+### Issue: News history not persisting
 
-Want to use your own domain?
-
-1. **Railway Settings → Networking**
-2. **Click "Custom Domain"**
-3. **Enter your domain:** `trading.yourdomain.com`
-4. **Add DNS records** (Railway provides instructions)
-5. **Update Google OAuth** with new domain
-6. **Update `APP_URL`** environment variable
+**Solution**: Check that `NODE_ENV=production` is set in Railway variables
 
 ---
 
-## Security Checklist
+## Costs
 
-Before going live:
+**Railway Hobby Plan**: $5/month
+- Included usage:
+  - $5 worth of usage credits
+  - Unlimited projects
+  - PostgreSQL database
+  - Automatic deployments
 
-- ✅ All environment variables set in Railway
-- ✅ `.env` file NOT committed to GitHub
-- ✅ Google OAuth redirect URIs updated
-- ✅ Strong `SESSION_SECRET` (random, 32+ chars)
-- ✅ `NODE_ENV=production` set
-- ✅ Test login/logout flow
-- ✅ Check that data persists after redeploy
+**Estimated monthly cost for 70 users**:
+- ~$5-15/month (depending on traffic and scraping frequency)
+
+---
+
+## Scaling Beyond 70 Users
+
+If you grow beyond 70 users, consider:
+
+1. **Upgrade to Pro Plan** ($20/month for more resources)
+2. **Optimize scraping**: Increase cache timeout to reduce FinancialJuice requests
+3. **Add caching layer**: Use Redis for frequently accessed data
+4. **Database optimization**: Add indexes for common queries
+
+---
+
+## Security Best Practices
+
+✅ **Environment Variables**: Never commit `.env` to Git
+✅ **OAuth Only**: Users must authenticate with Google
+✅ **HTTPS**: Railway provides automatic SSL
+✅ **Session Management**: Express-session with secure cookies
+✅ **Rate Limiting**: Already configured in the app
 
 ---
 
 ## Support
 
-- **Railway Docs:** https://docs.railway.app/
-- **Railway Discord:** https://discord.gg/railway
-- **Check logs** in Railway dashboard for errors
+- Railway Docs: https://docs.railway.app
+- GitHub Issues: Create an issue in this repo
+- Railway Discord: https://discord.gg/railway
 
 ---
 
-## Summary
+## Quick Commands
 
-1. ✅ Create Railway account
-2. ✅ Deploy from GitHub
-3. ✅ Add environment variables
-4. ✅ Generate public domain
-5. ✅ Update Google OAuth settings
-6. ✅ Visit your live app!
+### View Logs:
+```bash
+# In Railway dashboard, click on your app → "View Logs"
+```
 
-**Your app is now live and accessible from anywhere! 🚀**
+### Restart App:
+```bash
+# In Railway dashboard, click "Restart"
+```
+
+### Trigger Redeploy:
+```bash
+git commit --allow-empty -m "Trigger redeploy"
+git push origin main
+```
+
+---
+
+## What's Next?
+
+1. ✅ Deploy to Railway
+2. ✅ Add PostgreSQL
+3. ✅ Configure environment variables
+4. ✅ Test with 5-10 users first
+5. [ ] Share the Railway URL with your 70 users
+6. [ ] Monitor performance in Railway dashboard
+7. [ ] Set up uptime monitoring (optional): UptimeRobot or Pingdom
+
+---
+
+**Deployment Status**: Ready to deploy! 🚀
+
+Push your code to GitHub and let Railway handle the rest!
