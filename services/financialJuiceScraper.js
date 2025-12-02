@@ -160,9 +160,43 @@ class FinancialJuiceScraper {
       const result = await page.evaluate(() => {
         const items = [];
 
-        // Use the actual FinancialJuice class names
-        // Look for feed items, prioritizing critical/active items
-        const elements = Array.from(document.querySelectorAll('.media.feedWrap, .infinite-item.headline-item'));
+        // Try multiple selectors as FinancialJuice structure may have changed
+        const selectors = [
+          '.media.feedWrap',
+          '.infinite-item.headline-item',
+          '.media',
+          '[class*="feed"]',
+          '[class*="headline"]',
+          '[class*="news"]',
+          'article',
+          '[class*="item"]'
+        ];
+
+        let elements = [];
+        let selectorUsed = 'none';
+        for (const selector of selectors) {
+          const found = Array.from(document.querySelectorAll(selector));
+          if (found.length > 0) {
+            elements = found;
+            selectorUsed = selector;
+            break;
+          }
+        }
+
+        // If no elements found with any selector, return empty
+        if (elements.length === 0) {
+          console.log('No elements found with any selector');
+          return {
+            items: [],
+            debug: {
+              totalElements: 0,
+              criticalCount: 0,
+              activeCount: 0,
+              otherCount: 0,
+              selectorUsed: 'none'
+            }
+          };
+        }
 
         let criticalCount = 0;
         let activeCount = 0;
@@ -241,13 +275,15 @@ class FinancialJuiceScraper {
             totalElements: elements.length,
             criticalCount,
             activeCount,
-            otherCount
+            otherCount,
+            selectorUsed
           }
         };
       });
 
       // Extract items and debug info
       const newsItems = result.items;
+      console.log(`DEBUG: Selector used: "${result.debug.selectorUsed}"`);
       console.log(`DEBUG: Found ${result.debug.totalElements} elements matching selectors`);
       console.log(`DEBUG: Critical items: ${result.debug.criticalCount}, Active items: ${result.debug.activeCount}, Other: ${result.debug.otherCount}`);
 
