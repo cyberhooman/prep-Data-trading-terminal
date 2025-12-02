@@ -22,6 +22,7 @@ const compression = require('compression');
 const session = require('express-session');
 const { passport, ensureAuthenticated } = require('./auth');
 const financialJuiceScraper = require('./services/financialJuiceScraper');
+const xNewsScraper = require('./services/xNewsScraper');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -777,14 +778,38 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// API endpoint to get high-impact news from FinancialJuice (public - no auth required)
+// API endpoint to get high-impact news (public - no auth required)
+// Uses X API as primary source, falls back to FinancialJuice scraping
 app.get('/api/financial-news', async (req, res) => {
   try {
-    const news = await financialJuiceScraper.getLatestNews();
+    let news = [];
+    let source = 'unknown';
+
+    // Try X API first (preferred method)
+    if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
+      try {
+        console.log('Fetching news from X API...');
+        news = await xNewsScraper.getLatestNews();
+        source = 'x_api';
+        console.log(`Successfully fetched ${news.length} items from X API`);
+      } catch (xErr) {
+        console.error('X API failed, falling back to scraping:', xErr.message);
+        // Fall back to scraping
+        news = await financialJuiceScraper.getLatestNews();
+        source = 'web_scraping';
+      }
+    } else {
+      // No X API token, use scraping
+      console.log('No X_BEARER_TOKEN found, using web scraping');
+      news = await financialJuiceScraper.getLatestNews();
+      source = 'web_scraping';
+    }
+
     res.json({
       success: true,
       count: news.length,
       data: news,
+      source,
       lastUpdated: new Date().toISOString()
     });
   } catch (err) {
@@ -800,12 +825,25 @@ app.get('/api/financial-news', async (req, res) => {
 // API endpoint to force refresh financial news cache (public - no auth required)
 app.post('/api/financial-news/refresh', async (req, res) => {
   try {
-    financialJuiceScraper.clearCache();
-    const news = await financialJuiceScraper.getLatestNews();
+    let news = [];
+    let source = 'unknown';
+
+    // Clear both caches
+    if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
+      xNewsScraper.clearCache();
+      news = await xNewsScraper.getLatestNews();
+      source = 'x_api';
+    } else {
+      financialJuiceScraper.clearCache();
+      news = await financialJuiceScraper.getLatestNews();
+      source = 'web_scraping';
+    }
+
     res.json({
       success: true,
       count: news.length,
       data: news,
+      source,
       refreshed: true,
       lastUpdated: new Date().toISOString()
     });
