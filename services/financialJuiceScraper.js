@@ -153,8 +153,8 @@ class FinancialJuiceScraper {
         timeout: 30000
       });
 
-      // Wait for content to load
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait longer for JavaScript content to load
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
       // Extract news items from the page
       const result = await page.evaluate(() => {
@@ -217,11 +217,11 @@ class FinancialJuiceScraper {
           else if (isActive) activeCount++;
           else otherCount++;
 
-          // TEMPORARY: Include ALL items for debugging
-          // TODO: Restore filtering after we see what items exist
-          // if (!isCritical && !isActive) {
-          //   return;
-          // }
+          // Include items that are either critical (red border) OR active (high-impact)
+          // This ensures we show important market-moving news even if not marked as "critical"
+          if (!isCritical && !isActive) {
+            return;
+          }
 
           // Look for economic data patterns
           const hasEconomicData = text.match(/Actual|Forecast|Previous/i);
