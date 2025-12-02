@@ -3,7 +3,11 @@ nixPkgs = ['nodejs_20']
 aptPkgs = ['chromium']
 
 [phases.install]
-cmds = ['npm install']
+cmds = [
+  'npm install',
+  'which chromium || which chromium-browser || echo "Chromium not found in PATH"',
+  'ls -la /usr/bin/ | grep chrom || echo "No chromium binaries in /usr/bin"'
+]
 
 [start]
 cmd = 'NODE_ENV=production node index.js'

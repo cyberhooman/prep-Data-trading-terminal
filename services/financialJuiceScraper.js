@@ -87,7 +87,28 @@ class FinancialJuiceScraper {
 
       // Use system Chromium on Railway (installed via apt)
       if (process.env.NODE_ENV === 'production') {
-        launchOptions.executablePath = '/usr/bin/chromium';
+        // Try common Chromium paths on Ubuntu/Debian
+        const fs = require('fs');
+        const possiblePaths = [
+          '/usr/bin/chromium',
+          '/usr/bin/chromium-browser',
+          '/snap/bin/chromium',
+          '/usr/bin/google-chrome',
+          '/usr/bin/google-chrome-stable'
+        ];
+
+        for (const path of possiblePaths) {
+          if (fs.existsSync(path)) {
+            console.log(`Found Chromium at: ${path}`);
+            launchOptions.executablePath = path;
+            break;
+          }
+        }
+
+        if (!launchOptions.executablePath) {
+          console.error('No Chromium executable found at any expected path');
+          console.log('Attempting to use puppeteer default...');
+        }
       }
 
       this.browser = await puppeteer.launch(launchOptions);
