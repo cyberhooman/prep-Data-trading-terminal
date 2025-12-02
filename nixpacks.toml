@@ -5,4 +5,4 @@ nixPkgs = ['nodejs_20', 'chromium']
 cmds = ['npm install']
 
 [start]
-cmd = 'NODE_ENV=production node index.js'
+cmd = 'NODE_ENV=production PUPPETEER_EXECUTABLE_PATH=$(which chromium-browser) node index.js'
