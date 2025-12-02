@@ -183,11 +183,11 @@ class FinancialJuiceScraper {
           else if (isActive) activeCount++;
           else otherCount++;
 
-          // Include items that are either critical (red border) OR active (high-impact)
-          // This ensures we show important market-moving news even if not marked as "critical"
-          if (!isCritical && !isActive) {
-            return;
-          }
+          // TEMPORARY: Include ALL items for debugging
+          // TODO: Restore filtering after we see what items exist
+          // if (!isCritical && !isActive) {
+          //   return;
+          // }
 
           // Look for economic data patterns
           const hasEconomicData = text.match(/Actual|Forecast|Previous/i);
