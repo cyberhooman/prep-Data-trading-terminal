@@ -157,12 +157,16 @@ class FinancialJuiceScraper {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Extract news items from the page
-      const newsItems = await page.evaluate(() => {
+      const result = await page.evaluate(() => {
         const items = [];
 
         // Use the actual FinancialJuice class names
         // Look for feed items, prioritizing critical/active items
         const elements = Array.from(document.querySelectorAll('.media.feedWrap, .infinite-item.headline-item'));
+
+        let criticalCount = 0;
+        let activeCount = 0;
+        let otherCount = 0;
 
         elements.forEach((element) => {
           const className = element.className || '';
@@ -174,6 +178,10 @@ class FinancialJuiceScraper {
           // Check if this is a critical item (red border) or active (high-impact) item
           const isCritical = className.includes('active-critical');
           const isActive = className.includes('active');
+
+          if (isCritical) criticalCount++;
+          else if (isActive) activeCount++;
+          else otherCount++;
 
           // Include items that are either critical (red border) OR active (high-impact)
           // This ensures we show important market-moving news even if not marked as "critical"
@@ -227,8 +235,21 @@ class FinancialJuiceScraper {
           });
         });
 
-        return items;
+        return {
+          items,
+          debug: {
+            totalElements: elements.length,
+            criticalCount,
+            activeCount,
+            otherCount
+          }
+        };
       });
+
+      // Extract items and debug info
+      const newsItems = result.items;
+      console.log(`DEBUG: Found ${result.debug.totalElements} elements matching selectors`);
+      console.log(`DEBUG: Critical items: ${result.debug.criticalCount}, Active items: ${result.debug.activeCount}, Other: ${result.debug.otherCount}`);
 
       console.log(`Found ${newsItems.length} high-impact news items before deduplication`);
 
