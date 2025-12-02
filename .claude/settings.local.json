@@ -24,7 +24,14 @@
       "Bash(git push:*)",
       "Bash(dir:*)",
       "Bash(npm install:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(railway login:*)",
+      "Bash(railway whoami:*)",
+      "Bash(node:*)",
+      "Bash(nslookup:*)",
+      "WebFetch(domain:www.financialjuice.com)",
+      "Bash(timeout 90 bash:*)"
     ],
     "deny": [],
     "ask": []

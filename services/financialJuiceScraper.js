@@ -153,33 +153,71 @@ class FinancialJuiceScraper {
         timeout: 30000
       });
 
-      // Wait longer for JavaScript content to load
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Wait for page to fully load (matching check-auth.js which works)
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Wait for the news feed to appear on the page
+      try {
+        await page.waitForSelector('.media.feedWrap, .infinite-item', {
+          timeout: 15000
+        });
+        console.log('News feed loaded successfully');
+      } catch (error) {
+        console.log('Warning: News feed selector not found within 15s');
+
+        // Try clicking on "My News" tab if it exists
+        try {
+          await page.click('a[href*="home"], .nav-link:has-text("My News")');
+          console.log('Clicked on My News tab');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+
+          // Try waiting again
+          await page.waitForSelector('.media.feedWrap, .infinite-item', { timeout: 5000 });
+          console.log('News feed loaded after clicking My News');
+        } catch (e) {
+          console.log('Could not load news feed even after clicking');
+
+          // Take a screenshot for debugging
+          try {
+            await page.screenshot({ path: 'scraper-debug-failed.png' });
+            console.log('Debug screenshot saved to scraper-debug-failed.png');
+          } catch (err) {
+            // Ignore screenshot errors
+          }
+        }
+      }
+
+      // Scroll down more to load additional items
+      await page.evaluate(() => window.scrollBy(0, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Extract news items from the page
       const result = await page.evaluate(() => {
         const items = [];
 
-        // Try multiple selectors as FinancialJuice structure may have changed
+        // Try multiple selectors, prioritizing the most specific
         const selectors = [
-          '.media.feedWrap',
-          '.infinite-item.headline-item',
-          '.media',
-          '[class*="feed"]',
-          '[class*="headline"]',
-          '[class*="news"]',
-          'article',
-          '[class*="item"]'
+          { selector: '.media.feedWrap', minExpected: 10 },  // Primary selector
+          { selector: '.infinite-item', minExpected: 10 },   // Fallback 1
+          { selector: '.media', minExpected: 10 },            // Fallback 2
+          { selector: '[class*="feed"]', minExpected: 5 },    // Fallback 3
+          { selector: '[class*="headline"]', minExpected: 5 } // Fallback 4
         ];
 
         let elements = [];
         let selectorUsed = 'none';
-        for (const selector of selectors) {
+
+        // Try to use the selector that finds enough elements
+        for (const { selector, minExpected } of selectors) {
           const found = Array.from(document.querySelectorAll(selector));
-          if (found.length > 0) {
+          if (found.length >= minExpected) {
             elements = found;
             selectorUsed = selector;
             break;
+          } else if (found.length > 0 && elements.length === 0) {
+            // Keep this as a last resort if no other selector works
+            elements = found;
+            selectorUsed = selector + ' (fallback)';
           }
         }
 
