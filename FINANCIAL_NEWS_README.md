@@ -1,11 +1,11 @@
 # FinancialJuice News Scraper
 
-This module scrapes ONLY red-bordered critical news from FinancialJuice.com, filtering for the most critical market-moving events with red signal indicators.
+This module scrapes high-impact news from FinancialJuice.com, including both critical (red-bordered) and active (high-impact) market-moving events.
 
 ## Features
 
-- ✅ Scrapes ONLY red-bordered critical news items (active-critical class)
-- ✅ **1-week retention with file persistence** - Critical news stays visible for 7 days after first appearance
+- ✅ Scrapes high-impact news items (both active-critical and active classes)
+- ✅ **1-week retention with file persistence** - Important news stays visible for 7 days after first appearance
 - ✅ **Survives server restarts** - News history saved to `data/news-history.json`
 - ✅ Extracts economic data (Actual, Forecast, Previous values)
 - ✅ Tags and categorization (USD, EUR, Bonds, etc.)
@@ -135,21 +135,19 @@ class FinancialJuiceScraper {
 
 ## What Gets Scraped
 
-The scraper filters ONLY for red-bordered critical news by looking for:
+The scraper filters for high-impact market news by looking for:
 
-1. **Critical Items ONLY**: News marked with `active-critical` class (red border on FinancialJuice)
+1. **High-Impact Items**: News marked with either `active-critical` (red border) or `active` (high-impact) classes on FinancialJuice
 2. **Economic Data**: Extracts Actual/Forecast/Previous values if present
 3. **Tags**: Captures associated tags like USD, EUR, Bonds, etc.
 
 ### Example News Types Captured:
 
-- **Critical Economic Releases**: "US PPI YoY Actual 2.7% (Forecast 2.6%, Previous 2.6%)" [with red border]
-- **Critical Market-Moving Headlines**: Major Fed announcements, policy changes [with red border]
-- **Critical Geopolitical Events**: Major breaking news affecting markets [with red border]
+- **Critical Economic Releases**: "US PPI YoY Actual 2.7% (Forecast 2.6%, Previous 2.6%)" [red border - highest priority]
+- **High-Impact Market News**: Major Fed announcements, policy changes [active - important]
+- **Significant Geopolitical Events**: Breaking news affecting markets [active - important]
 
-**Note**: Only items with red borders (active-critical class) are included. Regular news items are filtered out.
-
-**Important**: Red-bordered items only appear during truly critical market events (major breaking news, unexpected economic data, emergency announcements, etc.). It's normal for the feed to show 0 items most of the time. When you see items here, they are extremely high-priority signals that require immediate attention.
+**Note**: Items with red borders (`active-critical`) are marked as CRITICAL with a red badge. Items with `active` class are marked as high-impact but not critical. Regular low-impact news items are filtered out.
 
 **1-Week Retention with Persistence**: Once a critical news item appears, it will remain visible for 7 days (1 week) even if it's removed from the live FinancialJuice feed. Each item shows a "🔴 X hours/days ago" badge indicating when it first appeared. News history is saved to `data/news-history.json` and persists across server restarts and browser refreshes, so you never miss critical market events.
 

@@ -115,8 +115,8 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Scrape ONLY red-bordered critical news from FinancialJuice
-   * Filters for active-critical class (red border indicators) only
+   * Scrape high-impact news from FinancialJuice
+   * Includes both critical (red border) and active (high-impact) items
    */
   async scrapeHighImpactNews() {
     let page = null;
@@ -171,15 +171,15 @@ class FinancialJuiceScraper {
           // Skip if no meaningful text
           if (!text || text.trim().length < 10) return;
 
-          // Check if this is a critical item (red border) using FinancialJuice's actual classes
+          // Check if this is a critical item (red border) or active (high-impact) item
           const isCritical = className.includes('active-critical');
+          const isActive = className.includes('active');
 
-          // ONLY include items with red borders (active-critical class)
-          if (!isCritical) {
+          // Include items that are either critical (red border) OR active (high-impact)
+          // This ensures we show important market-moving news even if not marked as "critical"
+          if (!isCritical && !isActive) {
             return;
           }
-
-          const isActive = className.includes('active');
 
           // Look for economic data patterns
           const hasEconomicData = text.match(/Actual|Forecast|Previous/i);
@@ -230,7 +230,7 @@ class FinancialJuiceScraper {
         return items;
       });
 
-      console.log(`Found ${newsItems.length} red-bordered critical news items before deduplication`);
+      console.log(`Found ${newsItems.length} high-impact news items before deduplication`);
 
       // Deduplicate based on headline and timestamp
       const seen = new Set();
@@ -243,7 +243,7 @@ class FinancialJuiceScraper {
         return true;
       });
 
-      console.log(`Found ${dedupedItems.length} unique red-bordered critical news items`);
+      console.log(`Found ${dedupedItems.length} unique high-impact news items`);
 
       // Process timestamps
       const processedItems = dedupedItems.map(item => ({

@@ -163,7 +163,7 @@ function FinancialNewsFeed() {
               padding: '2rem',
               color: 'rgba(226, 232, 240, 0.6)'
             }
-          }, 'No red-bordered critical news at the moment')
+          }, 'No high-impact market news at the moment')
         : news.map((item, index) =>
             React.createElement('div', {
               key: index,
