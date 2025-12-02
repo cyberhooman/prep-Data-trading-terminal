@@ -81,9 +81,9 @@ class FinancialJuiceScraper {
         ]
       };
 
-      // Use system Chromium on Railway (Nixpacks provides it via environment)
+      // Use system Chromium on Railway (installed via apt)
       if (process.env.NODE_ENV === 'production') {
-        launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 'chromium-browser';
+        launchOptions.executablePath = '/usr/bin/chromium';
       }
 
       this.browser = await puppeteer.launch(launchOptions);

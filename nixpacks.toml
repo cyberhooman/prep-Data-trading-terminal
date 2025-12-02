@@ -1,12 +1,9 @@
 [phases.setup]
-nixPkgs = ['nodejs_20', 'chromium']
+nixPkgs = ['nodejs_20']
+aptPkgs = ['chromium', 'chromium-sandbox']
 
 [phases.install]
 cmds = ['npm install']
-
-[variables]
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true'
-PUPPETEER_EXECUTABLE_PATH = '/nix/var/nix/profiles/default/bin/chromium'
 
 [start]
 cmd = 'NODE_ENV=production node index.js'
