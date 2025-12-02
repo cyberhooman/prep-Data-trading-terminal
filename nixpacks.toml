@@ -1,12 +1,36 @@
 [phases.setup]
 nixPkgs = ['nodejs_20']
-aptPkgs = ['chromium']
+aptPkgs = [
+  'wget',
+  'gnupg',
+  'ca-certificates',
+  'fonts-liberation',
+  'libasound2',
+  'libatk-bridge2.0-0',
+  'libatk1.0-0',
+  'libatspi2.0-0',
+  'libcups2',
+  'libdbus-1-3',
+  'libdrm2',
+  'libgbm1',
+  'libgtk-3-0',
+  'libnspr4',
+  'libnss3',
+  'libwayland-client0',
+  'libxcomposite1',
+  'libxdamage1',
+  'libxfixes3',
+  'libxkbcommon0',
+  'libxrandr2',
+  'xdg-utils'
+]
 
 [phases.install]
 cmds = [
-  'npm install',
-  'which chromium || which chromium-browser || echo "Chromium not found in PATH"',
-  'ls -la /usr/bin/ | grep chrom || echo "No chromium binaries in /usr/bin"'
+  'wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb',
+  'apt-get install -y ./google-chrome-stable_current_amd64.deb',
+  'rm google-chrome-stable_current_amd64.deb',
+  'npm install'
 ]
 
 [start]
