@@ -4,6 +4,7 @@
  * Serves a web dashboard on http://localhost:3000 that shows:
  *   - Current currency strength snapshot.
  *   - Upcoming Forex Factory high-impact events with live countdown timers.
+ *   - Critical market news from FinancialJuice with 1-week retention.
  *
  * The timers flash and play a louder tick during the final 3 minutes before an event,
  * and announce when an event starts.
