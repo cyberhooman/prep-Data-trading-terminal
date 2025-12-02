@@ -247,6 +247,12 @@ class FinancialJuiceScraper {
           // Skip if no meaningful text
           if (!text || text.trim().length < 10) return;
 
+          // Skip navigation elements and non-news items
+          if (className.includes('nav') || className.includes('navbar') ||
+              text.includes('My News') || text.includes('Bonds\nCommodities')) {
+            return;
+          }
+
           // Check if this is a critical item (red border) or active (high-impact) item
           const isCritical = className.includes('active-critical');
           const isActive = className.includes('active');
