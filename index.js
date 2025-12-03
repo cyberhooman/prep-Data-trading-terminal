@@ -654,7 +654,7 @@ app.get('/login', (req, res) => {
 
         .login-container {
           position: relative;
-          max-width: 500px;
+          max-width: 450px;
           width: 100%;
           animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -672,7 +672,7 @@ app.get('/login', (req, res) => {
 
         .terminal-border {
           position: relative;
-          background: rgba(0, 0, 0, 0.85);
+          background: rgba(0, 0, 0, 0.4);
           border: 2px solid var(--neon-blue);
           box-shadow:
             0 0 20px rgba(0, 136, 255, 0.4),
@@ -748,18 +748,18 @@ app.get('/login', (req, res) => {
         }
 
         .terminal-content {
-          padding: 48px 40px;
-          background: rgba(0, 0, 0, 0.7);
-          backdrop-filter: blur(10px);
+          padding: 32px 28px;
+          background: rgba(0, 0, 0, 0.3);
+          backdrop-filter: blur(8px);
         }
 
         .logo {
           font-family: 'Orbitron', monospace;
-          font-size: 3rem;
+          font-size: 2.2rem;
           font-weight: 900;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
           text-transform: uppercase;
-          letter-spacing: 4px;
+          letter-spacing: 3px;
           background: linear-gradient(135deg, var(--neon-red) 0%, var(--neon-green) 50%, var(--neon-blue) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -777,19 +777,19 @@ app.get('/login', (req, res) => {
         }
 
         .subtitle {
-          font-size: 13px;
+          font-size: 11px;
           color: var(--neon-blue);
-          letter-spacing: 3px;
+          letter-spacing: 2px;
           text-transform: uppercase;
-          margin-bottom: 32px;
+          margin-bottom: 20px;
           opacity: 0.8;
           font-weight: 500;
         }
 
         .prompt-line {
-          font-size: 14px;
+          font-size: 12px;
           color: var(--neon-green);
-          margin-bottom: 24px;
+          margin-bottom: 20px;
           font-weight: 500;
         }
 
@@ -1135,12 +1135,12 @@ app.get('/login', (req, res) => {
         }
 
         .info-panel {
-          margin-top: 32px;
-          padding: 20px;
+          margin-top: 20px;
+          padding: 14px;
           background: rgba(0, 136, 255, 0.03);
           border-left: 3px solid var(--neon-red);
-          font-size: 12px;
-          line-height: 1.8;
+          font-size: 11px;
+          line-height: 1.6;
         }
 
         .info-title {
@@ -1171,14 +1171,14 @@ app.get('/login', (req, res) => {
 
         .status-bar {
           display: flex;
-          gap: 16px;
-          margin-top: 32px;
-          padding-top: 20px;
+          gap: 12px;
+          margin-top: 20px;
+          padding-top: 14px;
           border-top: 1px solid rgba(0, 136, 255, 0.2);
-          font-size: 10px;
+          font-size: 9px;
           color: rgba(0, 136, 255, 0.6);
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
         }
 
         .status-item {
@@ -1198,20 +1198,27 @@ app.get('/login', (req, res) => {
 
         @media (max-width: 600px) {
           .terminal-content {
-            padding: 32px 24px;
+            padding: 20px 16px;
           }
 
           .logo {
-            font-size: 2rem;
+            font-size: 1.6rem;
+            letter-spacing: 2px;
           }
 
           .subtitle {
-            font-size: 11px;
+            font-size: 9px;
+            margin-bottom: 16px;
+          }
+
+          .prompt-line {
+            font-size: 10px;
+            margin-bottom: 16px;
           }
 
           .tab-btn {
-            font-size: 10px;
-            padding: 10px 12px;
+            font-size: 9px;
+            padding: 8px 10px;
           }
         }
       </style>
