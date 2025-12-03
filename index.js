@@ -1204,21 +1204,54 @@ app.get('/login', (req, res) => {
           .logo {
             font-size: 1.6rem;
             letter-spacing: 2px;
+            margin-bottom: 12px;
           }
 
-          .subtitle {
-            font-size: 9px;
-            margin-bottom: 16px;
+          /* Hide unnecessary elements on mobile */
+          .subtitle,
+          .prompt-line,
+          .info-panel,
+          .status-bar {
+            display: none;
           }
 
-          .prompt-line {
-            font-size: 10px;
+          .tab-navigation {
             margin-bottom: 16px;
           }
 
           .tab-btn {
-            font-size: 9px;
-            padding: 8px 10px;
+            font-size: 10px;
+            padding: 10px 14px;
+          }
+
+          .form-group {
+            margin-bottom: 14px;
+          }
+
+          .form-label {
+            font-size: 10px;
+            margin-bottom: 6px;
+          }
+
+          .form-input {
+            padding: 10px 12px;
+            font-size: 13px;
+          }
+
+          .submit-btn {
+            padding: 12px 20px;
+            font-size: 12px;
+          }
+
+          .toggle-mode {
+            font-size: 11px;
+            margin-top: 14px;
+          }
+
+          .error-message {
+            padding: 10px 12px;
+            font-size: 10px;
+            margin-bottom: 12px;
           }
         }
       </style>
