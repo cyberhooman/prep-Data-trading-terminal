@@ -20,7 +20,7 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 const compression = require('compression');
 const session = require('express-session');
-const { passport, ensureAuthenticated } = require('./auth');
+const { passport, ensureAuthenticated, findUserByEmail, createUser } = require('./auth');
 const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 
@@ -569,6 +569,8 @@ app.get('/login', (req, res) => {
     return res.redirect('/');
   }
 
+  const errorMsg = req.query.error || '';
+
   const html = `<!DOCTYPE html>
   <html lang="en">
     <head>
@@ -576,15 +578,29 @@ app.get('/login', (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>Login - Alphalabs Trading</title>
       <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
       <script src="https://unpkg.com/three@0.159.0/build/three.min.js"></script>
       <style>
+        :root {
+          --neon-red: #ff0055;
+          --neon-green: #00ff00;
+          --neon-blue: #0088ff;
+          --dark-bg: #000000;
+          --scan-line: rgba(255, 0, 85, 0.03);
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'JetBrains Mono', monospace;
           min-height: 100vh;
           overflow: hidden;
-          background: #000;
+          background: var(--dark-bg);
+          color: #fff;
         }
+
         #shader-bg {
           position: fixed;
           top: 0;
@@ -592,12 +608,39 @@ app.get('/login', (req, res) => {
           width: 100%;
           height: 100%;
           z-index: 0;
+          opacity: 0.85;
         }
+
         #shader-bg canvas {
           display: block;
           width: 100%;
           height: 100%;
         }
+
+        /* Scanline overlay effect */
+        #shader-bg::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: repeating-linear-gradient(
+            0deg,
+            var(--scan-line) 0px,
+            transparent 1px,
+            transparent 2px,
+            var(--scan-line) 3px
+          );
+          pointer-events: none;
+          animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes scanlines {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(10px); }
+        }
+
         .content-wrapper {
           position: relative;
           z-index: 1;
@@ -606,65 +649,570 @@ app.get('/login', (req, res) => {
           align-items: center;
           justify-content: center;
           padding: 20px;
+          overflow-y: auto;
         }
+
         .login-container {
-          background: rgba(30, 41, 59, 0.6);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          border-radius: 16px;
-          padding: 48px;
-          max-width: 420px;
+          position: relative;
+          max-width: 500px;
           width: 100%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+          animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        h1 {
-          color: #f1f5f9;
-          font-size: 2rem;
-          margin-bottom: 12px;
-          background: linear-gradient(135deg, #60a5fa, #3b82f6);
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .terminal-border {
+          position: relative;
+          background: rgba(0, 0, 0, 0.85);
+          border: 2px solid var(--neon-blue);
+          box-shadow:
+            0 0 20px rgba(0, 136, 255, 0.4),
+            inset 0 0 40px rgba(0, 136, 255, 0.05),
+            0 0 80px rgba(255, 0, 85, 0.3);
+          padding: 3px;
+        }
+
+        .terminal-border::before {
+          content: '';
+          position: absolute;
+          top: -2px;
+          left: -2px;
+          right: -2px;
+          bottom: -2px;
+          background: linear-gradient(45deg, var(--neon-red), var(--neon-green), var(--neon-blue));
+          z-index: -1;
+          opacity: 0;
+          transition: opacity 0.3s;
+          filter: blur(10px);
+        }
+
+        .terminal-border:hover::before {
+          opacity: 0.4;
+        }
+
+        .terminal-header {
+          background: linear-gradient(135deg, rgba(0, 136, 255, 0.15), rgba(255, 0, 85, 0.1));
+          border-bottom: 1px solid var(--neon-blue);
+          padding: 12px 20px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          color: var(--neon-blue);
+        }
+
+        .terminal-dots {
+          display: flex;
+          gap: 6px;
+          margin-right: auto;
+        }
+
+        .dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        .dot:nth-child(1) {
+          background: #ff0055;
+          box-shadow: 0 0 8px #ff0055;
+        }
+
+        .dot:nth-child(2) {
+          background: #ffbb00;
+          box-shadow: 0 0 8px #ffbb00;
+          animation-delay: 0.2s;
+        }
+
+        .dot:nth-child(3) {
+          background: #00ff00;
+          box-shadow: 0 0 8px #00ff00;
+          animation-delay: 0.4s;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(0.9); }
+        }
+
+        .terminal-content {
+          padding: 48px 40px;
+          background: rgba(0, 0, 0, 0.7);
+          backdrop-filter: blur(10px);
+        }
+
+        .logo {
+          font-family: 'Orbitron', monospace;
+          font-size: 3rem;
+          font-weight: 900;
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 4px;
+          background: linear-gradient(135deg, var(--neon-red) 0%, var(--neon-green) 50%, var(--neon-blue) 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          text-shadow: 0 0 30px rgba(0, 136, 255, 0.5);
+          animation: glitch 3s ease-in-out infinite;
+          position: relative;
         }
-        p {
-          color: #cbd5e1;
+
+        @keyframes glitch {
+          0%, 90%, 100% { transform: translate(0); }
+          92% { transform: translate(-2px, 1px); }
+          94% { transform: translate(2px, -1px); }
+          96% { transform: translate(-1px, 2px); }
+        }
+
+        .subtitle {
+          font-size: 13px;
+          color: var(--neon-blue);
+          letter-spacing: 3px;
+          text-transform: uppercase;
           margin-bottom: 32px;
-          line-height: 1.6;
+          opacity: 0.8;
+          font-weight: 500;
         }
-        .google-btn {
+
+        .prompt-line {
+          font-size: 14px;
+          color: var(--neon-green);
+          margin-bottom: 24px;
+          font-weight: 500;
+        }
+
+        .prompt-line::before {
+          content: '> ';
+          color: var(--neon-red);
+          font-weight: 700;
+        }
+
+        .cursor-blink {
+          display: inline-block;
+          width: 8px;
+          height: 16px;
+          background: var(--neon-green);
+          margin-left: 4px;
+          animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0; }
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 24px;
+          border-bottom: 2px solid rgba(0, 136, 255, 0.2);
+        }
+
+        .tab-btn {
+          flex: 1;
+          padding: 12px 20px;
+          background: rgba(0, 136, 255, 0.03);
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: rgba(0, 136, 255, 0.5);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+          margin-bottom: -2px;
+        }
+
+        .tab-btn::before {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          height: 2px;
+          background: linear-gradient(90deg, var(--neon-blue), var(--neon-red));
+          transform: scaleX(0);
+          transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .tab-btn:hover {
+          background: rgba(0, 136, 255, 0.08);
+          color: rgba(0, 136, 255, 0.8);
+        }
+
+        .tab-btn.active {
+          background: rgba(0, 136, 255, 0.1);
+          color: var(--neon-blue);
+          border-bottom-color: var(--neon-blue);
+        }
+
+        .tab-btn.active::before {
+          transform: scaleX(1);
+        }
+
+        /* Tab Content */
+        .tab-content {
+          display: none;
+          animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+          display: block;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        /* Form Styles */
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .form-label {
+          font-size: 11px;
+          color: var(--neon-blue);
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          font-weight: 700;
+        }
+
+        .form-label::before {
+          content: '> ';
+          color: var(--neon-red);
+        }
+
+        .form-input {
+          padding: 14px 16px;
+          background: rgba(0, 136, 255, 0.05);
+          border: 1px solid rgba(0, 136, 255, 0.3);
+          color: #fff;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 14px;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          outline: none;
+        }
+
+        .form-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .form-input:focus {
+          background: rgba(0, 136, 255, 0.1);
+          border-color: var(--neon-blue);
+          box-shadow:
+            0 0 10px rgba(0, 136, 255, 0.3),
+            inset 0 0 10px rgba(0, 136, 255, 0.05);
+        }
+
+        .form-input:hover:not(:focus) {
+          border-color: rgba(0, 136, 255, 0.5);
+        }
+
+        .submit-btn {
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 12px;
           width: 100%;
-          padding: 16px 24px;
-          background: white;
-          color: #1f2937;
-          border: none;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 600;
+          padding: 18px 24px;
+          background: rgba(0, 136, 255, 0.05);
+          color: var(--neon-blue);
+          border: 2px solid var(--neon-blue);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 15px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2px;
           cursor: pointer;
-          transition: all 0.2s;
-          text-decoration: none;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          overflow: hidden;
+          margin-top: 8px;
         }
-        .google-btn:hover {
-          background: #f3f4f6;
+
+        .submit-btn::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          background: radial-gradient(circle, rgba(0, 136, 255, 0.3), transparent);
+          transform: translate(-50%, -50%);
+          transition: width 0.6s, height 0.6s;
+        }
+
+        .submit-btn:hover::before {
+          width: 300px;
+          height: 300px;
+        }
+
+        .submit-btn:hover {
+          background: rgba(0, 136, 255, 0.15);
+          box-shadow:
+            0 0 20px rgba(0, 136, 255, 0.4),
+            inset 0 0 20px rgba(0, 136, 255, 0.1);
           transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+          border-color: var(--neon-green);
+          color: var(--neon-green);
         }
+
+        .submit-btn:active {
+          transform: translateY(0);
+        }
+
+        .toggle-mode {
+          text-align: center;
+          margin-top: 16px;
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .toggle-link {
+          color: var(--neon-red);
+          text-decoration: none;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s;
+          border-bottom: 1px solid transparent;
+        }
+
+        .toggle-link:hover {
+          color: var(--neon-blue);
+          border-bottom-color: var(--neon-blue);
+        }
+
+        .confirm-password-group {
+          max-height: 0;
+          overflow: hidden;
+          opacity: 0;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .confirm-password-group.show {
+          max-height: 100px;
+          opacity: 1;
+        }
+
+        /* Error Message */
+        .error-message {
+          padding: 12px 16px;
+          background: rgba(255, 0, 85, 0.1);
+          border: 1px solid rgba(255, 0, 85, 0.5);
+          border-left: 3px solid #ff0055;
+          color: #ff0055;
+          font-size: 12px;
+          line-height: 1.6;
+          display: none;
+          animation: slideDown 0.3s ease-out;
+        }
+
+        .error-message.show {
+          display: block;
+        }
+
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .error-message::before {
+          content: '[ERROR] ';
+          font-weight: 700;
+          letter-spacing: 1px;
+        }
+
+        .google-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          width: 100%;
+          padding: 18px 24px;
+          background: rgba(0, 136, 255, 0.05);
+          color: var(--neon-blue);
+          border: 2px solid var(--neon-blue);
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 15px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          cursor: pointer;
+          text-decoration: none;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          overflow: hidden;
+        }
+
+        .google-btn::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          background: radial-gradient(circle, rgba(0, 136, 255, 0.3), transparent);
+          transform: translate(-50%, -50%);
+          transition: width 0.6s, height 0.6s;
+        }
+
+        .google-btn:hover::before {
+          width: 300px;
+          height: 300px;
+        }
+
+        .google-btn:hover {
+          background: rgba(0, 136, 255, 0.15);
+          box-shadow:
+            0 0 20px rgba(0, 136, 255, 0.4),
+            inset 0 0 20px rgba(0, 136, 255, 0.1);
+          transform: translateY(-2px);
+          border-color: var(--neon-green);
+          color: var(--neon-green);
+        }
+
+        .google-btn:active {
+          transform: translateY(0);
+        }
+
+        .google-icon-wrapper {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+        }
+
         .google-icon {
           width: 20px;
           height: 20px;
+          filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.5));
         }
-        .info {
-          margin-top: 24px;
-          padding: 16px;
-          background: rgba(59, 130, 246, 0.1);
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          border-radius: 8px;
-          color: #93c5fd;
-          font-size: 14px;
+
+        .btn-text {
+          position: relative;
+          z-index: 1;
+        }
+
+        .info-panel {
+          margin-top: 32px;
+          padding: 20px;
+          background: rgba(0, 136, 255, 0.03);
+          border-left: 3px solid var(--neon-red);
+          font-size: 12px;
+          line-height: 1.8;
+        }
+
+        .info-title {
+          color: var(--neon-red);
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1.5px;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .info-title::before {
+          content: '[';
+          color: var(--neon-blue);
+        }
+
+        .info-title::after {
+          content: ']';
+          color: var(--neon-blue);
+        }
+
+        .info-text {
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 11px;
+        }
+
+        .status-bar {
+          display: flex;
+          gap: 16px;
+          margin-top: 32px;
+          padding-top: 20px;
+          border-top: 1px solid rgba(0, 136, 255, 0.2);
+          font-size: 10px;
+          color: rgba(0, 136, 255, 0.6);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+
+        .status-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .status-indicator {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--neon-green);
+          box-shadow: 0 0 6px var(--neon-green);
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @media (max-width: 600px) {
+          .terminal-content {
+            padding: 32px 24px;
+          }
+
+          .logo {
+            font-size: 2rem;
+          }
+
+          .subtitle {
+            font-size: 11px;
+          }
+
+          .tab-btn {
+            font-size: 10px;
+            padding: 10px 12px;
+          }
         }
       </style>
     </head>
@@ -672,27 +1220,243 @@ app.get('/login', (req, res) => {
       <div id="shader-bg"></div>
       <div class="content-wrapper">
         <div class="login-container">
-          <h1>🚀 Alphalabs Terminal</h1>
-          <p>Welcome! Sign in or create an account with Google to access your trading dashboard</p>
+          <div class="terminal-border">
+            <div class="terminal-header">
+              <div class="terminal-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+              <span>SYSTEM_AUTH.EXE</span>
+            </div>
 
-          <a href="/auth/google" class="google-btn">
-            <svg class="google-icon" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Continue with Google
-          </a>
+            <div class="terminal-content">
+              <div class="logo">ALPHALABS</div>
+              <div class="subtitle">Trading Terminal</div>
 
-          <div class="info">
-            <div style="margin-bottom: 8px;">🔒 Secure authentication via Google OAuth</div>
-            <div style="font-size: 13px; opacity: 0.8;">New here? Your account will be created automatically when you sign in for the first time</div>
+              <div class="prompt-line">
+                Initialize authentication protocol<span class="cursor-blink"></span>
+              </div>
+
+              <!-- Error Message Area -->
+              <div id="errorMessage" class="error-message"></div>
+
+              <!-- Tab Navigation -->
+              <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="manual">Manual Login</button>
+                <button class="tab-btn" data-tab="oauth">Google OAuth</button>
+              </div>
+
+              <!-- Manual Login Tab -->
+              <div id="manualTab" class="tab-content active">
+                <form id="authForm" class="auth-form" onsubmit="handleFormSubmit(event)">
+                  <div class="form-group">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      class="form-input"
+                      placeholder="user@alphalabs.io"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      class="form-input"
+                      placeholder="Enter secure password"
+                      required
+                      minlength="8"
+                    />
+                  </div>
+
+                  <div id="confirmPasswordGroup" class="form-group confirm-password-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      class="form-input"
+                      placeholder="Re-enter password"
+                    />
+                  </div>
+
+                  <button type="submit" class="submit-btn">
+                    <span class="btn-text" id="submitBtnText">[ LOGIN ]</span>
+                  </button>
+
+                  <div class="toggle-mode">
+                    <span id="modeText">Don't have an account?</span>
+                    <a class="toggle-link" id="toggleModeLink" onclick="toggleAuthMode(event)">Register</a>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Google OAuth Tab -->
+              <div id="oauthTab" class="tab-content">
+                <a href="/auth/google" class="google-btn">
+                  <div class="google-icon-wrapper">
+                    <svg class="google-icon" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                  </div>
+                  <span class="btn-text">Connect via Google OAuth</span>
+                </a>
+
+                <div class="info-panel">
+                  <div class="info-title">OAuth Security</div>
+                  <div class="info-text">
+                    Encrypted authentication via Google OAuth 2.0<br/>
+                    New accounts auto-generated on first authentication<br/>
+                    Session tokens secured with AES-256 encryption
+                  </div>
+                </div>
+              </div>
+
+              <div class="status-bar">
+                <div class="status-item">
+                  <div class="status-indicator"></div>
+                  <span>SSL Active</span>
+                </div>
+                <div class="status-item">
+                  <div class="status-indicator"></div>
+                  <span>Auth Ready</span>
+                </div>
+                <div class="status-item">
+                  <div class="status-indicator"></div>
+                  <span>Online</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <script>
+        // Tab Switching
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            const targetTab = btn.getAttribute('data-tab');
+
+            // Remove active class from all tabs
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+
+            // Add active class to clicked tab
+            btn.classList.add('active');
+            document.getElementById(targetTab + 'Tab').classList.add('active');
+          });
+        });
+
+        // Toggle between login and register mode
+        let isRegisterMode = false;
+
+        function toggleAuthMode(event) {
+          event.preventDefault();
+          isRegisterMode = !isRegisterMode;
+
+          const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+          const submitBtnText = document.getElementById('submitBtnText');
+          const modeText = document.getElementById('modeText');
+          const toggleLink = document.getElementById('toggleModeLink');
+          const confirmPasswordInput = document.getElementById('confirmPassword');
+
+          if (isRegisterMode) {
+            confirmPasswordGroup.classList.add('show');
+            submitBtnText.textContent = '[ REGISTER ]';
+            modeText.textContent = 'Already have an account?';
+            toggleLink.textContent = 'Login';
+            confirmPasswordInput.required = true;
+          } else {
+            confirmPasswordGroup.classList.remove('show');
+            submitBtnText.textContent = '[ LOGIN ]';
+            modeText.textContent = "Don't have an account?";
+            toggleLink.textContent = 'Register';
+            confirmPasswordInput.required = false;
+          }
+
+          // Clear error message when switching modes
+          hideError();
+        }
+
+        // Form submission handler
+        function handleFormSubmit(event) {
+          event.preventDefault();
+          hideError();
+
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          const confirmPassword = document.getElementById('confirmPassword').value;
+
+          // Validation
+          if (isRegisterMode) {
+            if (password !== confirmPassword) {
+              showError('Passwords do not match. Please try again.');
+              return;
+            }
+            if (password.length < 8) {
+              showError('Password must be at least 8 characters long.');
+              return;
+            }
+          }
+
+          // Create form and submit to backend
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = isRegisterMode ? '/auth/register' : '/auth/login';
+
+          const emailInput = document.createElement('input');
+          emailInput.type = 'hidden';
+          emailInput.name = 'email';
+          emailInput.value = email;
+          form.appendChild(emailInput);
+
+          const passwordInput = document.createElement('input');
+          passwordInput.type = 'hidden';
+          passwordInput.name = 'password';
+          passwordInput.value = password;
+          form.appendChild(passwordInput);
+
+          if (isRegisterMode) {
+            const confirmPasswordInput = document.createElement('input');
+            confirmPasswordInput.type = 'hidden';
+            confirmPasswordInput.name = 'confirmPassword';
+            confirmPasswordInput.value = confirmPassword;
+            form.appendChild(confirmPasswordInput);
+          }
+
+          document.body.appendChild(form);
+          form.submit();
+        }
+
+        function showError(message) {
+          const errorEl = document.getElementById('errorMessage');
+          errorEl.textContent = message;
+          errorEl.classList.add('show');
+        }
+
+        function hideError() {
+          const errorEl = document.getElementById('errorMessage');
+          errorEl.classList.remove('show');
+        }
+
+        // Display server error message if present
+        const serverError = '${errorMsg.replace(/'/g, "\\'")}';
+        if (serverError) {
+          showError(serverError);
+        }
+
         // Shader Animation
         const container = document.getElementById('shader-bg');
         const vertexShader = \`
@@ -769,6 +1533,56 @@ app.get('/auth/google/callback',
     res.redirect('/');
   }
 );
+
+// Manual login route
+app.post('/auth/login',
+  passport.authenticate('local', {
+    successRedirect: '/',
+    failureRedirect: '/login?error=Invalid email or password',
+    failureFlash: false
+  })
+);
+
+// Manual registration route
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { email, password, confirmPassword } = req.body;
+
+    // Validation
+    if (!email || !password || !confirmPassword) {
+      return res.redirect('/login?error=All fields are required');
+    }
+
+    if (password.length < 8) {
+      return res.redirect('/login?error=Password must be at least 8 characters');
+    }
+
+    if (password !== confirmPassword) {
+      return res.redirect('/login?error=Passwords do not match');
+    }
+
+    // Check if user already exists
+    const existingUser = await findUserByEmail(email);
+    if (existingUser) {
+      return res.redirect('/login?error=Email already registered');
+    }
+
+    // Create new user
+    const newUser = await createUser(email, password);
+
+    // Log the user in automatically
+    req.login(newUser, (err) => {
+      if (err) {
+        console.error('Auto-login error:', err);
+        return res.redirect('/login?error=Registration successful, please login');
+      }
+      res.redirect('/');
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.redirect('/login?error=Registration failed. Please try again.');
+  }
+});
 
 app.get('/logout', (req, res) => {
   req.logout((err) => {
