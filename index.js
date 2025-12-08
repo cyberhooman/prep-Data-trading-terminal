@@ -23,6 +23,7 @@ const session = require('express-session');
 const { passport, ensureAuthenticated, findUserByEmail, createUser } = require('./auth');
 const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
+const deepseekAI = require('./services/deepseekAI');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -1710,6 +1711,125 @@ app.post('/api/financial-news/refresh', async (req, res) => {
       message: err.message
     });
   }
+});
+
+// ============================================================================
+// DeepSeek AI - Central Bank Speech Analysis Endpoints
+// ============================================================================
+
+/**
+ * POST /api/ai/analyze-speech
+ * Analyze a central bank speech for dovish/hawkish/neutral sentiment
+ * Body: { text, speaker, centralBank, date }
+ */
+app.post('/api/ai/analyze-speech', async (req, res) => {
+  try {
+    const { text, speaker, centralBank, date } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        error: 'Speech text is required'
+      });
+    }
+
+    const analysis = await deepseekAI.analyzeSpeech(
+      text,
+      speaker || 'Unknown Speaker',
+      centralBank || 'Central Bank',
+      date || new Date().toISOString().split('T')[0]
+    );
+
+    res.json({
+      success: true,
+      data: analysis
+    });
+  } catch (err) {
+    console.error('Speech analysis error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze speech',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/ai/quick-sentiment
+ * Quick sentiment check for a headline or short text
+ * Body: { text }
+ */
+app.post('/api/ai/quick-sentiment', async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        error: 'Text is required'
+      });
+    }
+
+    const sentiment = await deepseekAI.quickSentiment(text);
+
+    res.json({
+      success: true,
+      data: sentiment
+    });
+  } catch (err) {
+    console.error('Quick sentiment error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze sentiment',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/ai/compare-speeches
+ * Compare multiple speeches for sentiment trends
+ * Body: { speeches: [{ text, speaker, centralBank, date }] }
+ */
+app.post('/api/ai/compare-speeches', async (req, res) => {
+  try {
+    const { speeches } = req.body;
+
+    if (!speeches || !Array.isArray(speeches) || speeches.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Array of speeches is required'
+      });
+    }
+
+    const comparison = await deepseekAI.compareSpeeches(speeches);
+
+    res.json({
+      success: true,
+      data: comparison
+    });
+  } catch (err) {
+    console.error('Speech comparison error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to compare speeches',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/ai/status
+ * Check if DeepSeek AI is configured and ready
+ */
+app.get('/api/ai/status', (req, res) => {
+  const isConfigured = !!process.env.DEEPSEEK_API_KEY;
+  res.json({
+    success: true,
+    configured: isConfigured,
+    model: 'deepseek-chat',
+    features: ['speech-analysis', 'quick-sentiment', 'speech-comparison']
+  });
 });
 
 // Protect all routes except login and auth routes
