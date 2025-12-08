@@ -130,93 +130,92 @@ class FinancialJuiceScraper {
     try {
       console.log('Attempting to login to FinancialJuice...');
 
-      // Wait for modal to be fully loaded
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for page to be fully loaded
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Click on "SIGN IN" tab first (the modal defaults to SIGN UP)
-      try {
-        // Look for the SIGN IN tab and click it
-        const signInClicked = await page.evaluate(() => {
-          const tabs = document.querySelectorAll('.nav-link, .nav-item a, [role="tab"], a');
-          for (const tab of tabs) {
-            if (tab.textContent.trim().toUpperCase() === 'SIGN IN') {
-              tab.click();
-              return true;
-            }
-          }
-          return false;
-        });
-
-        if (signInClicked) {
-          console.log('Clicked SIGN IN tab');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+      // Click the Login button in the header to open the login modal
+      console.log('Clicking Login button in header...');
+      await page.evaluate(() => {
+        const loginBtn = document.querySelector('.login-btn, a.login-btn');
+        if (loginBtn) {
+          loginBtn.click();
+          return true;
         }
-      } catch (e) {
-        console.log('Could not find SIGN IN tab:', e.message);
-      }
+        return false;
+      });
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Take screenshot to see current state
       try {
         await page.screenshot({ path: 'login-attempt.png' });
       } catch (e) {}
 
-      // Wait for the form fields to be ready - try multiple selectors
-      try {
-        await page.waitForSelector('input[placeholder="Email"], input[type="email"], input[name="email"]', { timeout: 5000 });
-      } catch (e) {
-        console.log('Waiting for input failed, checking page state...');
-        // List all inputs on the page for debugging
-        const inputs = await page.evaluate(() => {
-          return Array.from(document.querySelectorAll('input')).map(i => ({
-            type: i.type,
-            placeholder: i.placeholder,
-            name: i.name,
-            id: i.id,
-            visible: i.offsetParent !== null
-          }));
-        });
-        console.log('Available inputs:', JSON.stringify(inputs, null, 2));
-      }
-
-      // Fill email field using puppeteer's type method
-      let emailInput = await page.$('input[placeholder="Email"]');
-      if (!emailInput) {
-        // Try alternative selectors
-        emailInput = await page.$('input[type="email"]');
-      }
-      if (!emailInput) {
-        emailInput = await page.$('input[name="email"]');
-      }
-      if (!emailInput) {
-        // Get all text inputs and use the first one in the modal
-        const allInputs = await page.$$('input[type="text"], input:not([type])');
-        if (allInputs.length > 0) {
-          emailInput = allInputs[0];
+      // Click the Sign In tab to make sure we're on login form (not sign up)
+      console.log('Clicking Sign In tab...');
+      await page.evaluate(() => {
+        // Find and click the Sign In tab using its href
+        const signInTab = document.querySelector('a[href=\"#LoginTab\"]');
+        if (signInTab) {
+          signInTab.click();
+          return true;
         }
-      }
-
-      if (!emailInput) {
-        console.log('Could not find email field');
         return false;
-      }
+      });
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      await emailInput.click();
-      await new Promise(r => setTimeout(r, 100));
-      await page.keyboard.down('Control');
-      await page.keyboard.press('a');
-      await page.keyboard.up('Control');
-      await page.keyboard.type(email, { delay: 20 });
-      console.log('Filled email field');
+      // Now find the SIGN IN form fields inside #LoginTab
+      console.log('Looking for SIGN IN form fields in #LoginTab...');
 
-      // Fill password field
-      const passwordInput = await page.$('input[placeholder="Password"]');
-      if (!passwordInput) {
-        console.log('Could not find password field');
-        return false;
-      }
-      await passwordInput.click();
-      await page.keyboard.type(password, { delay: 20 });
-      console.log('Filled password field');
+      // Find and fill the login form in #LoginTab
+      const fillResult = await page.evaluate((emailValue, passwordValue) => {
+        // Try to find the LoginTab container
+        const loginTab = document.querySelector('#LoginTab');
+
+        if (loginTab) {
+          const emailInput = loginTab.querySelector('input[placeholder="Email"], input[type="email"]');
+          const passwordInput = loginTab.querySelector('input[placeholder="Password"], input[type="password"]');
+
+          if (emailInput && passwordInput) {
+            emailInput.focus();
+            emailInput.value = emailValue;
+            emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+            emailInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+            passwordInput.focus();
+            passwordInput.value = passwordValue;
+            passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+            passwordInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+            return 'filled-in-LoginTab';
+          }
+        }
+
+        // Fallback: find inputs not in SignUpTab
+        const allEmails = document.querySelectorAll('input[placeholder="Email"]');
+        for (const emailInput of allEmails) {
+          const signUpTab = emailInput.closest('#SignUpTab');
+          if (!signUpTab) {
+            const parent = emailInput.closest('.tab-pane') || emailInput.parentElement.parentElement;
+            const passwordInput = parent.querySelector('input[placeholder="Password"]');
+
+            if (passwordInput) {
+              emailInput.focus();
+              emailInput.value = emailValue;
+              emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+              passwordInput.focus();
+              passwordInput.value = passwordValue;
+              passwordInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+              return 'filled-fallback';
+            }
+          }
+        }
+
+        return 'not-found';
+      }, email, password);
+
+      console.log('Form fill result:', fillResult);
 
       // Take screenshot after filling
       try {
@@ -226,59 +225,43 @@ class FinancialJuiceScraper {
       // Small delay before clicking submit
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Click the LOGIN button using page.click with XPath or text matching
-      let submitted = false;
-
-      try {
-        // Use XPath to find button containing "LOGIN" text
-        const [loginButton] = await page.$x('//button[contains(text(), "LOGIN")]');
-        if (loginButton) {
-          await loginButton.click();
-          console.log('Clicked LOGIN button via XPath');
-          submitted = true;
+      // Click the LOGIN button inside #LoginTab
+      await page.evaluate(() => {
+        // First try to find button in LoginTab
+        const loginTab = document.querySelector('#LoginTab');
+        if (loginTab) {
+          const btn = loginTab.querySelector('button, input[type="submit"]');
+          if (btn) {
+            btn.click();
+            return true;
+          }
         }
-      } catch (e) {
-        console.log('XPath button click failed:', e.message);
-      }
 
-      // Try alternative: click by evaluating and triggering click event
-      if (!submitted) {
-        try {
-          submitted = await page.evaluate(() => {
-            const buttons = document.querySelectorAll('button');
-            for (const btn of buttons) {
-              if (btn.innerText.trim().toUpperCase() === 'LOGIN') {
-                btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                return true;
-              }
-            }
-            return false;
-          });
-          if (submitted) console.log('Clicked LOGIN button via dispatchEvent');
-        } catch (e) {
-          console.log('dispatchEvent click failed:', e.message);
+        // Fallback: find any LOGIN button
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+          const text = btn.textContent.trim().toUpperCase();
+          if (text === 'LOGIN') {
+            btn.click();
+            return true;
+          }
         }
-      }
-
-      // Last resort: press Enter
-      if (!submitted) {
-        console.log('Trying Enter key');
-        await page.keyboard.press('Enter');
-      }
+        return false;
+      });
+      console.log('Clicked LOGIN button');
 
       // Wait for login to complete
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
-      // Check if login was successful
-      const stillHasLoginModal = await page.$('input[type="password"]');
+      // Check if login was successful by looking for news feed
       const pageContent = await page.content();
-      const hasNewsFeed = pageContent.includes('feedWrap') || pageContent.includes('infinite-item');
+      const hasNewsFeed = pageContent.includes('feedWrap') || pageContent.includes('infinite-item') || pageContent.includes('headline-title');
+      const stillHasLoginModal = await page.$('input[placeholder="Password"]:not([style*="display: none"])');
 
-      if (!stillHasLoginModal || hasNewsFeed) {
+      if (hasNewsFeed || !stillHasLoginModal) {
         console.log('Login successful!');
         this.isLoggedIn = true;
 
-        // Save screenshot of successful login
         try {
           await page.screenshot({ path: 'login-success.png' });
         } catch (e) {}
@@ -318,90 +301,42 @@ class FinancialJuiceScraper {
       const browser = await this.getBrowser();
       page = await browser.newPage();
 
-      // Set viewport and user agent
+      // Set viewport
       await page.setViewport({ width: 1920, height: 1080 });
-      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-
-      // Set extra headers to look more like a real browser
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://www.google.com/',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'cross-site',
-        'Upgrade-Insecure-Requests': '1'
-      });
 
       // Navigate to the page
-      await page.goto(`${this.baseUrl}/home`, {
+      await page.goto(this.baseUrl, {
         waitUntil: 'networkidle2',
         timeout: 30000
       });
 
-      // Wait for page to fully load (matching check-auth.js which works)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait for page to fully load
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
-      // Wait for the news feed to appear on the page
+      // Force-close any login/signup modals by removing them from DOM
+      console.log('Removing any modal overlays...');
+      await page.evaluate(() => {
+        document.querySelectorAll('.modal, .modal-backdrop, .modal-dialog').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = 'auto';
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Scroll to trigger lazy loading of feed items
+      await page.evaluate(() => window.scrollBy(0, 500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Wait for the news feed to appear
       let feedLoaded = false;
       try {
-        await page.waitForSelector('.media.feedWrap, .infinite-item', {
-          timeout: 10000
-        });
+        await page.waitForSelector('.media.feedWrap', { timeout: 10000 });
         console.log('News feed loaded successfully');
         feedLoaded = true;
       } catch (error) {
-        console.log('News feed not found - checking if login is required...');
-
-        // Check if login modal/form is present
-        const hasLoginForm = await page.$('input[type="password"]');
-        if (hasLoginForm && !this.isLoggedIn) {
-          console.log('Login required - attempting to login...');
-          const loginSuccess = await this.login(page);
-
-          if (loginSuccess) {
-            // Navigate back to home after login
-            await page.goto(`${this.baseUrl}/home`, {
-              waitUntil: 'networkidle2',
-              timeout: 30000
-            });
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Try to find news feed again
-            try {
-              await page.waitForSelector('.media.feedWrap, .infinite-item', { timeout: 10000 });
-              console.log('News feed loaded after login');
-              feedLoaded = true;
-            } catch (e) {
-              console.log('Still could not load news feed after login');
-            }
-          }
-        }
-
-        if (!feedLoaded) {
-          // Try clicking on "My News" tab if it exists
-          try {
-            await page.click('a[href*="home"], .nav-link:has-text("My News")');
-            console.log('Clicked on My News tab');
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Try waiting again
-            await page.waitForSelector('.media.feedWrap, .infinite-item', { timeout: 5000 });
-            console.log('News feed loaded after clicking My News');
-            feedLoaded = true;
-          } catch (e) {
-            console.log('Could not load news feed even after clicking');
-
-            // Take a screenshot for debugging
-            try {
-              await page.screenshot({ path: 'scraper-debug-failed.png' });
-              console.log('Debug screenshot saved to scraper-debug-failed.png');
-            } catch (err) {
-              // Ignore screenshot errors
-            }
-          }
-        }
+        console.log('News feed not found, taking debug screenshot...');
+        try {
+          await page.screenshot({ path: 'scraper-debug-failed.png' });
+        } catch (err) {}
       }
 
       // Scroll down more to load additional items
@@ -479,8 +414,9 @@ class FinancialJuiceScraper {
           else otherCount++;
 
           // Include items that are either critical (red border) OR active (high-impact)
-          // This ensures we show important market-moving news even if not marked as "critical"
-          if (!isCritical && !isActive) {
+          // Also include regular news items for display (but mark them as not critical)
+          // Skip promo/ad items
+          if (text.includes('Join us and Go Real-time') || text.includes('GO PRO')) {
             return;
           }
 
