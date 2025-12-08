@@ -1,6 +1,7 @@
 /**
  * DeepSeek AI Service for Central Bank Speech Analysis
  * Analyzes CB speeches for dovish/hawkish/neutral sentiment
+ * Supports all G8 Central Banks
  */
 
 const https = require('https');
@@ -12,6 +13,32 @@ class DeepSeekAI {
     this.model = 'deepseek-chat';
     this.analysisCache = new Map();
     this.cacheTimeout = 30 * 60 * 1000; // 30 minutes cache
+
+    // G8 Central Banks and their currencies
+    this.centralBanks = {
+      'FED': { name: 'Federal Reserve', currency: 'USD', country: 'United States', speakers: ['Jerome Powell', 'John Williams', 'Christopher Waller', 'Michelle Bowman'] },
+      'ECB': { name: 'European Central Bank', currency: 'EUR', country: 'Eurozone', speakers: ['Christine Lagarde', 'Luis de Guindos', 'Philip Lane', 'Isabel Schnabel'] },
+      'BOE': { name: 'Bank of England', currency: 'GBP', country: 'United Kingdom', speakers: ['Andrew Bailey', 'Ben Broadbent', 'Sarah Breeden', 'Huw Pill'] },
+      'BOJ': { name: 'Bank of Japan', currency: 'JPY', country: 'Japan', speakers: ['Kazuo Ueda', 'Shinichi Uchida', 'Ryozo Himino'] },
+      'BOC': { name: 'Bank of Canada', currency: 'CAD', country: 'Canada', speakers: ['Tiff Macklem', 'Carolyn Rogers', 'Sharon Kozicki'] },
+      'RBA': { name: 'Reserve Bank of Australia', currency: 'AUD', country: 'Australia', speakers: ['Michele Bullock', 'Andrew Hauser', 'Sarah Hunter'] },
+      'RBNZ': { name: 'Reserve Bank of New Zealand', currency: 'NZD', country: 'New Zealand', speakers: ['Adrian Orr', 'Christian Hawkesby', 'Karen Silk'] },
+      'SNB': { name: 'Swiss National Bank', currency: 'CHF', country: 'Switzerland', speakers: ['Thomas Jordan', 'Martin Schlegel', 'Antoine Martin'] }
+    };
+  }
+
+  /**
+   * Get list of all supported central banks
+   */
+  getCentralBanks() {
+    return this.centralBanks;
+  }
+
+  /**
+   * Get central bank info by code
+   */
+  getCentralBankByCode(code) {
+    return this.centralBanks[code.toUpperCase()] || null;
   }
 
   /**

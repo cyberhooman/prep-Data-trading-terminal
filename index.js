@@ -1832,6 +1832,17 @@ app.get('/api/ai/status', (req, res) => {
   });
 });
 
+/**
+ * GET /api/ai/central-banks
+ * Get list of all supported G8 central banks
+ */
+app.get('/api/ai/central-banks', (req, res) => {
+  res.json({
+    success: true,
+    data: deepseekAI.getCentralBanks()
+  });
+});
+
 // Protect all routes except login and auth routes
 app.use((req, res, next) => {
   // Allow access to login, auth, and static files
@@ -1920,6 +1931,12 @@ app.get('/quick-notes.jsx', (req, res) => {
 
 app.get('/financial-news.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'financial-news.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/cb-speech-analysis.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'cb-speech-analysis.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -2671,6 +2688,11 @@ app.get('/', async (req, res) => {
           <div id="financial-news-root"></div>
         </section>
 
+        <!-- CB Speech AI Analysis -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <div id="cb-speech-root"></div>
+        </section>
+
         <!-- Trading Journal (Below Fold) -->
         <section class="full" style="max-width: 1480px; margin: 0 auto;">
           <h2 style="margin-bottom: 1rem;">Trading Journal (Calendar)</h2>
@@ -3035,6 +3057,7 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/cb-speech-analysis.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         const root = ReactDOM.createRoot(document.getElementById('todo-root'));
         root.render(React.createElement(TodoCard));
@@ -3373,6 +3396,7 @@ const watchedFiles = [
   path.join(__dirname, 'quick-notes.jsx'),
   path.join(__dirname, 'animated-title.jsx'),
   path.join(__dirname, 'financial-news.jsx'),
+  path.join(__dirname, 'cb-speech-analysis.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 
