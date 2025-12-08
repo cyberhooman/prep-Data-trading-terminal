@@ -31,7 +31,15 @@
       "Bash(node:*)",
       "Bash(nslookup:*)",
       "WebFetch(domain:www.financialjuice.com)",
-      "Bash(timeout 90 bash:*)"
+      "Bash(timeout 90 bash:*)",
+      "Bash(if not exist \".claude\\skills\\frontend-design\" mkdir \".claude\\skills\\frontend-design\")",
+      "Bash(cmd /c \"if not exist .claude\\skills\\frontend-design mkdir .claude\\skills\\frontend-design\")",
+      "Bash(cmd /c \"dir .claude\\skills /s /b\")",
+      "Bash(start http://localhost:3000/login)",
+      "Bash(powershell -Command:*)",
+      "Bash(railway variables:*)",
+      "Bash(npm ls:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

@@ -9,7 +9,7 @@ class XNewsScraper {
     this.username = 'financialjuice'; // X handle without @
     this.newsCache = [];
     this.lastFetch = null;
-    this.cacheTimeout = 60000; // 1 minute cache
+    this.cacheTimeout = 300000; // 5 minutes cache - critical news doesn't appear often
     this.newsHistory = new Map();
     this.retentionDays = 7; // Keep news for 1 week
     this.database = database;
