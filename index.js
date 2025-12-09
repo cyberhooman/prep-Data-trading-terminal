@@ -24,6 +24,7 @@ const { passport, ensureAuthenticated, findUserByEmail, createUser } = require('
 const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
+const cbSpeechScraper = require('./services/cbSpeechScraper');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -1841,6 +1842,158 @@ app.get('/api/ai/central-banks', (req, res) => {
     success: true,
     data: deepseekAI.getCentralBanks()
   });
+});
+
+/**
+ * GET /api/speeches
+ * Fetch latest speeches from all central banks or a specific bank
+ */
+app.get('/api/speeches', async (req, res) => {
+  try {
+    const { bank } = req.query;
+    let speeches;
+
+    if (bank) {
+      speeches = await cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase());
+    } else {
+      speeches = await cbSpeechScraper.fetchAllSpeeches();
+    }
+
+    res.json({
+      success: true,
+      count: speeches.length,
+      data: speeches
+    });
+  } catch (err) {
+    console.error('Speech fetch error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch speeches',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/speeches/sources
+ * Get list of available central bank sources
+ */
+app.get('/api/speeches/sources', (req, res) => {
+  res.json({
+    success: true,
+    data: cbSpeechScraper.getSources()
+  });
+});
+
+/**
+ * GET /api/speeches/text
+ * Fetch full text of a speech from its URL
+ */
+app.get('/api/speeches/text', async (req, res) => {
+  try {
+    const { url } = req.query;
+
+    if (!url) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL parameter is required'
+      });
+    }
+
+    const text = await cbSpeechScraper.fetchSpeechFullText(url);
+
+    res.json({
+      success: true,
+      data: { text, url }
+    });
+  } catch (err) {
+    console.error('Speech text fetch error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch speech text',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/speeches/analyze
+ * Fetch speech text and analyze it in one request
+ */
+app.post('/api/speeches/analyze', async (req, res) => {
+  try {
+    const { url, speaker, centralBank, bankCode, date, text } = req.body;
+
+    let speechText = text;
+
+    // If no text provided, try to fetch from URL
+    if (!speechText && url) {
+      speechText = await cbSpeechScraper.fetchSpeechFullText(url);
+    }
+
+    if (!speechText || speechText.length < 100) {
+      return res.status(400).json({
+        success: false,
+        error: 'Unable to fetch sufficient speech text for analysis'
+      });
+    }
+
+    // Run AI analysis
+    const analysis = await deepseekAI.analyzeSpeech(
+      speechText,
+      speaker || 'Unknown Speaker',
+      centralBank || 'Central Bank',
+      date || new Date().toISOString().split('T')[0]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        ...analysis,
+        bankCode,
+        sourceUrl: url
+      }
+    });
+  } catch (err) {
+    console.error('Speech analyze error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze speech',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/speeches/search
+ * Search speeches by query and optionally filter by bank
+ */
+app.post('/api/speeches/search', async (req, res) => {
+  try {
+    const { query, bank } = req.body;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        error: 'Search query is required'
+      });
+    }
+
+    const speeches = await cbSpeechScraper.searchSpeeches(query, bank);
+
+    res.json({
+      success: true,
+      count: speeches.length,
+      data: speeches
+    });
+  } catch (err) {
+    console.error('Speech search error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to search speeches',
+      message: err.message
+    });
+  }
 });
 
 // Protect all routes except login and auth routes
