@@ -1847,7 +1847,8 @@ app.get('/api/ai/central-banks', (req, res) => {
 
 /**
  * GET /api/speeches
- * Fetch latest speeches and press conferences from all central banks or a specific bank
+ * Fetch CB speeches and press conferences from Financial Juice
+ * Data retained for 1 week only
  */
 app.get('/api/speeches', async (req, res) => {
   try {
@@ -1857,14 +1858,13 @@ app.get('/api/speeches', async (req, res) => {
     if (bank) {
       // Fetch both speeches and press conferences for specific bank
       const [speeches, pressConfs] = await Promise.all([
-        cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase()),
-        cbSpeechScraper.fetchPressConferencesFromBank(bank.toUpperCase())
+        cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase(), financialJuiceScraper),
+        cbSpeechScraper.fetchPressConferencesFromBank(bank.toUpperCase(), financialJuiceScraper)
       ]);
-      speeches.forEach(s => s.type = s.type || 'speech');
       content = [...speeches, ...pressConfs].sort((a, b) => new Date(b.date) - new Date(a.date));
     } else {
-      // Fetch all content (speeches + press conferences)
-      content = await cbSpeechScraper.fetchAllContent();
+      // Fetch all content (speeches + press conferences) from FJ
+      content = await cbSpeechScraper.fetchAllContent(financialJuiceScraper);
     }
 
     // Filter by type if specified
@@ -1877,6 +1877,7 @@ app.get('/api/speeches', async (req, res) => {
     res.json({
       success: true,
       count: content.length,
+      source: 'FinancialJuice',
       data: content
     });
   } catch (err) {
@@ -1901,50 +1902,15 @@ app.get('/api/speeches/sources', (req, res) => {
 });
 
 /**
- * GET /api/speeches/text
- * Fetch full text of a speech from its URL
- */
-app.get('/api/speeches/text', async (req, res) => {
-  try {
-    const { url } = req.query;
-
-    if (!url) {
-      return res.status(400).json({
-        success: false,
-        error: 'URL parameter is required'
-      });
-    }
-
-    const text = await cbSpeechScraper.fetchSpeechFullText(url);
-
-    res.json({
-      success: true,
-      data: { text, url }
-    });
-  } catch (err) {
-    console.error('Speech text fetch error:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch speech text',
-      message: err.message
-    });
-  }
-});
-
-/**
  * POST /api/speeches/analyze
- * Fetch speech text and analyze it in one request
+ * Analyze CB speech/press conf text from Financial Juice
  */
 app.post('/api/speeches/analyze', async (req, res) => {
   try {
-    const { url, speaker, centralBank, bankCode, date, text } = req.body;
+    const { title, description, speaker, centralBank, bankCode, date, text } = req.body;
 
-    let speechText = text;
-
-    // If no text provided, try to fetch from URL
-    if (!speechText && url) {
-      speechText = await cbSpeechScraper.fetchSpeechFullText(url);
-    }
+    // Use provided text, or title + description from FJ
+    let speechText = text || `${title || ''} ${description || ''}`.trim();
 
     if (!speechText || speechText.length < 100) {
       return res.status(400).json({

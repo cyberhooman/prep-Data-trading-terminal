@@ -1,555 +1,410 @@
 /**
  * Central Bank Speech Scraper Service
- * Fetches real speeches from central bank RSS feeds
+ * Extracts CB speeches and press conferences from Financial Juice feed
+ * Data retained for 1 week only
  */
 
-const https = require('https');
-const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 class CBSpeechScraper {
   constructor() {
     this.speechCache = new Map();
-    this.cacheTimeout = 10 * 60 * 1000; // 10 minutes
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+    this.retentionDays = 7; // Keep data for 1 week
+    this.cbContentHistory = new Map();
+    this.historyFile = path.join(__dirname, '../data/cb-speech-history.json');
 
-    // Correct RSS feed URLs for central bank speeches
-    this.sources = {
+    // Central bank info for detection
+    this.centralBanks = {
       'FED': {
         name: 'Federal Reserve',
         currency: 'USD',
-        rssUrl: 'https://www.federalreserve.gov/feeds/speeches.xml',
+        keywords: ['fed', 'fomc', 'federal reserve', 'powell', 'williams', 'waller', 'bowman', 'jefferson', 'cook', 'kugler', 'barr'],
         speakers: ['Powell', 'Williams', 'Waller', 'Bowman', 'Jefferson', 'Cook', 'Kugler', 'Barr']
       },
       'ECB': {
         name: 'European Central Bank',
         currency: 'EUR',
-        rssUrl: 'https://www.ecb.europa.eu/rss/press_sec.xml',
+        keywords: ['ecb', 'european central bank', 'lagarde', 'de guindos', 'lane', 'schnabel', 'elderson', 'cipollone'],
         speakers: ['Lagarde', 'de Guindos', 'Lane', 'Schnabel', 'Elderson', 'Cipollone']
       },
       'BOE': {
         name: 'Bank of England',
         currency: 'GBP',
-        rssUrl: 'https://www.bankofengland.co.uk/rss/news',
+        keywords: ['boe', 'bank of england', 'bailey', 'broadbent', 'breeden', 'pill', 'greene', 'dhingra', 'mann', 'taylor', 'mpc'],
         speakers: ['Bailey', 'Broadbent', 'Breeden', 'Pill', 'Greene', 'Dhingra', 'Mann', 'Taylor']
       },
       'BOC': {
         name: 'Bank of Canada',
         currency: 'CAD',
-        rssUrl: 'https://www.bankofcanada.ca/content-type/speeches/feed/',
+        keywords: ['boc', 'bank of canada', 'macklem', 'rogers', 'kozicki', 'gravelle'],
         speakers: ['Macklem', 'Rogers', 'Kozicki', 'Gravelle']
       },
       'RBA': {
         name: 'Reserve Bank of Australia',
         currency: 'AUD',
-        rssUrl: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',
+        keywords: ['rba', 'reserve bank of australia', 'bullock', 'hauser', 'hunter', 'kent', 'jones'],
         speakers: ['Bullock', 'Hauser', 'Hunter', 'Kent', 'Jones']
+      },
+      'BOJ': {
+        name: 'Bank of Japan',
+        currency: 'JPY',
+        keywords: ['boj', 'bank of japan', 'ueda', 'uchida', 'adachi', 'nakamura'],
+        speakers: ['Ueda', 'Uchida', 'Adachi', 'Nakamura']
+      },
+      'SNB': {
+        name: 'Swiss National Bank',
+        currency: 'CHF',
+        keywords: ['snb', 'swiss national bank', 'jordan', 'schlegel'],
+        speakers: ['Jordan', 'Schlegel']
+      },
+      'RBNZ': {
+        name: 'Reserve Bank of New Zealand',
+        currency: 'NZD',
+        keywords: ['rbnz', 'reserve bank of new zealand', 'orr', 'hawkesby'],
+        speakers: ['Orr', 'Hawkesby']
       }
     };
 
-    // Press conference sources
-    this.pressConferenceSources = {
-      'FED': {
-        name: 'Federal Reserve',
-        currency: 'USD',
-        rssUrl: 'https://www.federalreserve.gov/feeds/press_monetary.xml',
-        fallbackUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'
-      },
-      'ECB': {
-        name: 'European Central Bank',
-        currency: 'EUR',
-        rssUrl: 'https://www.ecb.europa.eu/rss/press.xml'
-      },
-      'BOE': {
-        name: 'Bank of England',
-        currency: 'GBP',
-        rssUrl: 'https://www.bankofengland.co.uk/rss/news'
-      },
-      'BOC': {
-        name: 'Bank of Canada',
-        currency: 'CAD',
-        rssUrl: 'https://www.bankofcanada.ca/content-type/press/feed/'
-      },
-      'RBA': {
-        name: 'Reserve Bank of Australia',
-        currency: 'AUD',
-        rssUrl: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml'
-      }
-    };
+    // Load history on startup
+    this.loadHistory();
   }
 
   /**
-   * Fetch URL with proper headers
+   * Load CB content history from file
    */
-  fetchUrl(url, timeout = 15000) {
-    return new Promise((resolve, reject) => {
-      const isHttps = url.startsWith('https');
-      const protocol = isHttps ? https : http;
-
-      const req = protocol.get(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
-        },
-        timeout: timeout
-      }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          this.fetchUrl(res.headers.location, timeout).then(resolve).catch(reject);
-          return;
-        }
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode}`));
-          return;
-        }
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
-      });
-
-      req.on('error', reject);
-      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
-    });
+  loadHistory() {
+    try {
+      if (fs.existsSync(this.historyFile)) {
+        const data = JSON.parse(fs.readFileSync(this.historyFile, 'utf8'));
+        this.cbContentHistory = new Map(data.map(item => [item.id, item]));
+        this.cleanOldData();
+        console.log(`Loaded ${this.cbContentHistory.size} CB speech/press conf items from history`);
+      }
+    } catch (err) {
+      console.error('Error loading CB history:', err.message);
+      this.cbContentHistory = new Map();
+    }
   }
 
   /**
-   * Parse RSS feed and extract speech items
+   * Save CB content history to file
    */
-  parseRSS(xml, bankCode) {
-    const bank = this.sources[bankCode];
-    const speeches = [];
+  saveHistory() {
+    try {
+      const dir = path.dirname(this.historyFile);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      const data = Array.from(this.cbContentHistory.values());
+      fs.writeFileSync(this.historyFile, JSON.stringify(data, null, 2));
+    } catch (err) {
+      console.error('Error saving CB history:', err.message);
+    }
+  }
 
-    // Extract items from RSS
-    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-    let match;
+  /**
+   * Remove data older than 1 week
+   */
+  cleanOldData() {
+    const oneWeekAgo = Date.now() - (this.retentionDays * 24 * 60 * 60 * 1000);
+    let removed = 0;
 
-    while ((match = itemRegex.exec(xml)) !== null) {
-      const item = match[1];
+    for (const [id, item] of this.cbContentHistory.entries()) {
+      const itemTime = item.firstSeenAt || new Date(item.date).getTime();
+      if (itemTime < oneWeekAgo) {
+        this.cbContentHistory.delete(id);
+        removed++;
+      }
+    }
 
-      const title = this.extractTag(item, 'title');
-      const link = this.extractTag(item, 'link') || this.extractTag(item, 'guid');
-      const description = this.extractTag(item, 'description');
-      const pubDate = this.extractTag(item, 'pubDate') || this.extractTag(item, 'dc:date');
+    if (removed > 0) {
+      console.log(`Cleaned ${removed} CB items older than 1 week`);
+      this.saveHistory();
+    }
+  }
 
-      // Skip if no link or title
-      if (!link || !title) continue;
+  /**
+   * Detect which central bank a news item is about
+   */
+  detectCentralBank(text) {
+    const lowerText = text.toLowerCase();
 
-      // Skip non-speech items (reports, data releases, etc.)
-      const lowerTitle = title.toLowerCase();
-      const lowerDesc = (description || '').toLowerCase();
-
-      const isLikelySpeech =
-        /speech|remarks|statement|testimony|address|lecture|conference|interview/i.test(title + description) ||
-        bank.speakers.some(s => title.includes(s) || (description && description.includes(s)));
-
-      const isNotSpeech =
-        /data|statistics|report|publication|release|minutes|bulletin|survey|index/i.test(lowerTitle) &&
-        !isLikelySpeech;
-
-      if (isNotSpeech) continue;
-
-      // Detect speaker
-      let speaker = 'Central Bank Official';
-      for (const s of bank.speakers) {
-        if (title.includes(s) || (description && description.includes(s))) {
-          speaker = s;
-          break;
+    for (const [bankCode, bank] of Object.entries(this.centralBanks)) {
+      for (const keyword of bank.keywords) {
+        if (lowerText.includes(keyword)) {
+          return { bankCode, bank };
         }
       }
+    }
+    return null;
+  }
 
-      // Parse date
+  /**
+   * Detect speaker from text
+   */
+  detectSpeaker(text, bank) {
+    for (const speaker of bank.speakers) {
+      if (text.toLowerCase().includes(speaker.toLowerCase())) {
+        return speaker;
+      }
+    }
+    return 'Central Bank Official';
+  }
+
+  /**
+   * Determine if content is a speech or press conference
+   */
+  detectContentType(text) {
+    const lower = text.toLowerCase();
+
+    // Press conference indicators
+    if (/press conference|presser|q\s*&\s*a|rate decision|interest rate decision|policy decision|monetary policy decision/i.test(lower)) {
+      return 'press_conference';
+    }
+
+    // Speech indicators
+    if (/speech|remarks|testimony|address|says|said|statement/i.test(lower)) {
+      return 'speech';
+    }
+
+    return 'speech'; // Default to speech
+  }
+
+  /**
+   * Check if news item is CB-related speech or press conference
+   */
+  isCBContent(newsItem) {
+    const text = `${newsItem.headline} ${newsItem.rawText || ''}`;
+    const lower = text.toLowerCase();
+
+    // Must be related to a central bank
+    const cbMatch = this.detectCentralBank(text);
+    if (!cbMatch) return false;
+
+    // Must be speech, press conference, or policy-related
+    const isSpeechOrPressConf = /speech|remarks|testimony|press conference|presser|rate decision|says|said|statement|policy|hawkish|dovish|inflation|rates|hike|cut/i.test(lower);
+
+    return isSpeechOrPressConf;
+  }
+
+  /**
+   * Extract CB content from Financial Juice news feed
+   */
+  extractCBContentFromFJ(fjNews) {
+    const cbItems = [];
+
+    for (const newsItem of fjNews) {
+      if (!this.isCBContent(newsItem)) continue;
+
+      const text = `${newsItem.headline} ${newsItem.rawText || ''}`;
+      const cbMatch = this.detectCentralBank(text);
+      if (!cbMatch) continue;
+
+      const { bankCode, bank } = cbMatch;
+      const speaker = this.detectSpeaker(text, bank);
+      const contentType = this.detectContentType(text);
+
+      // Parse date from FJ timestamp
       let date = new Date().toISOString().split('T')[0];
-      if (pubDate) {
+      if (newsItem.timestamp) {
         try {
-          const parsed = new Date(pubDate);
+          const parsed = new Date(newsItem.timestamp);
           if (!isNaN(parsed.getTime())) {
             date = parsed.toISOString().split('T')[0];
           }
         } catch (e) {}
       }
 
-      speeches.push({
-        id: `${bankCode}-${Buffer.from(link).toString('base64').substring(0, 12)}`,
-        title: this.cleanText(title),
-        link: link,
-        description: this.cleanText(description || '').substring(0, 200),
-        date: date,
-        speaker: speaker,
+      const id = `FJ-${bankCode}-${Buffer.from(newsItem.headline).toString('base64').substring(0, 16)}`;
+
+      cbItems.push({
+        id,
+        title: newsItem.headline,
+        link: newsItem.link || null,
+        description: (newsItem.rawText || '').substring(0, 300),
+        date,
+        timestamp: newsItem.timestamp,
+        speaker,
         centralBank: bank.name,
-        bankCode: bankCode,
-        currency: bank.currency
+        bankCode,
+        currency: bank.currency,
+        type: contentType,
+        source: 'FinancialJuice',
+        isCritical: newsItem.isCritical || false,
+        isActive: newsItem.isActive || false,
+        firstSeenAt: newsItem.firstSeenAt || Date.now()
       });
     }
 
-    return speeches.slice(0, 10);
+    return cbItems;
   }
 
   /**
-   * Extract tag content from XML
+   * Fetch all CB speeches from Financial Juice
+   * This is called from the API endpoint
    */
-  extractTag(xml, tag) {
-    // Handle CDATA
-    const cdataRegex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, 'i');
-    const cdataMatch = xml.match(cdataRegex);
-    if (cdataMatch) return cdataMatch[1].trim();
+  async fetchAllSpeeches(fjScraper) {
+    // Clean old data first
+    this.cleanOldData();
 
-    // Handle regular content
-    const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
-    const match = xml.match(regex);
-    return match ? match[1].trim() : '';
+    try {
+      // Get news from Financial Juice
+      const fjNews = await fjScraper.getLatestNews();
+
+      // Extract CB-related content
+      const cbItems = this.extractCBContentFromFJ(fjNews);
+
+      // Add to history
+      for (const item of cbItems) {
+        if (!this.cbContentHistory.has(item.id)) {
+          this.cbContentHistory.set(item.id, item);
+        }
+      }
+
+      // Save history
+      this.saveHistory();
+
+      // Return all items from history (includes current + past week)
+      const allItems = Array.from(this.cbContentHistory.values());
+
+      // Filter for speeches only
+      const speeches = allItems.filter(item => item.type === 'speech');
+
+      // Sort by date descending
+      speeches.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return speeches;
+    } catch (err) {
+      console.error('Error fetching CB speeches from FJ:', err.message);
+      // Return cached history on error
+      return Array.from(this.cbContentHistory.values())
+        .filter(item => item.type === 'speech')
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
   }
 
   /**
-   * Clean text from HTML
+   * Fetch all press conferences from Financial Juice
    */
-  cleanText(text) {
-    if (!text) return '';
-    return text
-      .replace(/<[^>]+>/g, '')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+  async fetchAllPressConferences(fjScraper) {
+    // Clean old data first
+    this.cleanOldData();
+
+    try {
+      // Get news from Financial Juice
+      const fjNews = await fjScraper.getLatestNews();
+
+      // Extract CB-related content
+      const cbItems = this.extractCBContentFromFJ(fjNews);
+
+      // Add to history
+      for (const item of cbItems) {
+        if (!this.cbContentHistory.has(item.id)) {
+          this.cbContentHistory.set(item.id, item);
+        }
+      }
+
+      // Save history
+      this.saveHistory();
+
+      // Return all items from history
+      const allItems = Array.from(this.cbContentHistory.values());
+
+      // Filter for press conferences only
+      const pressConfs = allItems.filter(item => item.type === 'press_conference');
+
+      // Sort by date descending
+      pressConfs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return pressConfs;
+    } catch (err) {
+      console.error('Error fetching CB press conferences from FJ:', err.message);
+      return Array.from(this.cbContentHistory.values())
+        .filter(item => item.type === 'press_conference')
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+  }
+
+  /**
+   * Fetch all CB content (speeches + press conferences)
+   */
+  async fetchAllContent(fjScraper) {
+    // Clean old data first
+    this.cleanOldData();
+
+    try {
+      // Get news from Financial Juice
+      const fjNews = await fjScraper.getLatestNews();
+
+      // Extract CB-related content
+      const cbItems = this.extractCBContentFromFJ(fjNews);
+
+      console.log(`Extracted ${cbItems.length} CB items from ${fjNews.length} FJ news items`);
+
+      // Add to history
+      for (const item of cbItems) {
+        if (!this.cbContentHistory.has(item.id)) {
+          this.cbContentHistory.set(item.id, item);
+        }
+      }
+
+      // Save history
+      this.saveHistory();
+
+      // Return all items from history
+      const allItems = Array.from(this.cbContentHistory.values());
+
+      // Sort by date descending
+      allItems.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      return allItems;
+    } catch (err) {
+      console.error('Error fetching CB content from FJ:', err.message);
+      return Array.from(this.cbContentHistory.values())
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
   }
 
   /**
    * Fetch speeches from a specific bank
    */
-  async fetchSpeechesFromBank(bankCode) {
-    const bank = this.sources[bankCode];
-    if (!bank) return [];
-
-    // Check cache
-    const cacheKey = `speeches-${bankCode}`;
-    const cached = this.speechCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-
-    try {
-      console.log(`Fetching speeches for ${bankCode} from ${bank.rssUrl}`);
-      const xml = await this.fetchUrl(bank.rssUrl);
-      const speeches = this.parseRSS(xml, bankCode);
-      console.log(`Found ${speeches.length} speeches for ${bankCode}`);
-
-      this.speechCache.set(cacheKey, { timestamp: Date.now(), data: speeches });
-      return speeches;
-    } catch (err) {
-      console.error(`Failed to fetch ${bankCode} speeches:`, err.message);
-      return [];
-    }
-  }
-
-  /**
-   * Fetch speeches from all banks
-   */
-  async fetchAllSpeeches() {
-    const allSpeeches = [];
-    const bankCodes = Object.keys(this.sources);
-
-    const results = await Promise.allSettled(
-      bankCodes.map(code => this.fetchSpeechesFromBank(code))
+  async fetchSpeechesFromBank(bankCode, fjScraper) {
+    const allContent = await this.fetchAllContent(fjScraper);
+    return allContent.filter(item =>
+      item.bankCode === bankCode && item.type === 'speech'
     );
-
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        allSpeeches.push(...result.value);
-      }
-    });
-
-    // Sort by date descending
-    allSpeeches.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return allSpeeches;
-  }
-
-  /**
-   * Check if content is garbage (cookie banners, boilerplate, etc.)
-   */
-  isGarbageContent(text) {
-    const lower = text.toLowerCase();
-    const garbagePatterns = [
-      /our use of cookies/i,
-      /we use (necessary |analytics )?cookies/i,
-      /manage your session/i,
-      /keep track of the number of visitors/i,
-      /privacy policy/i,
-      /cookie preferences/i,
-      /accept all cookies/i,
-      /cookie settings/i
-    ];
-
-    // Count how many garbage patterns match
-    let garbageMatches = 0;
-    for (const pattern of garbagePatterns) {
-      if (pattern.test(lower)) garbageMatches++;
-    }
-
-    // If more than 2 garbage patterns match, or garbage is >30% of short content
-    if (garbageMatches >= 2) return true;
-    if (text.length < 500 && garbageMatches >= 1) return true;
-
-    // Check if "cookie" appears too frequently relative to content length
-    const cookieCount = (lower.match(/cookie/g) || []).length;
-    if (cookieCount > 0 && text.length / cookieCount < 200) return true;
-
-    return false;
-  }
-
-  /**
-   * Remove cookie/boilerplate text from content
-   */
-  removeCookieText(content) {
-    // Direct phrase removal - be aggressive
-    const phrasesToRemove = [
-      /Our use of cookies[^.]*\./gi,
-      /We use (necessary |analytics )?cookies[^.]*\./gi,
-      /We use cookies[^.]*\./gi,
-      /This site uses cookies[^.]*\./gi,
-      /By continuing[^.]*cookies[^.]*\./gi,
-      /manage your session[^.]*\./gi,
-      /keep track of the number of visitors[^.]*\./gi,
-      /cookie preferences[^.]*\./gi,
-      /accept (all )?cookies[^.]*\./gi,
-      /privacy policy[^.]*\./gi,
-      /Our use of cookies/gi,
-      /necessary cookies to make our site work/gi,
-      /analytics cookies so we can keep track/gi,
-      /\(for example, to manage your session\)/gi,
-      /understand how visitors use/gi,
-      /number of visitors to various parts/gi
-    ];
-
-    for (const pattern of phrasesToRemove) {
-      content = content.replace(pattern, ' ');
-    }
-
-    // Clean up whitespace
-    content = content.replace(/\s+/g, ' ').trim();
-
-    return content;
-  }
-
-  /**
-   * Fetch full text of a speech
-   */
-  async fetchSpeechFullText(url) {
-    try {
-      const html = await this.fetchUrl(url, 20000);
-
-      // Extract main content using various patterns
-      let content = '';
-
-      // Try Bank of England specific patterns first
-      if (url.includes('bankofengland.co.uk')) {
-        const boePatterns = [
-          /<div[^>]*class="[^"]*page-content[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<div[^>]*class="[^"]*related/i,
-          /<div[^>]*class="[^"]*content-block[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-          /<div[^>]*class="[^"]*pub-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i
-        ];
-        for (const pattern of boePatterns) {
-          const match = html.match(pattern);
-          if (match && match[1] && match[1].length > 300) {
-            content = match[1];
-            break;
-          }
-        }
-      }
-
-      // Try specific content selectors
-      if (!content || content.length < 300) {
-        const patterns = [
-          /<article[^>]*>([\s\S]*?)<\/article>/i,
-          /<div[^>]*class="[^"]*(?:article|speech|main-content|entry-content|post-content)[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-          /<main[^>]*>([\s\S]*?)<\/main>/i,
-          /<div[^>]*id="[^"]*(?:content|article|main)[^"]*"[^>]*>([\s\S]*?)<\/div>/i
-        ];
-
-        for (const pattern of patterns) {
-          const match = html.match(pattern);
-          if (match && match[1] && match[1].length > 500) {
-            content = match[1];
-            break;
-          }
-        }
-      }
-
-      // Fallback: extract body
-      if (!content || content.length < 500) {
-        const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) content = bodyMatch[1];
-      }
-
-      // Clean content - remove unwanted HTML elements
-      content = content
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
-        .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
-        .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
-        .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
-        .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
-        .replace(/<form[^>]*>[\s\S]*?<\/form>/gi, '')
-        // Remove cookie-related elements more aggressively
-        .replace(/<[^>]*(?:cookie|consent|gdpr|privacy|banner)[^>]*>[\s\S]*?<\/[^>]+>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      // Remove cookie text phrases
-      content = this.removeCookieText(content);
-
-      // Check if remaining content is garbage
-      if (this.isGarbageContent(content)) {
-        throw new Error('Page content appears to be mostly cookie/boilerplate text. The website may require JavaScript to render content.');
-      }
-
-      if (content.length < 200) {
-        throw new Error('Could not extract enough meaningful text content');
-      }
-
-      return content.substring(0, 15000);
-    } catch (err) {
-      console.error('Failed to fetch speech text:', err.message);
-      throw new Error(err.message || 'Could not fetch speech text');
-    }
-  }
-
-  /**
-   * Parse press conference RSS feed
-   */
-  parsePressConferenceRSS(xml, bankCode) {
-    const bank = this.pressConferenceSources[bankCode];
-    const conferences = [];
-
-    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-    let match;
-
-    while ((match = itemRegex.exec(xml)) !== null) {
-      const item = match[1];
-
-      const title = this.extractTag(item, 'title');
-      const link = this.extractTag(item, 'link') || this.extractTag(item, 'guid');
-      const description = this.extractTag(item, 'description');
-      const pubDate = this.extractTag(item, 'pubDate') || this.extractTag(item, 'dc:date');
-
-      if (!link || !title) continue;
-
-      // Filter for press conferences, monetary policy decisions, rate decisions
-      const combinedText = (title + ' ' + (description || '')).toLowerCase();
-      const isPressConference =
-        /press conference|monetary policy|rate decision|interest rate|policy decision|fomc|governing council|mpc meeting|statement on monetary/i.test(combinedText) ||
-        /transcript|q\s*&\s*a|question|answer/i.test(combinedText);
-
-      if (!isPressConference) continue;
-
-      // Parse date
-      let date = new Date().toISOString().split('T')[0];
-      if (pubDate) {
-        try {
-          const parsed = new Date(pubDate);
-          if (!isNaN(parsed.getTime())) {
-            date = parsed.toISOString().split('T')[0];
-          }
-        } catch (e) {}
-      }
-
-      conferences.push({
-        id: `PC-${bankCode}-${Buffer.from(link).toString('base64').substring(0, 12)}`,
-        title: this.cleanText(title),
-        link: link,
-        description: this.cleanText(description || '').substring(0, 200),
-        date: date,
-        speaker: 'Press Conference',
-        centralBank: bank.name,
-        bankCode: bankCode,
-        currency: bank.currency,
-        type: 'press_conference'
-      });
-    }
-
-    return conferences.slice(0, 10);
   }
 
   /**
    * Fetch press conferences from a specific bank
    */
-  async fetchPressConferencesFromBank(bankCode) {
-    const bank = this.pressConferenceSources[bankCode];
-    if (!bank) return [];
-
-    const cacheKey = `pressconf-${bankCode}`;
-    const cached = this.speechCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
-    }
-
-    try {
-      console.log(`Fetching press conferences for ${bankCode} from ${bank.rssUrl}`);
-      const xml = await this.fetchUrl(bank.rssUrl);
-      const conferences = this.parsePressConferenceRSS(xml, bankCode);
-      console.log(`Found ${conferences.length} press conferences for ${bankCode}`);
-
-      this.speechCache.set(cacheKey, { timestamp: Date.now(), data: conferences });
-      return conferences;
-    } catch (err) {
-      console.error(`Failed to fetch ${bankCode} press conferences:`, err.message);
-      return [];
-    }
-  }
-
-  /**
-   * Fetch press conferences from all banks
-   */
-  async fetchAllPressConferences() {
-    const allConferences = [];
-    const bankCodes = Object.keys(this.pressConferenceSources);
-
-    const results = await Promise.allSettled(
-      bankCodes.map(code => this.fetchPressConferencesFromBank(code))
+  async fetchPressConferencesFromBank(bankCode, fjScraper) {
+    const allContent = await this.fetchAllContent(fjScraper);
+    return allContent.filter(item =>
+      item.bankCode === bankCode && item.type === 'press_conference'
     );
-
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        allConferences.push(...result.value);
-      }
-    });
-
-    allConferences.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return allConferences;
   }
 
   /**
-   * Fetch all speeches AND press conferences combined
-   */
-  async fetchAllContent() {
-    const [speeches, pressConferences] = await Promise.all([
-      this.fetchAllSpeeches(),
-      this.fetchAllPressConferences()
-    ]);
-
-    // Mark speeches with type
-    speeches.forEach(s => s.type = s.type || 'speech');
-
-    // Combine and sort by date
-    const allContent = [...speeches, ...pressConferences];
-    allContent.sort((a, b) => new Date(b.date) - new Date(a.date));
-    return allContent;
-  }
-
-  /**
-   * Get available sources
+   * Get available sources (central banks)
    */
   getSources() {
-    return Object.entries(this.sources).map(([code, bank]) => ({
+    return Object.entries(this.centralBanks).map(([code, bank]) => ({
       code,
       name: bank.name,
       currency: bank.currency
     }));
   }
 
+  /**
+   * Clear cache and history
+   */
   clearCache() {
     this.speechCache.clear();
+    this.cbContentHistory.clear();
+    this.saveHistory();
   }
 }
 

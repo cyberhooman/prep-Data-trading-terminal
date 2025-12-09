@@ -18,7 +18,10 @@ const CBSpeechAnalysis = () => {
     { code: 'ECB', name: 'EUR - ECB' },
     { code: 'BOE', name: 'GBP - Bank of England' },
     { code: 'BOC', name: 'CAD - Bank of Canada' },
-    { code: 'RBA', name: 'AUD - RBA' }
+    { code: 'RBA', name: 'AUD - RBA' },
+    { code: 'BOJ', name: 'JPY - Bank of Japan' },
+    { code: 'SNB', name: 'CHF - Swiss National Bank' },
+    { code: 'RBNZ', name: 'NZD - RBNZ' }
   ];
 
   const contentTypes = [
@@ -57,7 +60,7 @@ const CBSpeechAnalysis = () => {
     }
   };
 
-  // Auto-analyze a speech
+  // Auto-analyze a speech using text from Financial Juice
   const analyzeSpeech = async (speech) => {
     setAnalyzing(speech.id);
     setError(null);
@@ -67,7 +70,8 @@ const CBSpeechAnalysis = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: speech.link,
+          title: speech.title,
+          description: speech.description,
           speaker: speech.speaker,
           centralBank: speech.centralBank,
           bankCode: speech.bankCode,
@@ -85,7 +89,7 @@ const CBSpeechAnalysis = () => {
         setAnalyzedSpeeches(newAnalyzed);
         localStorage.setItem('cbAnalyzedSpeeches', JSON.stringify(newAnalyzed));
       } else {
-        setError('Analysis failed: ' + (data.message || 'Could not fetch speech text'));
+        setError('Analysis failed: ' + (data.message || 'Not enough text to analyze'));
       }
     } catch (err) {
       setError('Error: ' + err.message);
@@ -112,7 +116,7 @@ const CBSpeechAnalysis = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <h2 style={{ color: '#f1f5f9', margin: 0, fontSize: '1.2rem' }}>
           CB Speech Analysis
-          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: '9999px', marginLeft: '0.5rem', verticalAlign: 'middle' }}>AUTO</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', borderRadius: '9999px', marginLeft: '0.5rem', verticalAlign: 'middle' }}>FJ</span>
         </h2>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
