@@ -1912,10 +1912,10 @@ app.post('/api/speeches/analyze', async (req, res) => {
     // Use provided text, or title + description from FJ
     let speechText = text || `${title || ''} ${description || ''}`.trim();
 
-    if (!speechText || speechText.length < 100) {
+    if (!speechText || speechText.length < 20) {
       return res.status(400).json({
         success: false,
-        error: 'Unable to fetch sufficient speech text for analysis'
+        error: 'Not enough text to analyze'
       });
     }
 
@@ -1932,7 +1932,7 @@ app.post('/api/speeches/analyze', async (req, res) => {
       data: {
         ...analysis,
         bankCode,
-        sourceUrl: url
+        source: 'FinancialJuice'
       }
     });
   } catch (err) {
