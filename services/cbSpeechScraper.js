@@ -1,7 +1,6 @@
 /**
  * Central Bank Speech Scraper Service
- * Fetches real speeches from central bank websites and RSS feeds
- * Supports all G8 Central Banks
+ * Fetches real speeches from central bank RSS feeds
  */
 
 const https = require('https');
@@ -10,122 +9,84 @@ const http = require('http');
 class CBSpeechScraper {
   constructor() {
     this.speechCache = new Map();
-    this.cacheTimeout = 15 * 60 * 1000; // 15 minutes cache
+    this.cacheTimeout = 10 * 60 * 1000; // 10 minutes
 
-    // Central bank speech RSS feeds and web sources
+    // Correct RSS feed URLs for central bank speeches
     this.sources = {
       'FED': {
         name: 'Federal Reserve',
         currency: 'USD',
         rssUrl: 'https://www.federalreserve.gov/feeds/speeches.xml',
-        webUrl: 'https://www.federalreserve.gov/newsevents/speeches.htm',
-        speakers: ['Jerome Powell', 'John Williams', 'Christopher Waller', 'Michelle Bowman', 'Adriana Kugler', 'Lisa Cook', 'Philip Jefferson']
+        speakers: ['Powell', 'Williams', 'Waller', 'Bowman', 'Jefferson', 'Cook', 'Kugler', 'Barr']
       },
       'ECB': {
         name: 'European Central Bank',
         currency: 'EUR',
-        rssUrl: 'https://www.ecb.europa.eu/rss/press.html',
-        webUrl: 'https://www.ecb.europa.eu/press/key/html/index.en.html',
-        speakers: ['Christine Lagarde', 'Luis de Guindos', 'Philip Lane', 'Isabel Schnabel', 'Frank Elderson', 'Piero Cipollone']
+        rssUrl: 'https://www.ecb.europa.eu/rss/press_sec.xml',
+        speakers: ['Lagarde', 'de Guindos', 'Lane', 'Schnabel', 'Elderson', 'Cipollone']
       },
       'BOE': {
         name: 'Bank of England',
         currency: 'GBP',
-        rssUrl: 'https://www.bankofengland.co.uk/rss/speeches',
-        webUrl: 'https://www.bankofengland.co.uk/news/speeches',
-        speakers: ['Andrew Bailey', 'Ben Broadbent', 'Sarah Breeden', 'Huw Pill', 'Megan Greene', 'Swati Dhingra']
-      },
-      'BOJ': {
-        name: 'Bank of Japan',
-        currency: 'JPY',
-        rssUrl: null,
-        webUrl: 'https://www.boj.or.jp/en/about/press/index.htm',
-        speakers: ['Kazuo Ueda', 'Shinichi Uchida', 'Ryozo Himino', 'Hajime Takata', 'Naoki Tamura']
+        rssUrl: 'https://www.bankofengland.co.uk/rss/news',
+        speakers: ['Bailey', 'Broadbent', 'Breeden', 'Pill', 'Greene', 'Dhingra', 'Mann', 'Taylor']
       },
       'BOC': {
         name: 'Bank of Canada',
         currency: 'CAD',
         rssUrl: 'https://www.bankofcanada.ca/content-type/speeches/feed/',
-        webUrl: 'https://www.bankofcanada.ca/press/speeches/',
-        speakers: ['Tiff Macklem', 'Carolyn Rogers', 'Sharon Kozicki', 'Nicolas Vincent', 'Rhys Mendes']
+        speakers: ['Macklem', 'Rogers', 'Kozicki', 'Gravelle']
       },
       'RBA': {
         name: 'Reserve Bank of Australia',
         currency: 'AUD',
-        rssUrl: null,
-        webUrl: 'https://www.rba.gov.au/speeches/',
-        speakers: ['Michele Bullock', 'Andrew Hauser', 'Sarah Hunter', 'Brad Jones']
-      },
-      'RBNZ': {
-        name: 'Reserve Bank of New Zealand',
-        currency: 'NZD',
-        rssUrl: null,
-        webUrl: 'https://www.rbnz.govt.nz/hub/publications/speeches',
-        speakers: ['Adrian Orr', 'Christian Hawkesby', 'Karen Silk', 'Paul Conway']
-      },
-      'SNB': {
-        name: 'Swiss National Bank',
-        currency: 'CHF',
-        rssUrl: null,
-        webUrl: 'https://www.snb.ch/en/publications/communication/speeches',
-        speakers: ['Martin Schlegel', 'Antoine Martin', 'Petra Tschudin']
+        rssUrl: 'https://www.rba.gov.au/rss/rss-cb-speeches.xml',
+        speakers: ['Bullock', 'Hauser', 'Hunter', 'Kent', 'Jones']
       }
-    };
-
-    // Alternative news API sources for speech data
-    this.newsAPISources = {
-      centralBankWatch: 'https://www.centralbanking.com/rss/news',
-      forexLive: 'https://www.forexlive.com/feed/centralbanks'
     };
   }
 
   /**
-   * Fetch URL content with promise
+   * Fetch URL with proper headers
    */
-  async fetchUrl(url, timeout = 15000) {
+  fetchUrl(url, timeout = 15000) {
     return new Promise((resolve, reject) => {
-      const protocol = url.startsWith('https') ? https : http;
+      const isHttps = url.startsWith('https');
+      const protocol = isHttps ? https : http;
 
       const req = protocol.get(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5'
+          'Accept': 'application/rss+xml, application/xml, text/xml, */*'
         },
         timeout: timeout
       }, (res) => {
-        // Handle redirects
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           this.fetchUrl(res.headers.location, timeout).then(resolve).catch(reject);
           return;
         }
-
         if (res.statusCode !== 200) {
           reject(new Error(`HTTP ${res.statusCode}`));
           return;
         }
-
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => resolve(data));
       });
 
       req.on('error', reject);
-      req.on('timeout', () => {
-        req.destroy();
-        reject(new Error('Request timeout'));
-      });
+      req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
     });
   }
 
   /**
-   * Parse RSS feed XML to extract speech items
+   * Parse RSS feed and extract speech items
    */
-  parseRSSFeed(xml, bankCode) {
-    const speeches = [];
+  parseRSS(xml, bankCode) {
     const bank = this.sources[bankCode];
+    const speeches = [];
 
-    // Simple XML parsing for RSS items
+    // Extract items from RSS
     const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
     let match;
 
@@ -133,55 +94,80 @@ class CBSpeechScraper {
       const item = match[1];
 
       const title = this.extractTag(item, 'title');
-      const link = this.extractTag(item, 'link');
+      const link = this.extractTag(item, 'link') || this.extractTag(item, 'guid');
       const description = this.extractTag(item, 'description');
-      const pubDate = this.extractTag(item, 'pubDate');
+      const pubDate = this.extractTag(item, 'pubDate') || this.extractTag(item, 'dc:date');
 
-      // Check if this is a speech (not just any news)
-      const isSpeech = /speech|remarks|testimony|statement|address|lecture/i.test(title + description);
+      // Skip if no link or title
+      if (!link || !title) continue;
 
-      if (isSpeech && title) {
-        // Try to detect speaker from title or description
-        let speaker = 'Unknown';
-        for (const s of bank.speakers) {
-          const lastName = s.split(' ').pop();
-          if (title.includes(s) || title.includes(lastName) ||
-              description.includes(s) || description.includes(lastName)) {
-            speaker = s;
-            break;
-          }
+      // Skip non-speech items (reports, data releases, etc.)
+      const lowerTitle = title.toLowerCase();
+      const lowerDesc = (description || '').toLowerCase();
+
+      const isLikelySpeech =
+        /speech|remarks|statement|testimony|address|lecture|conference|interview/i.test(title + description) ||
+        bank.speakers.some(s => title.includes(s) || (description && description.includes(s)));
+
+      const isNotSpeech =
+        /data|statistics|report|publication|release|minutes|bulletin|survey|index/i.test(lowerTitle) &&
+        !isLikelySpeech;
+
+      if (isNotSpeech) continue;
+
+      // Detect speaker
+      let speaker = 'Central Bank Official';
+      for (const s of bank.speakers) {
+        if (title.includes(s) || (description && description.includes(s))) {
+          speaker = s;
+          break;
         }
-
-        speeches.push({
-          id: this.generateId(bankCode, title, pubDate),
-          title: this.cleanText(title),
-          link: link,
-          description: this.cleanText(description),
-          date: pubDate ? new Date(pubDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          speaker: speaker,
-          centralBank: bank.name,
-          bankCode: bankCode,
-          currency: bank.currency,
-          source: 'rss',
-          fullText: null // Will be fetched on demand
-        });
       }
+
+      // Parse date
+      let date = new Date().toISOString().split('T')[0];
+      if (pubDate) {
+        try {
+          const parsed = new Date(pubDate);
+          if (!isNaN(parsed.getTime())) {
+            date = parsed.toISOString().split('T')[0];
+          }
+        } catch (e) {}
+      }
+
+      speeches.push({
+        id: `${bankCode}-${Buffer.from(link).toString('base64').substring(0, 12)}`,
+        title: this.cleanText(title),
+        link: link,
+        description: this.cleanText(description || '').substring(0, 200),
+        date: date,
+        speaker: speaker,
+        centralBank: bank.name,
+        bankCode: bankCode,
+        currency: bank.currency
+      });
     }
 
-    return speeches.slice(0, 10); // Return latest 10
+    return speeches.slice(0, 10);
   }
 
   /**
-   * Extract XML tag content
+   * Extract tag content from XML
    */
   extractTag(xml, tag) {
-    const regex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>|<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+    // Handle CDATA
+    const cdataRegex = new RegExp(`<${tag}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${tag}>`, 'i');
+    const cdataMatch = xml.match(cdataRegex);
+    if (cdataMatch) return cdataMatch[1].trim();
+
+    // Handle regular content
+    const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
     const match = xml.match(regex);
-    return match ? (match[1] || match[2] || '').trim() : '';
+    return match ? match[1].trim() : '';
   }
 
   /**
-   * Clean text from HTML entities and tags
+   * Clean text from HTML
    */
   cleanText(text) {
     if (!text) return '';
@@ -191,182 +177,95 @@ class CBSpeechScraper {
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
-      .replace(/&#039;/g, "'")
+      .replace(/&#39;/g, "'")
       .replace(/&nbsp;/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
 
   /**
-   * Generate unique ID for speech
-   */
-  generateId(bankCode, title, date) {
-    const hash = (title + date).split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    return `${bankCode}-${Math.abs(hash)}`;
-  }
-
-  /**
-   * Fetch speeches from a specific central bank
+   * Fetch speeches from a specific bank
    */
   async fetchSpeechesFromBank(bankCode) {
     const bank = this.sources[bankCode];
-    if (!bank) {
-      throw new Error(`Unknown bank code: ${bankCode}`);
-    }
+    if (!bank) return [];
 
-    // Check cache first
+    // Check cache
     const cacheKey = `speeches-${bankCode}`;
     const cached = this.speechCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      console.log(`Returning cached speeches for ${bankCode}`);
       return cached.data;
     }
 
-    let speeches = [];
+    try {
+      console.log(`Fetching speeches for ${bankCode} from ${bank.rssUrl}`);
+      const xml = await this.fetchUrl(bank.rssUrl);
+      const speeches = this.parseRSS(xml, bankCode);
+      console.log(`Found ${speeches.length} speeches for ${bankCode}`);
 
-    // Try RSS feed first if available
-    if (bank.rssUrl) {
-      try {
-        console.log(`Fetching RSS for ${bankCode}: ${bank.rssUrl}`);
-        const rssData = await this.fetchUrl(bank.rssUrl);
-        speeches = this.parseRSSFeed(rssData, bankCode);
-        console.log(`Found ${speeches.length} speeches from RSS for ${bankCode}`);
-      } catch (error) {
-        console.log(`RSS fetch failed for ${bankCode}: ${error.message}`);
-      }
+      this.speechCache.set(cacheKey, { timestamp: Date.now(), data: speeches });
+      return speeches;
+    } catch (err) {
+      console.error(`Failed to fetch ${bankCode} speeches:`, err.message);
+      return [];
     }
+  }
 
-    // If no RSS or RSS failed, try to scrape the web page
-    if (speeches.length === 0 && bank.webUrl) {
-      try {
-        console.log(`Scraping web page for ${bankCode}: ${bank.webUrl}`);
-        speeches = await this.scrapeWebPage(bankCode, bank.webUrl);
-        console.log(`Found ${speeches.length} speeches from web for ${bankCode}`);
-      } catch (error) {
-        console.log(`Web scraping failed for ${bankCode}: ${error.message}`);
+  /**
+   * Fetch speeches from all banks
+   */
+  async fetchAllSpeeches() {
+    const allSpeeches = [];
+    const bankCodes = Object.keys(this.sources);
+
+    const results = await Promise.allSettled(
+      bankCodes.map(code => this.fetchSpeechesFromBank(code))
+    );
+
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        allSpeeches.push(...result.value);
       }
-    }
-
-    // Cache the results
-    this.speechCache.set(cacheKey, {
-      timestamp: Date.now(),
-      data: speeches
     });
 
-    return speeches;
+    // Sort by date descending
+    allSpeeches.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return allSpeeches;
   }
 
   /**
-   * Scrape central bank web page for speeches
+   * Fetch full text of a speech
    */
-  async scrapeWebPage(bankCode, url) {
-    const bank = this.sources[bankCode];
-    const speeches = [];
-
+  async fetchSpeechFullText(url) {
     try {
-      const html = await this.fetchUrl(url);
+      const html = await this.fetchUrl(url, 20000);
 
-      // Generic speech link extraction patterns
-      const patterns = [
-        /<a[^>]*href="([^"]*)"[^>]*>([^<]*(?:speech|remarks|statement|testimony|address)[^<]*)<\/a>/gi,
-        /<a[^>]*href="([^"]*(?:speech|remarks)[^"]*)"[^>]*>([^<]+)<\/a>/gi,
-        /<h\d[^>]*>.*?<a[^>]*href="([^"]*)"[^>]*>([^<]+)<\/a>.*?<\/h\d>/gi
-      ];
-
-      const seen = new Set();
-
-      for (const pattern of patterns) {
-        let match;
-        while ((match = pattern.exec(html)) !== null) {
-          const [_, link, title] = match;
-
-          if (seen.has(link)) continue;
-          seen.add(link);
-
-          // Skip non-speech links
-          if (/\.(pdf|jpg|png|gif|css|js)$/i.test(link)) continue;
-          if (/subscribe|login|search|twitter|facebook|linkedin/i.test(link)) continue;
-
-          // Detect speaker
-          let speaker = 'Unknown';
-          for (const s of bank.speakers) {
-            const lastName = s.split(' ').pop();
-            if (title.includes(s) || title.includes(lastName)) {
-              speaker = s;
-              break;
-            }
-          }
-
-          // Make absolute URL
-          let fullLink = link;
-          if (link.startsWith('/')) {
-            const urlObj = new URL(url);
-            fullLink = `${urlObj.protocol}//${urlObj.host}${link}`;
-          } else if (!link.startsWith('http')) {
-            fullLink = new URL(link, url).href;
-          }
-
-          speeches.push({
-            id: this.generateId(bankCode, title, new Date().toISOString()),
-            title: this.cleanText(title),
-            link: fullLink,
-            description: '',
-            date: new Date().toISOString().split('T')[0],
-            speaker: speaker,
-            centralBank: bank.name,
-            bankCode: bankCode,
-            currency: bank.currency,
-            source: 'web',
-            fullText: null
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Web scrape error for ${bankCode}:`, error.message);
-    }
-
-    return speeches.slice(0, 10);
-  }
-
-  /**
-   * Fetch full text of a speech from its URL
-   */
-  async fetchSpeechFullText(speechUrl) {
-    try {
-      const html = await this.fetchUrl(speechUrl, 20000);
-
-      // Try to extract main content
+      // Extract main content using various patterns
       let content = '';
 
-      // Common content container patterns
-      const contentPatterns = [
+      // Try specific content selectors
+      const patterns = [
         /<article[^>]*>([\s\S]*?)<\/article>/i,
-        /<div[^>]*class="[^"]*(?:content|speech|article|main)[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-        /<div[^>]*id="[^"]*(?:content|speech|article|main)[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+        /<div[^>]*class="[^"]*(?:article|content|speech|main-content|body)[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
         /<main[^>]*>([\s\S]*?)<\/main>/i,
-        /<div[^>]*class="[^"]*text[^"]*"[^>]*>([\s\S]*?)<\/div>/i
+        /<div[^>]*id="[^"]*(?:content|article|main)[^"]*"[^>]*>([\s\S]*?)<\/div>/i
       ];
 
-      for (const pattern of contentPatterns) {
+      for (const pattern of patterns) {
         const match = html.match(pattern);
-        if (match && match[1]) {
+        if (match && match[1] && match[1].length > 500) {
           content = match[1];
           break;
         }
       }
 
-      // If no specific container found, try to extract body content
-      if (!content) {
+      // Fallback: extract body
+      if (!content || content.length < 500) {
         const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-          content = bodyMatch[1];
-        }
+        if (bodyMatch) content = bodyMatch[1];
       }
 
-      // Clean up the content
+      // Clean content
       content = content
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -378,78 +277,28 @@ class CBSpeechScraper {
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Remove excessive whitespace and limit length
-      content = content.substring(0, 15000); // Limit to ~15k chars
-
-      return content || 'Unable to extract speech content. Please try viewing the original source.';
-    } catch (error) {
-      console.error('Failed to fetch speech text:', error.message);
-      throw new Error(`Failed to fetch speech: ${error.message}`);
-    }
-  }
-
-  /**
-   * Fetch speeches from all central banks
-   */
-  async fetchAllSpeeches() {
-    const allSpeeches = [];
-    const bankCodes = Object.keys(this.sources);
-
-    // Fetch in parallel with error handling
-    const results = await Promise.allSettled(
-      bankCodes.map(code => this.fetchSpeechesFromBank(code))
-    );
-
-    results.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        allSpeeches.push(...result.value);
-      } else {
-        console.log(`Failed to fetch for ${bankCodes[index]}: ${result.reason}`);
+      if (content.length < 200) {
+        throw new Error('Could not extract enough text content');
       }
-    });
 
-    // Sort by date descending
-    allSpeeches.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    return allSpeeches;
-  }
-
-  /**
-   * Search speeches by speaker name or bank
-   */
-  async searchSpeeches(query, bankCode = null) {
-    let speeches = [];
-
-    if (bankCode) {
-      speeches = await this.fetchSpeechesFromBank(bankCode);
-    } else {
-      speeches = await this.fetchAllSpeeches();
+      return content.substring(0, 15000);
+    } catch (err) {
+      console.error('Failed to fetch speech text:', err.message);
+      throw new Error('Could not fetch speech text');
     }
-
-    const queryLower = query.toLowerCase();
-    return speeches.filter(s =>
-      s.title.toLowerCase().includes(queryLower) ||
-      s.speaker.toLowerCase().includes(queryLower) ||
-      s.description.toLowerCase().includes(queryLower)
-    );
   }
 
   /**
-   * Get available central banks
+   * Get available sources
    */
   getSources() {
     return Object.entries(this.sources).map(([code, bank]) => ({
       code,
       name: bank.name,
-      currency: bank.currency,
-      speakers: bank.speakers,
-      hasRSS: !!bank.rssUrl
+      currency: bank.currency
     }));
   }
 
-  /**
-   * Clear cache
-   */
   clearCache() {
     this.speechCache.clear();
   }

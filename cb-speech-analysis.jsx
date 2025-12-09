@@ -16,11 +16,8 @@ const CBSpeechAnalysis = () => {
     { code: 'FED', name: 'USD - Federal Reserve' },
     { code: 'ECB', name: 'EUR - ECB' },
     { code: 'BOE', name: 'GBP - Bank of England' },
-    { code: 'BOJ', name: 'JPY - Bank of Japan' },
     { code: 'BOC', name: 'CAD - Bank of Canada' },
-    { code: 'RBA', name: 'AUD - RBA' },
-    { code: 'RBNZ', name: 'NZD - RBNZ' },
-    { code: 'SNB', name: 'CHF - SNB' }
+    { code: 'RBA', name: 'AUD - RBA' }
   ];
 
   // Load saved analyses from localStorage
