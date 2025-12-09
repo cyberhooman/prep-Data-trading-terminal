@@ -1,227 +1,216 @@
 /**
  * CB Speech Analysis Component
- * Simple dovish/hawkish summary with cited quotes from G8 central bank speeches
+ * Auto-fetches latest G8 central bank speeches and analyzes dovish/hawkish sentiment
  */
 
 const CBSpeechAnalysis = () => {
-  const [centralBanks, setCentralBanks] = React.useState({});
-  const [selectedBank, setSelectedBank] = React.useState('FED');
-  const [selectedSpeaker, setSelectedSpeaker] = React.useState('');
-  const [speechText, setSpeechText] = React.useState('');
-  const [speechDate, setSpeechDate] = React.useState(new Date().toISOString().split('T')[0]);
-  const [analysis, setAnalysis] = React.useState(null);
-  const [loading, setLoading] = React.useState(false);
+  const [speeches, setSpeeches] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [analyzing, setAnalyzing] = React.useState(null);
   const [error, setError] = React.useState(null);
-  const [aiConfigured, setAiConfigured] = React.useState(false);
-  const [analysisHistory, setAnalysisHistory] = React.useState([]);
+  const [filterBank, setFilterBank] = React.useState('ALL');
+  const [analyzedSpeeches, setAnalyzedSpeeches] = React.useState({});
 
-  // Load central banks on mount
+  const banks = [
+    { code: 'ALL', name: 'All Banks' },
+    { code: 'FED', name: 'USD - Federal Reserve' },
+    { code: 'ECB', name: 'EUR - ECB' },
+    { code: 'BOE', name: 'GBP - Bank of England' },
+    { code: 'BOJ', name: 'JPY - Bank of Japan' },
+    { code: 'BOC', name: 'CAD - Bank of Canada' },
+    { code: 'RBA', name: 'AUD - RBA' },
+    { code: 'RBNZ', name: 'NZD - RBNZ' },
+    { code: 'SNB', name: 'CHF - SNB' }
+  ];
+
+  // Load saved analyses from localStorage
   React.useEffect(() => {
-    fetch('/api/ai/central-banks')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setCentralBanks(data.data);
-          if (data.data.FED?.speakers?.length > 0) {
-            setSelectedSpeaker(data.data.FED.speakers[0]);
-          }
-        }
-      })
-      .catch(err => console.error('Failed to load central banks:', err));
-
-    fetch('/api/ai/status')
-      .then(res => res.json())
-      .then(data => setAiConfigured(data.configured))
-      .catch(() => setAiConfigured(false));
-
-    const saved = localStorage.getItem('cbSpeechHistory');
+    const saved = localStorage.getItem('cbAnalyzedSpeeches');
     if (saved) {
       try {
-        setAnalysisHistory(JSON.parse(saved));
+        setAnalyzedSpeeches(JSON.parse(saved));
       } catch (e) {}
     }
+    fetchSpeeches();
   }, []);
 
-  React.useEffect(() => {
-    const bank = centralBanks[selectedBank];
-    if (bank?.speakers?.length > 0) {
-      setSelectedSpeaker(bank.speakers[0]);
-    }
-  }, [selectedBank, centralBanks]);
-
-  const handleAnalyze = async () => {
-    if (!speechText.trim()) {
-      setError('Please enter the speech text');
-      return;
-    }
-
+  // Fetch speeches from API
+  const fetchSpeeches = async () => {
     setLoading(true);
     setError(null);
-    setAnalysis(null);
-
     try {
-      const bank = centralBanks[selectedBank];
-      const response = await fetch('/api/ai/analyze-speech', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: speechText,
-          speaker: selectedSpeaker,
-          centralBank: bank?.name || selectedBank,
-          date: speechDate
-        })
-      });
-
-      const data = await response.json();
-
+      const res = await fetch('/api/speeches');
+      const data = await res.json();
       if (data.success) {
-        setAnalysis(data.data);
-        const historyItem = {
-          id: Date.now(),
-          ...data.data,
-          bankCode: selectedBank,
-          currency: bank?.currency
-        };
-        const newHistory = [historyItem, ...analysisHistory].slice(0, 10);
-        setAnalysisHistory(newHistory);
-        localStorage.setItem('cbSpeechHistory', JSON.stringify(newHistory));
+        setSpeeches(data.data);
       } else {
-        setError(data.message || 'Analysis failed');
+        setError('Failed to fetch speeches');
       }
     } catch (err) {
-      setError(err.message || 'Failed to analyze');
+      setError('Error fetching speeches: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const getSentimentColor = (sentiment) => {
-    switch (sentiment) {
-      case 'HAWKISH': return '#ef4444';
-      case 'DOVISH': return '#22c55e';
-      default: return '#eab308';
+  // Auto-analyze a speech
+  const analyzeSpeech = async (speech) => {
+    setAnalyzing(speech.id);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/speeches/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: speech.link,
+          speaker: speech.speaker,
+          centralBank: speech.centralBank,
+          bankCode: speech.bankCode,
+          date: speech.date
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const newAnalyzed = {
+          ...analyzedSpeeches,
+          [speech.id]: data.data
+        };
+        setAnalyzedSpeeches(newAnalyzed);
+        localStorage.setItem('cbAnalyzedSpeeches', JSON.stringify(newAnalyzed));
+      } else {
+        setError('Analysis failed: ' + (data.message || 'Could not fetch speech text'));
+      }
+    } catch (err) {
+      setError('Error: ' + err.message);
+    } finally {
+      setAnalyzing(null);
     }
   };
 
-  if (!aiConfigured) {
-    return (
-      <div style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.7)', textAlign: 'center' }}>
-        <h2 style={{ color: '#f1f5f9', marginBottom: '0.5rem' }}>CB Speech Analysis</h2>
-        <p style={{ color: 'rgba(226, 232, 240, 0.6)' }}>Add DEEPSEEK_API_KEY to enable.</p>
-      </div>
-    );
-  }
+  const getSentimentColor = (sentiment) => {
+    if (sentiment === 'HAWKISH') return '#ef4444';
+    if (sentiment === 'DOVISH') return '#22c55e';
+    return '#eab308';
+  };
+
+  const filteredSpeeches = filterBank === 'ALL'
+    ? speeches
+    : speeches.filter(s => s.bankCode === filterBank);
 
   return (
-    <div style={{ padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.7)' }}>
+    <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.7)' }}>
       {/* Header */}
-      <h2 style={{ color: '#f1f5f9', margin: '0 0 1rem 0', fontSize: '1.25rem' }}>
-        CB Speech Analysis
-        <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.5rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: '9999px', marginLeft: '0.5rem', verticalAlign: 'middle' }}>AI</span>
-      </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <h2 style={{ color: '#f1f5f9', margin: 0, fontSize: '1.2rem' }}>
+          CB Speech Analysis
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: '9999px', marginLeft: '0.5rem', verticalAlign: 'middle' }}>AUTO</span>
+        </h2>
 
-      {/* Input Row */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-        <select
-          value={selectedBank}
-          onChange={(e) => setSelectedBank(e.target.value)}
-          style={{ flex: '1', minWidth: '140px', padding: '0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.9rem' }}
-        >
-          {Object.entries(centralBanks).map(([code, bank]) => (
-            <option key={code} value={code}>{bank.currency} - {bank.name}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <select
+            value={filterBank}
+            onChange={(e) => setFilterBank(e.target.value)}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.85rem' }}
+          >
+            {banks.map(b => (
+              <option key={b.code} value={b.code}>{b.name}</option>
+            ))}
+          </select>
 
-        <select
-          value={selectedSpeaker}
-          onChange={(e) => setSelectedSpeaker(e.target.value)}
-          style={{ flex: '1', minWidth: '140px', padding: '0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.9rem' }}
-        >
-          {centralBanks[selectedBank]?.speakers?.map(speaker => (
-            <option key={speaker} value={speaker}>{speaker}</option>
-          ))}
-        </select>
-
-        <input
-          type="date"
-          value={speechDate}
-          onChange={(e) => setSpeechDate(e.target.value)}
-          style={{ padding: '0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.9rem' }}
-        />
+          <button
+            onClick={fetchSpeeches}
+            disabled={loading}
+            style={{ padding: '0.4rem 0.75rem', borderRadius: '6px', border: 'none', background: '#10b981', color: '#fff', fontSize: '0.85rem', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1 }}
+          >
+            {loading ? 'Loading...' : 'Refresh'}
+          </button>
+        </div>
       </div>
-
-      {/* Speech Text */}
-      <textarea
-        value={speechText}
-        onChange={(e) => setSpeechText(e.target.value)}
-        placeholder="Paste speech text here..."
-        style={{ width: '100%', minHeight: '100px', padding: '0.75rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.9rem', resize: 'vertical', fontFamily: 'inherit', marginBottom: '0.75rem' }}
-      />
-
-      {/* Analyze Button */}
-      <button
-        onClick={handleAnalyze}
-        disabled={loading || !speechText.trim()}
-        style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: 'none', background: loading ? 'rgba(59, 130, 246, 0.5)' : '#3b82f6', color: '#fff', fontSize: '0.95rem', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}
-      >
-        {loading ? 'Analyzing...' : 'Analyze Speech'}
-      </button>
 
       {/* Error */}
       {error && (
-        <div style={{ marginTop: '0.75rem', padding: '0.75rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', fontSize: '0.9rem' }}>
+        <div style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
           {error}
         </div>
       )}
 
-      {/* Simple Analysis Result */}
-      {analysis && (
-        <div style={{ marginTop: '1rem' }}>
-          {/* Verdict */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', borderRadius: '8px', background: 'rgba(30, 41, 59, 0.6)', marginBottom: '0.75rem' }}>
-            <span style={{ fontSize: '1.75rem', fontWeight: 700, color: getSentimentColor(analysis.sentiment) }}>
-              {analysis.sentiment}
-            </span>
-            <span style={{ color: 'rgba(226, 232, 240, 0.7)', fontSize: '0.9rem' }}>
-              Score: {analysis.score > 0 ? '+' : ''}{analysis.score} | {analysis.speaker} ({analysis.centralBank})
-            </span>
-          </div>
+      {/* Loading */}
+      {loading && speeches.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(226, 232, 240, 0.6)' }}>
+          Fetching latest CB speeches...
+        </div>
+      )}
 
-          {/* Key Quotes - Simple List */}
-          {analysis.keyQuotes?.length > 0 && (
-            <div style={{ padding: '1rem', borderRadius: '8px', background: 'rgba(30, 41, 59, 0.4)' }}>
-              <div style={{ color: 'rgba(226, 232, 240, 0.6)', fontSize: '0.8rem', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Key Quotes
-              </div>
-              {analysis.keyQuotes.map((quote, idx) => (
-                <div key={idx} style={{ marginBottom: idx < analysis.keyQuotes.length - 1 ? '0.75rem' : 0, paddingLeft: '0.75rem', borderLeft: `3px solid ${getSentimentColor(quote.sentiment)}` }}>
-                  <span style={{ color: getSentimentColor(quote.sentiment), fontSize: '0.75rem', fontWeight: 600 }}>
-                    [{quote.sentiment}]
-                  </span>
-                  <p style={{ color: '#f1f5f9', margin: '0.25rem 0 0 0', fontSize: '0.9rem', fontStyle: 'italic' }}>
-                    "{quote.quote}"
-                  </p>
+      {/* Speeches List */}
+      {!loading && filteredSpeeches.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(226, 232, 240, 0.6)' }}>
+          No speeches found. Click Refresh.
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+        {filteredSpeeches.map(speech => {
+          const analysis = analyzedSpeeches[speech.id];
+          const isAnalyzing = analyzing === speech.id;
+
+          return (
+            <div key={speech.id} style={{ padding: '0.85rem', borderRadius: '8px', background: 'rgba(30, 41, 59, 0.5)', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
+              {/* Speech Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
+                    <span style={{ padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>
+                      {speech.currency}
+                    </span>
+                    <span style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.75rem' }}>{speech.date}</span>
+                    <span style={{ color: 'rgba(226, 232, 240, 0.6)', fontSize: '0.8rem' }}>{speech.speaker}</span>
+                  </div>
+                  <div style={{ color: '#f1f5f9', fontSize: '0.9rem', lineHeight: 1.35 }}>
+                    {speech.title}
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Recent History - Simple */}
-      {analysisHistory.length > 0 && !analysis && (
-        <div style={{ marginTop: '1rem' }}>
-          <div style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.8rem', marginBottom: '0.5rem' }}>Recent:</div>
-          {analysisHistory.slice(0, 3).map(item => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem', borderRadius: '4px', background: 'rgba(30, 41, 59, 0.4)', marginBottom: '0.25rem', fontSize: '0.85rem' }}>
-              <span style={{ color: getSentimentColor(item.sentiment), fontWeight: 600 }}>{item.sentiment}</span>
-              <span style={{ color: 'rgba(226, 232, 240, 0.6)' }}>|</span>
-              <span style={{ color: 'rgba(226, 232, 240, 0.7)' }}>{item.currency} - {item.speaker}</span>
-              <span style={{ color: 'rgba(226, 232, 240, 0.4)', marginLeft: 'auto' }}>{item.date}</span>
+                {/* Action / Result */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {analysis ? (
+                    <span style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', background: getSentimentColor(analysis.sentiment) + '20', color: getSentimentColor(analysis.sentiment), fontWeight: 700, fontSize: '0.85rem' }}>
+                      {analysis.sentiment} ({analysis.score > 0 ? '+' : ''}{analysis.score})
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => analyzeSpeech(speech)}
+                      disabled={isAnalyzing}
+                      style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: 'none', background: isAnalyzing ? 'rgba(139, 92, 246, 0.4)' : '#8b5cf6', color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: isAnalyzing ? 'not-allowed' : 'pointer' }}
+                    >
+                      {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+                    </button>
+                  )}
+                  <a href={speech.link} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.75rem', textDecoration: 'none' }}>
+                    Source
+                  </a>
+                </div>
+              </div>
+
+              {/* Analysis Result - Key Quotes */}
+              {analysis && analysis.keyQuotes?.length > 0 && (
+                <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                  {analysis.keyQuotes.slice(0, 3).map((quote, idx) => (
+                    <div key={idx} style={{ marginBottom: idx < 2 ? '0.5rem' : 0, paddingLeft: '0.6rem', borderLeft: `2px solid ${getSentimentColor(quote.sentiment)}` }}>
+                      <span style={{ color: getSentimentColor(quote.sentiment), fontSize: '0.7rem', fontWeight: 600 }}>[{quote.sentiment}]</span>
+                      <span style={{ color: 'rgba(226, 232, 240, 0.85)', fontSize: '0.8rem', fontStyle: 'italic', marginLeft: '0.35rem' }}>
+                        "{quote.quote?.substring(0, 120)}{quote.quote?.length > 120 ? '...' : ''}"
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 };
