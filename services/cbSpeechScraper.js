@@ -264,6 +264,73 @@ class CBSpeechScraper {
   }
 
   /**
+   * Check if content is garbage (cookie banners, boilerplate, etc.)
+   */
+  isGarbageContent(text) {
+    const lower = text.toLowerCase();
+    const garbagePatterns = [
+      /our use of cookies/i,
+      /we use (necessary |analytics )?cookies/i,
+      /manage your session/i,
+      /keep track of the number of visitors/i,
+      /privacy policy/i,
+      /cookie preferences/i,
+      /accept all cookies/i,
+      /cookie settings/i
+    ];
+
+    // Count how many garbage patterns match
+    let garbageMatches = 0;
+    for (const pattern of garbagePatterns) {
+      if (pattern.test(lower)) garbageMatches++;
+    }
+
+    // If more than 2 garbage patterns match, or garbage is >30% of short content
+    if (garbageMatches >= 2) return true;
+    if (text.length < 500 && garbageMatches >= 1) return true;
+
+    // Check if "cookie" appears too frequently relative to content length
+    const cookieCount = (lower.match(/cookie/g) || []).length;
+    if (cookieCount > 0 && text.length / cookieCount < 200) return true;
+
+    return false;
+  }
+
+  /**
+   * Remove cookie/boilerplate text from content
+   */
+  removeCookieText(content) {
+    // Direct phrase removal - be aggressive
+    const phrasesToRemove = [
+      /Our use of cookies[^.]*\./gi,
+      /We use (necessary |analytics )?cookies[^.]*\./gi,
+      /We use cookies[^.]*\./gi,
+      /This site uses cookies[^.]*\./gi,
+      /By continuing[^.]*cookies[^.]*\./gi,
+      /manage your session[^.]*\./gi,
+      /keep track of the number of visitors[^.]*\./gi,
+      /cookie preferences[^.]*\./gi,
+      /accept (all )?cookies[^.]*\./gi,
+      /privacy policy[^.]*\./gi,
+      /Our use of cookies/gi,
+      /necessary cookies to make our site work/gi,
+      /analytics cookies so we can keep track/gi,
+      /\(for example, to manage your session\)/gi,
+      /understand how visitors use/gi,
+      /number of visitors to various parts/gi
+    ];
+
+    for (const pattern of phrasesToRemove) {
+      content = content.replace(pattern, ' ');
+    }
+
+    // Clean up whitespace
+    content = content.replace(/\s+/g, ' ').trim();
+
+    return content;
+  }
+
+  /**
    * Fetch full text of a speech
    */
   async fetchSpeechFullText(url) {
@@ -273,19 +340,37 @@ class CBSpeechScraper {
       // Extract main content using various patterns
       let content = '';
 
-      // Try specific content selectors
-      const patterns = [
-        /<article[^>]*>([\s\S]*?)<\/article>/i,
-        /<div[^>]*class="[^"]*(?:article|content|speech|main-content|body)[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
-        /<main[^>]*>([\s\S]*?)<\/main>/i,
-        /<div[^>]*id="[^"]*(?:content|article|main)[^"]*"[^>]*>([\s\S]*?)<\/div>/i
-      ];
+      // Try Bank of England specific patterns first
+      if (url.includes('bankofengland.co.uk')) {
+        const boePatterns = [
+          /<div[^>]*class="[^"]*page-content[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<div[^>]*class="[^"]*related/i,
+          /<div[^>]*class="[^"]*content-block[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+          /<div[^>]*class="[^"]*pub-content[^"]*"[^>]*>([\s\S]*?)<\/div>/i
+        ];
+        for (const pattern of boePatterns) {
+          const match = html.match(pattern);
+          if (match && match[1] && match[1].length > 300) {
+            content = match[1];
+            break;
+          }
+        }
+      }
 
-      for (const pattern of patterns) {
-        const match = html.match(pattern);
-        if (match && match[1] && match[1].length > 500) {
-          content = match[1];
-          break;
+      // Try specific content selectors
+      if (!content || content.length < 300) {
+        const patterns = [
+          /<article[^>]*>([\s\S]*?)<\/article>/i,
+          /<div[^>]*class="[^"]*(?:article|speech|main-content|entry-content|post-content)[^"]*"[^>]*>([\s\S]*?)<\/div>/i,
+          /<main[^>]*>([\s\S]*?)<\/main>/i,
+          /<div[^>]*id="[^"]*(?:content|article|main)[^"]*"[^>]*>([\s\S]*?)<\/div>/i
+        ];
+
+        for (const pattern of patterns) {
+          const match = html.match(pattern);
+          if (match && match[1] && match[1].length > 500) {
+            content = match[1];
+            break;
+          }
         }
       }
 
@@ -295,7 +380,7 @@ class CBSpeechScraper {
         if (bodyMatch) content = bodyMatch[1];
       }
 
-      // Clean content - remove unwanted elements
+      // Clean content - remove unwanted HTML elements
       content = content
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -303,37 +388,30 @@ class CBSpeechScraper {
         .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
         .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
         .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
-        // Remove cookie banners and consent forms
-        .replace(/<div[^>]*(?:class|id)="[^"]*(?:cookie|consent|banner|privacy|gdpr)[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '')
-        .replace(/<section[^>]*(?:class|id)="[^"]*(?:cookie|consent|banner|privacy|gdpr)[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
+        .replace(/<noscript[^>]*>[\s\S]*?<\/noscript>/gi, '')
+        .replace(/<form[^>]*>[\s\S]*?<\/form>/gi, '')
+        // Remove cookie-related elements more aggressively
+        .replace(/<[^>]*(?:cookie|consent|gdpr|privacy|banner)[^>]*>[\s\S]*?<\/[^>]+>/gi, '')
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
-      // Filter out cookie-related sentences
-      const sentences = content.split(/\.\s+/);
-      const filteredSentences = sentences.filter(sentence => {
-        const lower = sentence.toLowerCase();
-        return !(
-          lower.includes('cookie') ||
-          lower.includes('analytics') ||
-          lower.includes('gdpr') ||
-          lower.includes('consent') ||
-          lower.includes('privacy policy') ||
-          (lower.includes('necessary') && lower.includes('make our site work'))
-        );
-      });
+      // Remove cookie text phrases
+      content = this.removeCookieText(content);
 
-      content = filteredSentences.join('. ').trim();
+      // Check if remaining content is garbage
+      if (this.isGarbageContent(content)) {
+        throw new Error('Page content appears to be mostly cookie/boilerplate text. The website may require JavaScript to render content.');
+      }
 
       if (content.length < 200) {
-        throw new Error('Could not extract enough text content');
+        throw new Error('Could not extract enough meaningful text content');
       }
 
       return content.substring(0, 15000);
     } catch (err) {
       console.error('Failed to fetch speech text:', err.message);
-      throw new Error('Could not fetch speech text');
+      throw new Error(err.message || 'Could not fetch speech text');
     }
   }
 
