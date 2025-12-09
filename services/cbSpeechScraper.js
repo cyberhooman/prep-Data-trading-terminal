@@ -295,7 +295,7 @@ class CBSpeechScraper {
         if (bodyMatch) content = bodyMatch[1];
       }
 
-      // Clean content
+      // Clean content - remove unwanted elements
       content = content
         .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
         .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
@@ -303,9 +303,28 @@ class CBSpeechScraper {
         .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
         .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
         .replace(/<aside[^>]*>[\s\S]*?<\/aside>/gi, '')
+        // Remove cookie banners and consent forms
+        .replace(/<div[^>]*(?:class|id)="[^"]*(?:cookie|consent|banner|privacy|gdpr)[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '')
+        .replace(/<section[^>]*(?:class|id)="[^"]*(?:cookie|consent|banner|privacy|gdpr)[^"]*"[^>]*>[\s\S]*?<\/section>/gi, '')
         .replace(/<[^>]+>/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+
+      // Filter out cookie-related sentences
+      const sentences = content.split(/\.\s+/);
+      const filteredSentences = sentences.filter(sentence => {
+        const lower = sentence.toLowerCase();
+        return !(
+          lower.includes('cookie') ||
+          lower.includes('analytics') ||
+          lower.includes('gdpr') ||
+          lower.includes('consent') ||
+          lower.includes('privacy policy') ||
+          (lower.includes('necessary') && lower.includes('make our site work'))
+        );
+      });
+
+      content = filteredSentences.join('. ').trim();
 
       if (content.length < 200) {
         throw new Error('Could not extract enough text content');
