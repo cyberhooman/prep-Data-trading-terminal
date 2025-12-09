@@ -9,6 +9,7 @@ const CBSpeechAnalysis = () => {
   const [analyzing, setAnalyzing] = React.useState(null);
   const [error, setError] = React.useState(null);
   const [filterBank, setFilterBank] = React.useState('ALL');
+  const [filterType, setFilterType] = React.useState('ALL');
   const [analyzedSpeeches, setAnalyzedSpeeches] = React.useState({});
 
   const banks = [
@@ -18,6 +19,12 @@ const CBSpeechAnalysis = () => {
     { code: 'BOE', name: 'GBP - Bank of England' },
     { code: 'BOC', name: 'CAD - Bank of Canada' },
     { code: 'RBA', name: 'AUD - RBA' }
+  ];
+
+  const contentTypes = [
+    { code: 'ALL', name: 'All Types' },
+    { code: 'speech', name: 'Speeches' },
+    { code: 'press_conference', name: 'Press Conferences' }
   ];
 
   // Load saved analyses from localStorage
@@ -93,9 +100,11 @@ const CBSpeechAnalysis = () => {
     return '#eab308';
   };
 
-  const filteredSpeeches = filterBank === 'ALL'
-    ? speeches
-    : speeches.filter(s => s.bankCode === filterBank);
+  const filteredSpeeches = speeches.filter(s => {
+    const bankMatch = filterBank === 'ALL' || s.bankCode === filterBank;
+    const typeMatch = filterType === 'ALL' || s.type === filterType;
+    return bankMatch && typeMatch;
+  });
 
   return (
     <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.7)' }}>
@@ -107,6 +116,16 @@ const CBSpeechAnalysis = () => {
         </h2>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.85rem' }}
+          >
+            {contentTypes.map(t => (
+              <option key={t.code} value={t.code}>{t.name}</option>
+            ))}
+          </select>
+
           <select
             value={filterBank}
             onChange={(e) => setFilterBank(e.target.value)}
@@ -162,6 +181,11 @@ const CBSpeechAnalysis = () => {
                     <span style={{ padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'linear-gradient(135deg, #3b82f6, #6366f1)', color: '#fff', fontSize: '0.7rem', fontWeight: 700 }}>
                       {speech.currency}
                     </span>
+                    {speech.type === 'press_conference' && (
+                      <span style={{ padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', fontSize: '0.65rem', fontWeight: 700 }}>
+                        PRESS CONF
+                      </span>
+                    )}
                     <span style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.75rem' }}>{speech.date}</span>
                     <span style={{ color: 'rgba(226, 232, 240, 0.6)', fontSize: '0.8rem' }}>{speech.speaker}</span>
                   </div>

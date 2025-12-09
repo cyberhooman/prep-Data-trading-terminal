@@ -1847,23 +1847,37 @@ app.get('/api/ai/central-banks', (req, res) => {
 
 /**
  * GET /api/speeches
- * Fetch latest speeches from all central banks or a specific bank
+ * Fetch latest speeches and press conferences from all central banks or a specific bank
  */
 app.get('/api/speeches', async (req, res) => {
   try {
-    const { bank } = req.query;
-    let speeches;
+    const { bank, type } = req.query;
+    let content;
 
     if (bank) {
-      speeches = await cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase());
+      // Fetch both speeches and press conferences for specific bank
+      const [speeches, pressConfs] = await Promise.all([
+        cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase()),
+        cbSpeechScraper.fetchPressConferencesFromBank(bank.toUpperCase())
+      ]);
+      speeches.forEach(s => s.type = s.type || 'speech');
+      content = [...speeches, ...pressConfs].sort((a, b) => new Date(b.date) - new Date(a.date));
     } else {
-      speeches = await cbSpeechScraper.fetchAllSpeeches();
+      // Fetch all content (speeches + press conferences)
+      content = await cbSpeechScraper.fetchAllContent();
+    }
+
+    // Filter by type if specified
+    if (type === 'speech') {
+      content = content.filter(c => c.type === 'speech');
+    } else if (type === 'press_conference') {
+      content = content.filter(c => c.type === 'press_conference');
     }
 
     res.json({
       success: true,
-      count: speeches.length,
-      data: speeches
+      count: content.length,
+      data: content
     });
   } catch (err) {
     console.error('Speech fetch error:', err);

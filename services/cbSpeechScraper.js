@@ -44,6 +44,36 @@ class CBSpeechScraper {
         speakers: ['Bullock', 'Hauser', 'Hunter', 'Kent', 'Jones']
       }
     };
+
+    // Press conference sources
+    this.pressConferenceSources = {
+      'FED': {
+        name: 'Federal Reserve',
+        currency: 'USD',
+        rssUrl: 'https://www.federalreserve.gov/feeds/press_monetary.xml',
+        fallbackUrl: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm'
+      },
+      'ECB': {
+        name: 'European Central Bank',
+        currency: 'EUR',
+        rssUrl: 'https://www.ecb.europa.eu/rss/press.xml'
+      },
+      'BOE': {
+        name: 'Bank of England',
+        currency: 'GBP',
+        rssUrl: 'https://www.bankofengland.co.uk/rss/news'
+      },
+      'BOC': {
+        name: 'Bank of Canada',
+        currency: 'CAD',
+        rssUrl: 'https://www.bankofcanada.ca/content-type/press/feed/'
+      },
+      'RBA': {
+        name: 'Reserve Bank of Australia',
+        currency: 'AUD',
+        rssUrl: 'https://www.rba.gov.au/rss/rss-cb-media-releases.xml'
+      }
+    };
   }
 
   /**
@@ -286,6 +316,128 @@ class CBSpeechScraper {
       console.error('Failed to fetch speech text:', err.message);
       throw new Error('Could not fetch speech text');
     }
+  }
+
+  /**
+   * Parse press conference RSS feed
+   */
+  parsePressConferenceRSS(xml, bankCode) {
+    const bank = this.pressConferenceSources[bankCode];
+    const conferences = [];
+
+    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
+    let match;
+
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const item = match[1];
+
+      const title = this.extractTag(item, 'title');
+      const link = this.extractTag(item, 'link') || this.extractTag(item, 'guid');
+      const description = this.extractTag(item, 'description');
+      const pubDate = this.extractTag(item, 'pubDate') || this.extractTag(item, 'dc:date');
+
+      if (!link || !title) continue;
+
+      // Filter for press conferences, monetary policy decisions, rate decisions
+      const combinedText = (title + ' ' + (description || '')).toLowerCase();
+      const isPressConference =
+        /press conference|monetary policy|rate decision|interest rate|policy decision|fomc|governing council|mpc meeting|statement on monetary/i.test(combinedText) ||
+        /transcript|q\s*&\s*a|question|answer/i.test(combinedText);
+
+      if (!isPressConference) continue;
+
+      // Parse date
+      let date = new Date().toISOString().split('T')[0];
+      if (pubDate) {
+        try {
+          const parsed = new Date(pubDate);
+          if (!isNaN(parsed.getTime())) {
+            date = parsed.toISOString().split('T')[0];
+          }
+        } catch (e) {}
+      }
+
+      conferences.push({
+        id: `PC-${bankCode}-${Buffer.from(link).toString('base64').substring(0, 12)}`,
+        title: this.cleanText(title),
+        link: link,
+        description: this.cleanText(description || '').substring(0, 200),
+        date: date,
+        speaker: 'Press Conference',
+        centralBank: bank.name,
+        bankCode: bankCode,
+        currency: bank.currency,
+        type: 'press_conference'
+      });
+    }
+
+    return conferences.slice(0, 10);
+  }
+
+  /**
+   * Fetch press conferences from a specific bank
+   */
+  async fetchPressConferencesFromBank(bankCode) {
+    const bank = this.pressConferenceSources[bankCode];
+    if (!bank) return [];
+
+    const cacheKey = `pressconf-${bankCode}`;
+    const cached = this.speechCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data;
+    }
+
+    try {
+      console.log(`Fetching press conferences for ${bankCode} from ${bank.rssUrl}`);
+      const xml = await this.fetchUrl(bank.rssUrl);
+      const conferences = this.parsePressConferenceRSS(xml, bankCode);
+      console.log(`Found ${conferences.length} press conferences for ${bankCode}`);
+
+      this.speechCache.set(cacheKey, { timestamp: Date.now(), data: conferences });
+      return conferences;
+    } catch (err) {
+      console.error(`Failed to fetch ${bankCode} press conferences:`, err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch press conferences from all banks
+   */
+  async fetchAllPressConferences() {
+    const allConferences = [];
+    const bankCodes = Object.keys(this.pressConferenceSources);
+
+    const results = await Promise.allSettled(
+      bankCodes.map(code => this.fetchPressConferencesFromBank(code))
+    );
+
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        allConferences.push(...result.value);
+      }
+    });
+
+    allConferences.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return allConferences;
+  }
+
+  /**
+   * Fetch all speeches AND press conferences combined
+   */
+  async fetchAllContent() {
+    const [speeches, pressConferences] = await Promise.all([
+      this.fetchAllSpeeches(),
+      this.fetchAllPressConferences()
+    ]);
+
+    // Mark speeches with type
+    speeches.forEach(s => s.type = s.type || 'speech');
+
+    // Combine and sort by date
+    const allContent = [...speeches, ...pressConferences];
+    allContent.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return allContent;
   }
 
   /**
