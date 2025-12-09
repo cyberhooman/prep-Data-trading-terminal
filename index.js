@@ -541,6 +541,7 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
 }));
 
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 // Trust proxy for Railway deployment (required for secure cookies behind proxy)
 if (process.env.NODE_ENV === 'production') {
@@ -2055,8 +2056,6 @@ app.post('/events/delete', (req, res) => {
     res.redirect('/?message=' + encodeURIComponent('Event not found.'));
   }
 });
-
-app.use(express.json());
 
 app.get('/todo-card.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'todo-card.jsx');
