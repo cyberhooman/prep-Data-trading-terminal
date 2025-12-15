@@ -405,6 +405,21 @@ class FinancialJuiceScraper {
             return;
           }
 
+          // Skip Financial Juice feature sections (not actual news events)
+          const fjFeatureSections = [
+            'Mood Imbalance',
+            'Morning Juice',
+            'Europe Session Prep',
+            'US Session',
+            'Asian Session',
+            'London Session',
+            'Need to know'
+          ];
+
+          if (fjFeatureSections.some(section => text.includes(section) || headline.includes(section))) {
+            return;
+          }
+
           // Check if this is a critical item (red border) or active (high-impact) item
           const isCritical = className.includes('active-critical');
           const isActive = className.includes('active');
