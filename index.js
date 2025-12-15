@@ -1984,7 +1984,6 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
           <nav class="nav-bar">
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/interest-rates" class="nav-link">Interest Rates</a>
-            <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link active">CB Speeches</a>
             <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
@@ -2054,7 +2053,6 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           <nav class="nav-bar">
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/interest-rates" class="nav-link">Interest Rates</a>
-            <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link">CB Speeches</a>
             <a href="/weekly-calendar" class="nav-link active">Weekly Calendar</a>
           </nav>
@@ -2231,7 +2229,6 @@ app.get('/interest-rates', ensureAuthenticated, async (req, res) => {
           <nav class="nav-bar">
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/interest-rates" class="nav-link active">Interest Rates</a>
-            <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link">CB Speeches</a>
             <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
@@ -2261,157 +2258,6 @@ app.get('/interest-rates', ensureAuthenticated, async (req, res) => {
   res.send(html);
 });
 
-// Currency Strength Page
-app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
-  const user = req.user;
-
-  const authControlsHtml = user
-    ? `<div class="auth-controls">
-         <div class="auth-user">
-           <strong>${user.displayName || user.email}</strong>
-           <span>Authenticated</span>
-         </div>
-         ${user.picture ? `<img src="${user.picture}" alt="User" class="auth-avatar" />` : ''}
-         <a href="/logout" class="auth-button logout">Logout</a>
-       </div>`
-    : `<a href="/login" class="auth-button login">Login</a>`;
-
-  const html = `<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Currency Strength - Alphalabs</title>
-    <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
-    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
-    <style>
-      .auth-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-shrink: 0;
-      }
-      .auth-avatar {
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
-        border-radius: 9999px;
-        border: 2px solid rgba(96, 165, 250, 0.35);
-        object-fit: cover;
-      }
-      .auth-user {
-        text-align: right;
-        line-height: 1.2;
-      }
-      .auth-user strong {
-        font-size: 0.95rem;
-        color: #e2e8f0;
-        font-weight: 600;
-      }
-      .auth-user span {
-        display: block;
-        font-size: 0.75rem;
-        color: rgba(226, 232, 240, 0.6);
-      }
-      .auth-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.45rem 1rem;
-        border-radius: 9999px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
-      }
-      .auth-button.logout {
-        background: rgba(248, 113, 113, 0.2);
-        border: 1px solid rgba(248, 113, 113, 0.45);
-        color: #fecaca;
-      }
-      .auth-button.logout:hover {
-        background: rgba(248, 113, 113, 0.3);
-        border-color: rgba(248, 113, 113, 0.65);
-        color: #fee2e2;
-      }
-      .nav-bar {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        margin-left: 2rem;
-      }
-      .nav-link {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: rgba(226, 232, 240, 0.7);
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-      }
-      .nav-link:hover {
-        background: rgba(99, 102, 241, 0.15);
-        color: #c7d2fe;
-        border-color: rgba(99, 102, 241, 0.3);
-      }
-      .nav-link.active {
-        background: rgba(99, 102, 241, 0.22);
-        color: #e0e7ff;
-        border-color: rgba(99, 102, 241, 0.4);
-      }
-      @media (max-width: 768px) {
-        .nav-bar {
-          margin-left: 0;
-          gap: 0.25rem;
-        }
-        .nav-link {
-          padding: 0.4rem 0.7rem;
-          font-size: 0.8rem;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <header style="padding: 1.5rem 0; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
-      <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1.5rem; padding: 0 1rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
-          <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
-            <div>
-              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
-                Alphalabs
-              </h1>
-              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
-            </div>
-          </a>
-          <nav class="nav-bar">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/interest-rates" class="nav-link">Interest Rates</a>
-            <a href="/currency-strength" class="nav-link active">Currency Strength</a>
-            <a href="/cb-speeches" class="nav-link">CB Speeches</a>
-            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
-          </nav>
-        </div>
-        ${authControlsHtml}
-      </div>
-    </header>
-
-    <main>
-      <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 0 1rem;">
-        <div id="currency-strength-container"></div>
-      </section>
-    </main>
-
-    <footer style="padding: 2rem 0; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; color: rgba(226, 232, 240, 0.5); font-size: 0.85rem;">
-      Updated every 4 hours • Real-time currency strength analysis
-    </footer>
-
-    <script src="/animated-title.jsx"></script>
-  </body>
-</html>`;
-
-  res.send(html);
-});
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
@@ -3296,7 +3142,6 @@ app.get('/api/currency-strength/extremes', async (req, res) => {
 });
 
 app.get('/', async (req, res) => {
-  let strengthData = [];
   let autoEvents = [];
   let cbSpeeches = [];
   let trumpSchedule = [];
@@ -3305,13 +3150,6 @@ app.get('/', async (req, res) => {
   const message = req.query.message ? String(req.query.message) : '';
 
   try {
-    try {
-      strengthData = await loadCurrencyStrength();
-    } catch (currencyErr) {
-      console.error('Currency strength loading failed:', currencyErr.message);
-      errorMsg = `Currency Strength: ${currencyErr.message}`;
-      strengthData = [];
-    }
     const { autoEvents: autoList, cbSpeeches: cbList, trumpSchedule: trumpList, combinedEvents: combined, autoError } =
       await gatherEvents();
     autoEvents = autoList;
@@ -3319,7 +3157,7 @@ app.get('/', async (req, res) => {
     trumpSchedule = trumpList;
     combinedEvents = combined;
     if (autoError) {
-      errorMsg = errorMsg ? `${errorMsg}; ${autoError}` : autoError;
+      errorMsg = autoError;
     }
   } catch (err) {
     errorMsg = err.message;
@@ -3364,22 +3202,6 @@ app.get('/', async (req, res) => {
       </div>
     `
     : '<p class="next-empty">No upcoming events yet. Use the form below to add one.</p>';
-
-  const strengthRows = strengthData
-    .map(
-      (c, idx) => `
-      <tr>
-        <td>${idx + 1}</td>
-        <td>${escapeHtml(c.name)}</td>
-        <td>${c.value >= 0 ? '+' : ''}${c.value.toFixed(2)}%</td>
-        <td>
-          <span class="momentum-badge ${c.trend}">
-            ${c.momentum}
-          </span>
-        </td>
-      </tr>`
-    )
-    .join('');
 
   const userProfile = req.user || null;
   const userPrimaryEmail =
@@ -3570,7 +3392,6 @@ app.get('/', async (req, res) => {
             <nav class="nav-bar">
               <a href="/" class="nav-link ${req.path === '/' ? 'active' : ''}">Dashboard</a>
               <a href="/interest-rates" class="nav-link ${req.path === '/interest-rates' ? 'active' : ''}">Interest Rates</a>
-              <a href="/currency-strength" class="nav-link ${req.path === '/currency-strength' ? 'active' : ''}">Currency Strength</a>
               <a href="/cb-speeches" class="nav-link ${req.path === '/cb-speeches' ? 'active' : ''}">CB Speeches</a>
               <a href="/weekly-calendar" class="nav-link ${req.path === '/weekly-calendar' ? 'active' : ''}">Weekly Calendar</a>
             </nav>
@@ -3621,22 +3442,6 @@ app.get('/', async (req, res) => {
             <div id="todo-root"></div>
           </div>
         </div>
-
-        <!-- Currency Strength -->
-        <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.7); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
-          <h2>Currency Strength Meter</h2>
-          <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.75); margin-bottom: 1rem;">
-            Based on 28 currency pairs • 7-Day Trend Analysis
-          </p>
-          <table>
-            <thead>
-              <tr><th>#</th><th>Currency</th><th>7D Change</th><th>Momentum</th></tr>
-            </thead>
-            <tbody>
-              ${strengthRows || '<tr><td colspan="4">No data available.</td></tr>'}
-            </tbody>
-          </table>
-        </section>
 
         <!-- Financial News Feed -->
         <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
