@@ -26,6 +26,7 @@ const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
 const cbSpeechScraper = require('./services/cbSpeechScraper');
 const rateProbabilityScraper = require('./services/rateProbabilityScraper');
+const emailService = require('./services/emailService');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -2054,12 +2055,13 @@ app.post('/auth/forgot-password', async (req, res) => {
       return res.redirect('/forgot-password?success=If that email exists, a reset link has been generated');
     }
 
-    // In a real app, you would send an email here
-    // For now, we'll redirect to the reset page with the token
-    console.log(`Password reset token for ${email}: ${token}`);
-    console.log(`Reset link: http://localhost:3000/reset-password?token=${token}`);
+    // Send password reset email
+    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const resetUrl = `${appUrl}/reset-password?token=${token}`;
 
-    res.redirect(`/forgot-password?success=Reset link generated! Check console for token (in production, this would be sent via email)`);
+    await emailService.sendPasswordResetEmail(email, resetUrl);
+
+    res.redirect(`/forgot-password?success=If that email exists, a password reset link has been sent. Please check your inbox.`);
   } catch (err) {
     console.error('Forgot password error:', err);
     res.redirect('/forgot-password?error=An error occurred. Please try again.');
