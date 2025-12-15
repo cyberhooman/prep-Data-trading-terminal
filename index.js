@@ -49,7 +49,7 @@ const currencyStrengthCache = {
   ttl: 5 * 60 * 1000, // 5 minutes cache
 };
 
-// Simple on-disk persistence for todos, journal and manual events so data survives restarts.
+// Simple on-disk persistence for todos and manual events so data survives restarts.
 const DATA_DIR = path.join(__dirname, 'data');
 function ensureDataDir() {
   try {
@@ -425,55 +425,6 @@ const todoItems = loadJson('todos.json', []);
 const quickNotes = loadJson('notes.json', []);
 // Account settings are now per-user, loaded on demand
 const userAccountSettings = {};
-
-const journalEntryCache = new Map();
-let legacyJournalLoaded = false;
-let legacyJournalEntries = [];
-
-function getJournalFilename(userId) {
-  return `journal-${userId}.json`;
-}
-
-function loadLegacyJournalEntries() {
-  if (!legacyJournalLoaded) {
-    legacyJournalEntries = loadJson('journal.json', []).filter(Boolean);
-    legacyJournalLoaded = true;
-  }
-  return legacyJournalEntries;
-}
-
-function getJournalEntries(userId) {
-  if (!userId) return [];
-
-  if (!journalEntryCache.has(userId)) {
-    const filename = getJournalFilename(userId);
-    const filePath = path.join(DATA_DIR, filename);
-    let entries;
-
-    if (fs.existsSync(filePath)) {
-      entries = loadJson(filename, []);
-    } else {
-      const legacyMatches = loadLegacyJournalEntries().filter(
-        (entry) => entry && entry.userId === userId
-      );
-      entries = legacyMatches.length > 0 ? legacyMatches : [];
-      if (legacyMatches.length > 0) {
-        saveJson(filename, entries);
-      }
-    }
-
-    journalEntryCache.set(userId, entries);
-  }
-
-  return journalEntryCache.get(userId);
-}
-
-function saveJournalEntries(userId) {
-  if (!userId) return;
-  const filename = getJournalFilename(userId);
-  const entries = journalEntryCache.get(userId) || [];
-  saveJson(filename, entries);
-}
 
 function getUpcomingEvents() {
   const now = Date.now();
@@ -2474,12 +2425,6 @@ app.get('/todo-card.jsx', (req, res) => {
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
 
-app.get('/journal.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'journal.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
 app.get('/animated-title.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'animated-title.jsx');
   res.setHeader('Content-Type', 'application/javascript');
@@ -2508,139 +2453,6 @@ app.get('/interest-rate-probability.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'interest-rate-probability.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-/**
- * Journal API (calendar POV) - USER ISOLATED
- * ------------------------------------------------
- * GET  /api/journal?month=YYYY-MM  → entries for month (local time) for current user
- * POST /api/journal                 → { dateISO, title, note, pnl, mood, tags }
- * DELETE /api/journal/:id
- */
-app.get('/api/journal', (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const userId = req.user.id;
-  const monthParam = String(req.query.month || '').trim();
-  let start, end;
-  if (/^\d{4}-\d{2}$/.test(monthParam)) {
-    const [y, m] = monthParam.split('-').map((v) => Number(v));
-    start = new Date(y, m - 1, 1, 0, 0, 0, 0);
-    end = new Date(y, m, 0, 23, 59, 59, 999);
-  } else {
-    const now = new Date();
-    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-  }
-  const userEntries = getJournalEntries(userId);
-  const filtered = userEntries.filter((e) => {
-    const d = new Date(e.date);
-    return d >= start && d <= end;
-  });
-  filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-  res.json(filtered);
-});
-
-app.post('/api/journal', (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const userId = req.user.id;
-  const { dateISO, title, note, pnl, mood, tags, direction } = req.body || {};
-  const parsedDate = new Date(String(dateISO || ''));
-  const cleanTitle = String(title || '').trim();
-  const cleanNote = String(note || '').trim();
-  const cleanMood = String(mood || '').trim();
-  const cleanTags = Array.isArray(tags)
-    ? tags.map((t) => String(t).trim()).filter(Boolean)
-    : String(tags || '')
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-  const cleanPnl = Number(pnl);
-  const cleanDirection = String(direction || '').toLowerCase() === 'short' ? 'short' : 'long';
-
-  if (!cleanTitle || Number.isNaN(parsedDate.getTime())) {
-    return res.status(400).json({ error: 'Provide a valid dateISO and title.' });
-  }
-
-  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  const entry = {
-    id,
-    userId,  // Add user ID to entry
-    date: parsedDate.toISOString(),
-    title: cleanTitle,
-    note: cleanNote,
-    pnl: Number.isFinite(cleanPnl) ? cleanPnl : null,
-    mood: cleanMood || null,
-    tags: cleanTags,
-  };
-  const userEntries = getJournalEntries(userId);
-  userEntries.push(entry);
-  saveJournalEntries(userId);
-  res.json(entry);
-});
-
-app.put('/api/journal/:id', (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const userId = req.user.id;
-  const { id } = req.params;
-  const { title, note, pnl, mood, tags, direction } = req.body || {};
-  const userEntries = getJournalEntries(userId);
-  const idx = userEntries.findIndex((e) => e.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found or access denied' });
-
-  const cleanTitle = String(title || '').trim();
-  const cleanNote = String(note || '').trim();
-  const cleanMood = String(mood || '').trim();
-  const cleanTags = Array.isArray(tags)
-    ? tags.map((t) => String(t).trim()).filter(Boolean)
-    : String(tags || '')
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean);
-  const cleanPnl = Number(pnl);
-
-  if (!cleanTitle) {
-    return res.status(400).json({ error: 'Title is required.' });
-  }
-
-  // Update entry
-  userEntries[idx] = {
-    ...userEntries[idx],
-    title: cleanTitle,
-    note: cleanNote,
-    pnl: Number.isFinite(cleanPnl) ? cleanPnl : null,
-    mood: cleanMood || null,
-    tags: cleanTags,
-    direction: cleanDirection,
-    direction: cleanDirection,
-  };
-
-  saveJournalEntries(userId);
-  res.json(userEntries[idx]);
-});
-
-app.delete('/api/journal/:id', (req, res) => {
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  const userId = req.user.id;
-  const { id } = req.params;
-  const userEntries = getJournalEntries(userId);
-  const idx = userEntries.findIndex((e) => e.id === id);
-  if (idx === -1) return res.status(404).json({ error: 'Not found or access denied' });
-  userEntries.splice(idx, 1);
-  // persist journal entries after deletion
-  saveJournalEntries(userId);
-  res.json({ success: true });
 });
 
 /**
@@ -3266,12 +3078,6 @@ app.get('/', async (req, res) => {
         <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
           <div id="interest-rate-root"></div>
         </section>
-
-        <!-- Trading Journal (Below Fold) -->
-        <section class="full" style="max-width: 1480px; margin: 0 auto;">
-          <h2 style="margin-bottom: 1rem;">Trading Journal (Calendar)</h2>
-          <div id="journal-root"></div>
-        </section>
       </main>
       <footer>
         Updated on demand • Times are shown in your local timezone • Final 3 minutes include an audible tick
@@ -3629,7 +3435,6 @@ app.get('/', async (req, res) => {
       </script>
   <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
-  <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/cb-speech-analysis.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/interest-rate-probability.jsx"></script>
@@ -3638,8 +3443,6 @@ app.get('/', async (req, res) => {
         root.render(React.createElement(TodoCard));
         const nroot = ReactDOM.createRoot(document.getElementById('notes-root'));
         nroot.render(React.createElement(QuickNotes));
-        const jroot = ReactDOM.createRoot(document.getElementById('journal-root'));
-        jroot.render(React.createElement(JournalCalendar));
         const fnroot = ReactDOM.createRoot(document.getElementById('financial-news-root'));
         fnroot.render(React.createElement(FinancialNewsFeed));
       </script>
@@ -3967,7 +3770,6 @@ function notifyReload() {
 // Watch JSX and CSS files for changes
 const watchedFiles = [
   path.join(__dirname, 'todo-card.jsx'),
-  path.join(__dirname, 'journal.jsx'),
   path.join(__dirname, 'quick-notes.jsx'),
   path.join(__dirname, 'animated-title.jsx'),
   path.join(__dirname, 'financial-news.jsx'),
