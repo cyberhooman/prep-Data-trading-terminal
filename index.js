@@ -3172,45 +3172,45 @@ app.get('/', async (req, res) => {
         ${message ? `<div class="message" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(message)}</div>` : ''}
         ${errorMsg ? `<div class="error" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(errorMsg)}</div>` : ''}
 
-        <!-- BENTO LAYOUT: Event Countdown, Notes, Todo List -->
+        <!-- BENTO LAYOUT: Event Countdown, Upcoming Events, Notes, Todo List -->
         <div class="bento-container" style="max-width: 1480px; margin: 0 auto 2rem;">
-          <!-- Large Event Countdown Box (Full Width) -->
+          <!-- Event Countdown Box (Top Left) -->
           <div class="bento-box bento-countdown">
-            <h2 style="margin-bottom: 1rem; font-size: 1.5rem; font-weight: 700;">⏰ Next Event Countdown</h2>
+            <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 700;">⏰ Next Event Countdown</h2>
             <div id="next-event-panel">
               ${nextEventPanel}
             </div>
           </div>
 
-          <!-- Quick Notes & Warnings Box (Left) -->
+          <!-- Upcoming Events Box (Top Right) -->
+          <div class="bento-box bento-events">
+            <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 700;">📰 Upcoming High Impact News</h2>
+            <p style="margin-bottom: 1rem; font-size: 0.85rem; color: rgba(226, 232, 240, 0.7);">
+              Tracking ${manualUpcoming.length} manual + ${autoEvents.length} automatic events
+            </p>
+            <div class="events-preview">
+              <div class="events-limited"></div>
+            </div>
+            <button id="toggle-events-btn" class="toggle-events-btn" style="margin-top: 1rem; padding: 0.6rem 1.2rem; background: rgba(251, 146, 60, 0.18); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; width: 100%; color: #fdba74;">
+              Show All Events
+            </button>
+            <div id="events-expanded" style="display: none; margin-top: 1rem;">
+              <div class="events-scroll" style="max-height: 350px; overflow-y: auto; padding: 0.5rem 0;">
+                <div class="events-all"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Notes & Warnings Box (Bottom Right) -->
           <div class="bento-box bento-notes">
             <div id="notes-root"></div>
           </div>
 
-          <!-- Todo List Box (Right) -->
+          <!-- Todo List Box (Bottom Left) -->
           <div class="bento-box bento-todos">
             <div id="todo-root"></div>
           </div>
         </div>
-
-        <!-- Upcoming Events (Limited to 3) -->
-        <section class="events-section" style="max-width: 1480px; margin: 0 auto 1.5rem;">
-          <h2 style="margin-bottom: 1rem;">Upcoming High Impact News</h2>
-          <p style="margin-bottom: 1rem; font-size: 0.9rem; color: rgba(226, 232, 240, 0.75);">
-            Currently tracking ${manualUpcoming.length} manual and ${autoEvents.length} automatic events.
-          </p>
-          <div class="events-preview">
-            <div class="events-limited"></div>
-          </div>
-          <button id="toggle-events-btn" class="toggle-events-btn" style="margin-top: 1rem; padding: 0.75rem 1.5rem; background: rgba(37, 99, 235, 0.18); border: 1px solid rgba(37, 99, 235, 0.3); border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">
-            Show All Events
-          </button>
-          <div id="events-expanded" style="display: none; margin-top: 1rem;">
-            <div class="events-scroll" style="max-height: 400px; overflow-y: auto; padding: 0.5rem 0; margin-bottom: 1rem;">
-              <div class="events-all"></div>
-            </div>
-          </div>
-        </section>
 
         <!-- PERMANENT MANUAL EVENT FORM - ALWAYS VISIBLE -->
         <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 2px solid rgba(99, 102, 241, 0.4); background: rgba(15, 23, 42, 0.85); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">

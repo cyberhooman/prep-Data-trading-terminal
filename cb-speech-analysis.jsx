@@ -244,6 +244,7 @@ const CBSpeechAnalysis = () => {
                       .replace(/\n/g, '<br/>')
                   }}
                 />
+              )}
             </div>
           );
         })}
