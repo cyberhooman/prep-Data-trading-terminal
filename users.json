@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "1765368391692",
+    "email": "aaidilfadly12@gmail.com",
+    "password": "$2b$10$SR9ByzPltwEwdys3UEUUTedosej2Sc2.2Vn201U6GfikrzowbhAv2",
+    "displayName": "aaidilfadly12",
+    "createdAt": "2025-12-10T12:06:31.692Z",
+    "resetToken": "dd4799bcd8b201e3a1840cc83b017377cbcdb5ef48ec23bedf5863bfda60935c",
+    "resetTokenExpires": 1765808126179
+  }
+]

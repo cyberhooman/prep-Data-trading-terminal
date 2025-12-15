@@ -39,7 +39,10 @@
       "Bash(powershell -Command:*)",
       "Bash(railway variables:*)",
       "Bash(npm ls:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(routes)",
+      "Bash(server)",
+      "Bash(app \")"
     ],
     "deny": [],
     "ask": []

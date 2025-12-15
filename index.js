@@ -25,6 +25,7 @@ const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
 const cbSpeechScraper = require('./services/cbSpeechScraper');
+const trumpScheduleScraper = require('./services/trumpScheduleScraper');
 const rateProbabilityScraper = require('./services/rateProbabilityScraper');
 const emailService = require('./services/emailService');
 
@@ -417,67 +418,108 @@ function formatEventDate(date) {
 
 ensureDataDir();
 
-let manualEvents = loadJson('events.json', []).map(event => ({
-  ...event,
-  date: new Date(event.date).toISOString()
-}));
-
 const todoItems = loadJson('todos.json', []);
 const quickNotes = loadJson('notes.json', []);
 // Account settings are now per-user, loaded on demand
 const userAccountSettings = {};
 
-function getUpcomingEvents() {
-  const now = Date.now();
-  return manualEvents
-    .filter((event) => {
-      try {
-        const eventDate = new Date(event.date);
-        return !isNaN(eventDate.getTime()) && eventDate.getTime() > now;
-      } catch (e) {
-        console.error('Invalid date in event:', event);
-        return false;
-      }
-    })
-    .map((event) => ({
-      id: event.id,
-      title: event.title,
-      country: event.country,
-      date: event.date,
-      source: 'manual'
-    }))
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
+/**
+ * Load CB speeches and convert to event format
+ */
+async function loadCBSpeeches() {
+  try {
+    const speeches = await cbSpeechScraper.getSpeeches();
+    return speeches.map(speech => ({
+      id: speech.id,
+      title: `${speech.speaker} (${speech.bankCode}): ${speech.title}`,
+      country: speech.currency,
+      date: speech.timestamp || speech.date,
+      source: 'cb_speech',
+      type: speech.type
+    }));
+  } catch (err) {
+    console.error('Error loading CB speeches:', err.message);
+    return [];
+  }
 }
 
+/**
+ * Load Trump schedule and convert to event format
+ */
+async function loadTrumpSchedule() {
+  try {
+    const schedule = await trumpScheduleScraper.getUpcomingSchedule();
+    return schedule.map(item => ({
+      id: item.id,
+      title: item.title,
+      country: item.country, // Already USD
+      date: item.date,
+      source: 'trump_schedule',
+      type: item.type,
+      location: item.location
+    }));
+  } catch (err) {
+    console.error('Error loading Trump schedule:', err.message);
+    return [];
+  }
+}
+
+/**
+ * Gather all events from all sources
+ */
 async function gatherEvents() {
-  console.log('Gathering events...');
-  const manualUpcoming = getUpcomingEvents() || [];
-  console.log('Manual events:', manualUpcoming);
-  
+  console.log('Gathering events from all sources...');
+
   let autoEvents = [];
+  let cbSpeeches = [];
+  let trumpSchedule = [];
   let autoError = null;
-  
+
+  // Load Forex Factory economic events
   try {
     const loadedEvents = await loadHighImpactEvents();
     autoEvents = Array.isArray(loadedEvents) ? loadedEvents : [];
-    console.log('Auto events loaded:', autoEvents);
+    console.log(`Loaded ${autoEvents.length} Forex Factory events`);
   } catch (err) {
-    console.error('Error loading auto events:', err);
+    console.error('Error loading Forex Factory events:', err);
     autoError = err.message.replace(/<[^>]+>/g, '').trim();
     autoEvents = [];
   }
 
-  // Ensure both arrays are valid before combining
-  const validManual = Array.isArray(manualUpcoming) ? manualUpcoming : [];
-  const validAuto = Array.isArray(autoEvents) ? autoEvents : [];
-  
-  const combinedEvents = [...validManual, ...validAuto].sort((a, b) => {
+  // Load CB speeches
+  try {
+    cbSpeeches = await loadCBSpeeches();
+    console.log(`Loaded ${cbSpeeches.length} CB speech events`);
+  } catch (err) {
+    console.error('Error loading CB speeches:', err);
+    cbSpeeches = [];
+  }
+
+  // Load Trump schedule
+  try {
+    trumpSchedule = await loadTrumpSchedule();
+    console.log(`Loaded ${trumpSchedule.length} Trump schedule events`);
+  } catch (err) {
+    console.error('Error loading Trump schedule:', err);
+    trumpSchedule = [];
+  }
+
+  // Combine all events and sort by date
+  const combinedEvents = [...autoEvents, ...cbSpeeches, ...trumpSchedule].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     return dateA.getTime() - dateB.getTime();
   });
-  
-  return { manualUpcoming, autoEvents, combinedEvents, autoError };
+
+  console.log(`Total combined events: ${combinedEvents.length}`);
+
+  return {
+    autoEvents,
+    cbSpeeches,
+    trumpSchedule,
+    combinedEvents,
+    autoError
+  };
 }
 
 const app = express();
@@ -1944,6 +1986,7 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
             <a href="/interest-rates" class="nav-link">Interest Rates</a>
             <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link active">CB Speeches</a>
+            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
         </div>
         ${authControlsHtml}
@@ -1969,6 +2012,93 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
 </html>`;
 
   res.send(html);
+});
+
+// Weekly Calendar Page
+app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
+  const user = req.user;
+
+  const authControlsHtml = user
+    ? `<div class="auth-controls">
+         <div class="auth-user">
+           <strong>${user.displayName || user.email}</strong>
+           <span>Authenticated</span>
+         </div>
+         ${user.picture ? `<img src="${user.picture}" alt="User" class="auth-avatar" />` : ''}
+         <a href="/logout" class="auth-button logout">Logout</a>
+       </div>`
+    : `<a href="/login" class="auth-button login">Login</a>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weekly Calendar - Alphalabs Data Trading</title>
+    <link rel="stylesheet" href="/public/theme-2025.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <header style="background: var(--primary-bg); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem 0; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px);">
+      <div style="max-width: 1600px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 3rem;">
+          <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
+            <div>
+              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
+                Alphalabs
+              </h1>
+              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+            </div>
+          </a>
+          <nav class="nav-bar">
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/interest-rates" class="nav-link">Interest Rates</a>
+            <a href="/currency-strength" class="nav-link">Currency Strength</a>
+            <a href="/cb-speeches" class="nav-link">CB Speeches</a>
+            <a href="/weekly-calendar" class="nav-link active">Weekly Calendar</a>
+          </nav>
+        </div>
+        ${authControlsHtml}
+      </div>
+    </header>
+
+    <main>
+      <div id="weekly-calendar-root"></div>
+    </main>
+
+    <footer style="padding: 2rem 0; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; color: rgba(226, 232, 240, 0.5); font-size: 0.85rem;">
+      All events auto-updated • Tracking Forex, CB Speeches & Trump Schedule
+    </footer>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" src="/weekly-calendar.jsx"></script>
+  </body>
+</html>`;
+
+  res.send(html);
+});
+
+// API endpoint for weekly calendar events
+app.get('/api/calendar/weekly', async (req, res) => {
+  try {
+    const { autoEvents, cbSpeeches, trumpSchedule, combinedEvents } = await gatherEvents();
+
+    res.json({
+      success: true,
+      events: combinedEvents,
+      breakdown: {
+        forex: autoEvents.length,
+        cbSpeeches: cbSpeeches.length,
+        trumpSchedule: trumpSchedule.length
+      }
+    });
+  } catch (err) {
+    console.error('Error fetching weekly calendar events:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Interest Rate Probability Page
@@ -2103,6 +2233,7 @@ app.get('/interest-rates', ensureAuthenticated, async (req, res) => {
             <a href="/interest-rates" class="nav-link active">Interest Rates</a>
             <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link">CB Speeches</a>
+            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
         </div>
         ${authControlsHtml}
@@ -2258,6 +2389,7 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
             <a href="/interest-rates" class="nav-link">Interest Rates</a>
             <a href="/currency-strength" class="nav-link active">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link">CB Speeches</a>
+            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
         </div>
         ${authControlsHtml}
@@ -2845,51 +2977,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/events', (req, res) => {
-  const { title, country, datetime } = req.body || {};
-  const trimmedTitle = (title || '').trim();
-  const trimmedCountry = (country || '').trim().toUpperCase();
-  const datetimeValue = (datetime || '').trim();
-
-  if (!trimmedTitle || !trimmedCountry || !datetimeValue) {
-    return res.redirect('/?message=' + encodeURIComponent('Please provide title, country, and date/time.'));
-  }
-
-  const date = new Date(datetimeValue);
-  if (Number.isNaN(date.getTime())) {
-    return res.redirect('/?message=' + encodeURIComponent('Invalid date/time supplied.'));
-  }
-
-  const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-  manualEvents.push({
-    id,
-    title: trimmedTitle,
-    country: trimmedCountry.slice(0, 3),
-    date: date.toISOString(),
-  });
-
-  // persist manual events
-  saveJson('events.json', manualEvents);
-
-  res.redirect('/?message=' + encodeURIComponent('Event added.'));
-});
-
-app.post('/events/delete', (req, res) => {
-  const { id } = req.body || {};
-  if (!id) {
-    return res.redirect('/?message=' + encodeURIComponent('Missing event identifier.'));
-  }
-  const index = manualEvents.findIndex((event) => event.id === id);
-  if (index >= 0) {
-    manualEvents.splice(index, 1);
-    // persist manual events after removal
-    saveJson('events.json', manualEvents);
-    res.redirect('/?message=' + encodeURIComponent('Event removed.'));
-  } else {
-    res.redirect('/?message=' + encodeURIComponent('Event not found.'));
-  }
-});
-
 app.get('/todo-card.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'todo-card.jsx');
   res.setHeader('Content-Type', 'application/javascript');
@@ -2922,6 +3009,12 @@ app.get('/cb-speech-analysis.jsx', (req, res) => {
 
 app.get('/interest-rate-probability.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'interest-rate-probability.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/weekly-calendar.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'weekly-calendar.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -3204,8 +3297,9 @@ app.get('/api/currency-strength/extremes', async (req, res) => {
 
 app.get('/', async (req, res) => {
   let strengthData = [];
-  let manualUpcoming = [];
   let autoEvents = [];
+  let cbSpeeches = [];
+  let trumpSchedule = [];
   let combinedEvents = [];
   let errorMsg = '';
   const message = req.query.message ? String(req.query.message) : '';
@@ -3218,10 +3312,11 @@ app.get('/', async (req, res) => {
       errorMsg = `Currency Strength: ${currencyErr.message}`;
       strengthData = [];
     }
-    const { manualUpcoming: manualList, autoEvents: autoList, combinedEvents: combined, autoError } =
+    const { autoEvents: autoList, cbSpeeches: cbList, trumpSchedule: trumpList, combinedEvents: combined, autoError } =
       await gatherEvents();
-    manualUpcoming = manualList;
     autoEvents = autoList;
+    cbSpeeches = cbList;
+    trumpSchedule = trumpList;
     combinedEvents = combined;
     if (autoError) {
       errorMsg = errorMsg ? `${errorMsg}; ${autoError}` : autoError;
@@ -3477,6 +3572,7 @@ app.get('/', async (req, res) => {
               <a href="/interest-rates" class="nav-link ${req.path === '/interest-rates' ? 'active' : ''}">Interest Rates</a>
               <a href="/currency-strength" class="nav-link ${req.path === '/currency-strength' ? 'active' : ''}">Currency Strength</a>
               <a href="/cb-speeches" class="nav-link ${req.path === '/cb-speeches' ? 'active' : ''}">CB Speeches</a>
+              <a href="/weekly-calendar" class="nav-link ${req.path === '/weekly-calendar' ? 'active' : ''}">Weekly Calendar</a>
             </nav>
           </div>
           ${authControlsHtml}
@@ -3500,7 +3596,7 @@ app.get('/', async (req, res) => {
           <div class="bento-box bento-events">
             <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 700;">📰 Upcoming High Impact News</h2>
             <p style="margin-bottom: 1rem; font-size: 0.85rem; color: rgba(226, 232, 240, 0.7);">
-              Tracking ${manualUpcoming.length} manual + ${autoEvents.length} automatic events
+              Tracking ${autoEvents.length} economic + ${cbSpeeches.length} CB speeches + ${trumpSchedule.length} Trump events
             </p>
             <div class="events-preview">
               <div class="events-limited"></div>
@@ -3525,43 +3621,6 @@ app.get('/', async (req, res) => {
             <div id="todo-root"></div>
           </div>
         </div>
-
-        <!-- PERMANENT MANUAL EVENT FORM - ALWAYS VISIBLE -->
-        <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 2px solid rgba(99, 102, 241, 0.4); background: rgba(15, 23, 42, 0.85); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
-          <form method="POST" action="/events" class="add-event" id="add-event-form">
-            <h3 style="margin-bottom: 0.75rem; font-size: 1.25rem; color: rgb(129, 140, 248);">📝 Add Manual Event</h3>
-            <div class="field-row two">
-              <label>
-                Title
-                <input name="title" required placeholder="e.g. FOMC Press, GDP QoQ, CPI" />
-              </label>
-              <label>
-                Country (e.g. USD)
-                <input name="country" required maxlength="3" placeholder="USD / EUR / JPY" />
-              </label>
-            </div>
-            <div class="field-row two">
-              <label>
-                Date
-                <input id="event-date" type="date" required />
-              </label>
-              <label>
-                Time
-                <input id="event-time" type="time" step="60" required />
-              </label>
-            </div>
-            <input id="event-datetime-hidden" type="hidden" name="datetime" />
-            <div class="chips" id="dt-presets">
-              <span class="chip" data-mins="30">+30m</span>
-              <span class="chip" data-mins="60">+1h</span>
-              <span class="chip" data-preset="tomorrow-9">Tomorrow 09:00</span>
-              <span class="chip" data-preset="next-mon-830">Next Mon 08:30</span>
-              <span class="chip" data-preset="market-open">Next Market Open</span>
-            </div>
-            <div class="tz-hint" id="tz-hint"></div>
-            <button type="submit">Add Event</button>
-          </form>
-        </section>
 
         <!-- Currency Strength -->
         <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.2); background: rgba(15, 23, 42, 0.7); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);">
@@ -3855,79 +3914,7 @@ app.get('/', async (req, res) => {
           return d;
         }
 
-        function initEventPresets() {
-          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
-          const tzHint = document.getElementById('tz-hint');
-          if (tzHint) tzHint.textContent = 'Times in ' + tz;
-          const dateInput = document.getElementById('event-date');
-          const timeInput = document.getElementById('event-time');
-          const hiddenInput = document.getElementById('event-datetime-hidden');
-          const presetRow = document.getElementById('dt-presets');
-          if (!dateInput || !timeInput) return;
-
-          function syncHidden() {
-            if (!dateInput.value || !timeInput.value) return;
-            const parts = dateInput.value.split('-');
-            const tparts = timeInput.value.split(':');
-            if (parts.length !== 3 || tparts.length < 2) return;
-            const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), Number(tparts[0]), Number(tparts[1]), 0, 0);
-            if (hiddenInput) hiddenInput.value = d.toISOString();
-          }
-
-          dateInput.addEventListener('input', syncHidden);
-          timeInput.addEventListener('input', syncHidden);
-
-          // Initialize defaults: today, next rounded hour
-          (function initDefaults() {
-            const now = new Date();
-            const dstr = now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
-            dateInput.value = dstr;
-            const mins = now.getMinutes();
-            const nextHour = new Date(now);
-            if (mins > 30) { nextHour.setHours(now.getHours() + 1, 0, 0, 0); } else { nextHour.setMinutes(30, 0, 0); }
-            timeInput.value = pad2(nextHour.getHours()) + ':' + pad2(nextHour.getMinutes());
-            syncHidden();
-          })();
-
-          presetRow.addEventListener('click', (e) => {
-            const el = e.target.closest('.chip');
-            if (!el) return;
-            const now = new Date();
-            let target = null;
-            if (el.dataset.mins) {
-              target = new Date(now.getTime() + Number(el.dataset.mins) * 60000);
-            } else if (el.dataset.preset === 'tomorrow-9') {
-              target = new Date(now);
-              target.setDate(now.getDate() + 1);
-              target.setHours(9, 0, 0, 0);
-            } else if (el.dataset.preset === 'next-mon-830') {
-              target = computeNextMonday(now);
-              target.setHours(8, 30, 0, 0);
-            } else if (el.dataset.preset === 'market-open') {
-              target = nextMarketOpen(now);
-            }
-            if (target) {
-              const dstr = target.getFullYear() + '-' + pad2(target.getMonth() + 1) + '-' + pad2(target.getDate());
-              const tstr = pad2(target.getHours()) + ':' + pad2(target.getMinutes());
-              dateInput.value = dstr;
-              timeInput.value = tstr;
-              dateInput.dispatchEvent(new Event('input', { bubbles: true }));
-              timeInput.dispatchEvent(new Event('input', { bubbles: true }));
-              syncHidden();
-            }
-          });
-
-          const form = document.getElementById('add-event-form');
-          if (form) {
-            form.addEventListener('submit', function(){
-              syncHidden();
-            });
-          }
-        }
-
-        initEventPresets();
-
-  // Animated title will be mounted by React component (animated-title.jsx).
+        // Animated title will be mounted by React component (animated-title.jsx).
       </script>
       <script type="text/babel">
         // Load the simple animated title immediately

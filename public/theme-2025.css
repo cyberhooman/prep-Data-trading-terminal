@@ -1274,3 +1274,117 @@ form.add-todo input[name="task"] {
 .prob-value.cut {
   color: var(--accent-success);
 }
+
+/* ============================================
+   WEEKLY CALENDAR STYLES
+   ============================================ */
+
+.weekly-calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.calendar-day {
+  border-radius: 12px;
+  border: 1px solid var(--secondary-border);
+  background: var(--secondary-bg);
+  padding: 1rem;
+  min-height: 300px;
+  overflow-y: auto;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.calendar-day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  border-color: var(--secondary-border-light);
+}
+
+.calendar-day.today {
+  border: 2px solid var(--accent-primary);
+  background: linear-gradient(135deg, rgba(0, 217, 255, 0.12), rgba(0, 136, 255, 0.08));
+  box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);
+}
+
+.calendar-day.today::before {
+  content: 'TODAY';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  background: rgba(0, 217, 255, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.calendar-day-header {
+  font-weight: 700;
+  text-align: center;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--secondary-border);
+  color: var(--text-muted);
+}
+
+.calendar-event-item {
+  padding: 0.6rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-primary);
+  font-size: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.calendar-event-item:hover {
+  background: rgba(0, 217, 255, 0.08);
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.calendar-event-item .flag {
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+  display: inline-block;
+}
+
+/* Responsive Design - Mobile */
+@media (max-width: 1200px) {
+  .weekly-calendar {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .weekly-calendar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .calendar-day {
+    min-height: 200px;
+    padding: 0.75rem;
+  }
+
+  .calendar-event-item {
+    font-size: 0.7rem;
+    padding: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .weekly-calendar {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-day {
+    min-height: auto;
+  }
+}
