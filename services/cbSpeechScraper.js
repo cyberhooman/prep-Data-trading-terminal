@@ -183,10 +183,16 @@ class CBSpeechScraper {
     const cbMatch = this.detectCentralBank(text);
     if (!cbMatch) return false;
 
-    // Must be speech, press conference, or policy-related
-    const isSpeechOrPressConf = /speech|remarks|testimony|press conference|presser|rate decision|says|said|statement|policy|hawkish|dovish|inflation|rates|hike|cut/i.test(lower);
+    // Must explicitly be a speech, press conference, or direct statement from CB official
+    // More strict filter: requires explicit speech/presser keywords or direct quotes from named officials
+    const hasExplicitSpeechKeyword = /\b(speech|remarks|testimony|press conference|presser|minutes|statement)\b/i.test(lower);
+    const hasDirectQuote = /\b(says|said|comments?|speaks?|interview)\b/i.test(lower) && this.detectSpeaker(text, cbMatch.bank);
+    const hasRateDecision = /\b(rate decision|policy (decision|meeting)|monetary policy|interest rate)\b/i.test(lower);
 
-    return isSpeechOrPressConf;
+    // Exclude general news about banks/countries even if they mention CB
+    const isGeneralNews = /\b(stock|futures|equity|oil|import|export|trade|gdp|employment|cpi|inflation data|retail sales)\b/i.test(lower) && !hasExplicitSpeechKeyword;
+
+    return (hasExplicitSpeechKeyword || hasDirectQuote || hasRateDecision) && !isGeneralNews;
   }
 
   /**
