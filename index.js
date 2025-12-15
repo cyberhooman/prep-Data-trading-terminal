@@ -20,11 +20,12 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 const compression = require('compression');
 const session = require('express-session');
-const { passport, ensureAuthenticated, findUserByEmail, createUser } = require('./auth');
+const { passport, ensureAuthenticated, findUserByEmail, createUser, createPasswordResetToken, validateResetToken, resetPassword } = require('./auth');
 const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
 const cbSpeechScraper = require('./services/cbSpeechScraper');
+const rateProbabilityScraper = require('./services/rateProbabilityScraper');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -1163,6 +1164,10 @@ app.get('/login', (req, res) => {
                   </button>
                 </form>
 
+                <div style="text-align: center; margin-top: 0.75rem;">
+                  <a href="/forgot-password" style="color: #00D9FF; text-decoration: none; font-size: 0.9rem;">Forgot Password?</a>
+                </div>
+
                 <button type="button" class="skip-btn" onclick="showOAuthButtons()">
                   Back to other options
                 </button>
@@ -1682,6 +1687,179 @@ app.get('/signup', (req, res) => {
   res.send(html);
 });
 
+// Forgot Password Page
+app.get('/forgot-password', (req, res) => {
+  const errorMsg = req.query.error || '';
+  const successMsg = req.query.success || '';
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forgot Password - Alphalabs Trading</title>
+  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 { color: #333; margin-bottom: 0.5rem; font-size: 1.75rem; }
+    p { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    input:focus { outline: none; border-color: #667eea; }
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .error { background: #fee; color: #c33; padding: 0.75rem; border-radius: 5px; margin-bottom: 1rem; }
+    .success { background: #efe; color: #3c3; padding: 0.75rem; border-radius: 5px; margin-bottom: 1rem; }
+    .back-link { text-align: center; margin-top: 1rem; }
+    .back-link a { color: #667eea; text-decoration: none; }
+    .back-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Forgot Password?</h1>
+    <p>Enter your email address and we'll generate a reset link for you.</p>
+    ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+    ${successMsg ? `<div class="success">${successMsg}</div>` : ''}
+    <form action="/auth/forgot-password" method="POST">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <button type="submit" class="btn">Send Reset Link</button>
+    </form>
+    <div class="back-link">
+      <a href="/login">Back to Login</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
+// Reset Password Page
+app.get('/reset-password', (req, res) => {
+  const token = req.query.token || '';
+  const errorMsg = req.query.error || '';
+
+  if (!token) {
+    return res.redirect('/forgot-password?error=Invalid reset link');
+  }
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password - Alphalabs Trading</title>
+  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      max-width: 400px;
+      width: 100%;
+    }
+    h1 { color: #333; margin-bottom: 0.5rem; font-size: 1.75rem; }
+    p { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    input:focus { outline: none; border-color: #667eea; }
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .error { background: #fee; color: #c33; padding: 0.75rem; border-radius: 5px; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Reset Your Password</h1>
+    <p>Enter your new password below.</p>
+    ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
+    <form action="/auth/reset-password" method="POST">
+      <input type="hidden" name="token" value="${token}">
+      <div class="form-group">
+        <label for="password">New Password</label>
+        <input type="password" id="password" name="password" required minlength="8">
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
+      </div>
+      <button type="submit" class="btn">Reset Password</button>
+    </form>
+  </div>
+</body>
+</html>`;
+
+  res.send(html);
+});
+
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -1750,6 +1928,70 @@ app.get('/logout', (req, res) => {
     }
     res.redirect('/login');
   });
+});
+
+// Password Reset Routes
+app.post('/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.redirect('/forgot-password?error=Email is required');
+    }
+
+    const token = await createPasswordResetToken(email);
+
+    if (!token) {
+      // Don't reveal if email exists or not (security best practice)
+      return res.redirect('/forgot-password?success=If that email exists, a reset link has been generated');
+    }
+
+    // In a real app, you would send an email here
+    // For now, we'll redirect to the reset page with the token
+    console.log(`Password reset token for ${email}: ${token}`);
+    console.log(`Reset link: http://localhost:3000/reset-password?token=${token}`);
+
+    res.redirect(`/forgot-password?success=Reset link generated! Check console for token (in production, this would be sent via email)`);
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.redirect('/forgot-password?error=An error occurred. Please try again.');
+  }
+});
+
+app.post('/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password, confirmPassword } = req.body;
+
+    if (!token || !password || !confirmPassword) {
+      return res.redirect(`/reset-password?token=${token}&error=All fields are required`);
+    }
+
+    if (password.length < 8) {
+      return res.redirect(`/reset-password?token=${token}&error=Password must be at least 8 characters`);
+    }
+
+    if (password !== confirmPassword) {
+      return res.redirect(`/reset-password?token=${token}&error=Passwords do not match`);
+    }
+
+    // Validate token first
+    const user = await validateResetToken(token);
+    if (!user) {
+      return res.redirect('/forgot-password?error=Invalid or expired reset token');
+    }
+
+    // Reset password
+    const success = await resetPassword(token, password);
+
+    if (success) {
+      res.redirect('/login?success=Password reset successful! Please login with your new password.');
+    } else {
+      res.redirect('/forgot-password?error=Failed to reset password. Token may be expired.');
+    }
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.redirect('/forgot-password?error=An error occurred. Please try again.');
+  }
 });
 
 // API endpoint to get high-impact news (public - no auth required)
@@ -2093,6 +2335,79 @@ app.post('/api/speeches/search', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/interest-rates/probabilities
+ * Fetch interest rate probabilities for all central banks
+ */
+app.get('/api/interest-rates/probabilities', async (req, res) => {
+  try {
+    const allData = await rateProbabilityScraper.fetchAllProbabilities();
+    res.json({
+      success: true,
+      data: allData,
+      timestamp: Date.now()
+    });
+  } catch (err) {
+    console.error('Error fetching rate probabilities:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/interest-rates/probabilities/:centralBank
+ * Fetch interest rate probability for specific central bank
+ */
+app.get('/api/interest-rates/probabilities/:centralBank', async (req, res) => {
+  try {
+    const { centralBank } = req.params;
+    const data = await rateProbabilityScraper.fetchProbabilityForBank(centralBank.toUpperCase());
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: 'Central bank not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data,
+      timestamp: Date.now()
+    });
+  } catch (err) {
+    console.error(`Error fetching ${req.params.centralBank}:`, err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+/**
+ * POST /api/interest-rates/refresh
+ * Force refresh of rate probability cache
+ */
+app.post('/api/interest-rates/refresh', async (req, res) => {
+  try {
+    rateProbabilityScraper.clearCache();
+    const data = await rateProbabilityScraper.fetchAllProbabilities();
+    res.json({
+      success: true,
+      data,
+      message: 'Cache cleared and data refreshed'
+    });
+  } catch (err) {
+    console.error('Error refreshing rate probabilities:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
 // Protect all routes except login and auth routes
 app.use((req, res, next) => {
   // Allow access to login, auth, and static files
@@ -2185,6 +2500,12 @@ app.get('/financial-news.jsx', (req, res) => {
 
 app.get('/cb-speech-analysis.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'cb-speech-analysis.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/interest-rate-probability.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'interest-rate-probability.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -2941,6 +3262,11 @@ app.get('/', async (req, res) => {
           <div id="cb-speech-root"></div>
         </section>
 
+        <!-- Interest Rate Probability -->
+        <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
+          <div id="interest-rate-root"></div>
+        </section>
+
         <!-- Trading Journal (Below Fold) -->
         <section class="full" style="max-width: 1480px; margin: 0 auto;">
           <h2 style="margin-bottom: 1rem;">Trading Journal (Calendar)</h2>
@@ -3306,6 +3632,7 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/journal.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/cb-speech-analysis.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/interest-rate-probability.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         const root = ReactDOM.createRoot(document.getElementById('todo-root'));
         root.render(React.createElement(TodoCard));
@@ -3645,6 +3972,7 @@ const watchedFiles = [
   path.join(__dirname, 'animated-title.jsx'),
   path.join(__dirname, 'financial-news.jsx'),
   path.join(__dirname, 'cb-speech-analysis.jsx'),
+  path.join(__dirname, 'interest-rate-probability.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 

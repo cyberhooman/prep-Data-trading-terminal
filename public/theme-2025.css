@@ -1114,3 +1114,150 @@ form.add-todo input[name="task"] {
   font-style: italic;
   color: var(--text-secondary);
 }
+
+/* === INTEREST RATE PROBABILITY COMPONENT === */
+.rate-probability-container {
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--secondary-border);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+}
+
+.rate-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1280px) {
+  .rate-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.currency-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: var(--gradient-primary);
+  color: var(--text-bright);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Probability bars */
+.probability-chart .bar {
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.bar.hike {
+  background: var(--accent-danger);
+}
+
+.bar.hold {
+  background: var(--accent-warning);
+}
+
+.bar.cut {
+  background: var(--accent-success);
+}
+
+.bar.bar-previous {
+  opacity: 0.4;
+  margin-top: 4px;
+}
+
+/* Timeline bars */
+.timeline-bar {
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-bright);
+  box-shadow: var(--shadow-sm);
+  transition: width 0.3s ease;
+}
+
+.timeline-bar.hike {
+  background: var(--gradient-danger);
+}
+
+.timeline-bar.cut {
+  background: var(--gradient-success);
+}
+
+.timeline-bar.hold {
+  background: var(--gradient-warning);
+}
+
+/* Rate probability move badge */
+.move-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.move-badge.move-hike {
+  background: rgba(255, 51, 102, 0.2);
+  color: var(--accent-danger);
+  border: 1px solid rgba(255, 51, 102, 0.3);
+}
+
+.move-badge.move-hold {
+  background: rgba(255, 184, 0, 0.2);
+  color: var(--accent-warning);
+  border: 1px solid rgba(255, 184, 0, 0.3);
+}
+
+.move-badge.move-cut {
+  background: rgba(0, 255, 136, 0.2);
+  color: var(--accent-success);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+}
+
+/* Probability summary items */
+.prob-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.prob-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.prob-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.prob-value.hike {
+  color: var(--accent-danger);
+}
+
+.prob-value.hold {
+  color: var(--accent-warning);
+}
+
+.prob-value.cut {
+  color: var(--accent-success);
+}

@@ -110,36 +110,51 @@ class DeepSeekAI {
       return cached.data;
     }
 
-    const systemPrompt = `You are an expert monetary policy analyst specializing in central bank communications. Your task is to analyze central bank speeches and determine their monetary policy stance.
+    const systemPrompt = `You are an expert monetary policy analyst and forex trader specializing in central bank communications. Your task is to analyze central bank speeches and determine their monetary policy stance IN THE CONTEXT OF CURRENT MACRO CONDITIONS.
 
-ANALYSIS FRAMEWORK:
-- HAWKISH: Indicates tighter monetary policy, higher interest rates, concern about inflation
-  - Keywords: inflation concerns, price stability, tightening, rate hikes, restrictive policy, vigilant on inflation
-- DOVISH: Indicates looser monetary policy, lower interest rates, focus on growth/employment
-  - Keywords: economic slowdown, support growth, accommodative, patient, data-dependent (leaning easy), rate cuts
-- NEUTRAL: Balanced view, no clear policy direction
-  - Keywords: balanced risks, monitoring data, both sides of mandate, wait and see
+CURRENT MACRO CONTEXT (December 2024):
+- Global inflation has been moderating but remains above most CB targets
+- Fed has begun cutting rates but pace is data-dependent
+- ECB has started easing cycle amid weak European growth
+- BOE cautious on cuts due to sticky UK services inflation
+- BOJ ended negative rates, cautiously normalizing policy
+- Markets pricing in rate cuts for 2025 across most G8 central banks
+- Key themes: disinflation progress, labor market cooling, growth concerns, tariff/trade uncertainty
+
+ANALYSIS FRAMEWORK - INTERPRET RELATIVE TO MARKET EXPECTATIONS:
+- HAWKISH: More restrictive than market expects - pushing back on rate cut expectations, emphasizing inflation risks, signaling patience on cuts
+  - In current context: Any resistance to priced-in cuts, emphasis on inflation not being defeated, upside risks to prices
+- DOVISH: More accommodative than market expects - supporting rate cuts, downplaying inflation, emphasizing growth/employment risks
+  - In current context: Faster/deeper cuts than priced, concerns about overtightening, focus on labor market weakness
+- NEUTRAL: In line with market expectations, balanced risks
+  - In current context: Data-dependent, no strong signal either direction
+
+KEY ANALYSIS PRINCIPLES:
+1. Context matters: "Inflation is still above target" is neutral if everyone knows that - only hawkish if emphasized as reason to delay cuts
+2. Relative to expectations: A "patient" Fed when markets expect 6 cuts is hawkish; same language when expecting 2 cuts is neutral
+3. Look for surprises: What in this speech would move markets? That reveals the real signal
+4. Consider the speaker: Hawks sounding dovish or doves sounding hawkish is more significant
 
 Provide your analysis in the following JSON format:
 {
   "sentiment": "HAWKISH" | "DOVISH" | "NEUTRAL",
   "score": <number from -100 (very dovish) to +100 (very hawkish)>,
   "confidence": <percentage 0-100>,
-  "summary": "<2-3 sentence summary of the speech's monetary policy implications>",
+  "summary": "<2-3 sentence summary focusing on what's NEW or SURPRISING vs market expectations>",
   "keyQuotes": [
     {
       "quote": "<exact quote from the speech>",
-      "interpretation": "<why this quote is significant>",
+      "interpretation": "<why this quote matters in current macro context>",
       "sentiment": "HAWKISH" | "DOVISH" | "NEUTRAL"
     }
   ],
   "policyImplications": {
-    "rateOutlook": "<expected rate path based on this speech>",
-    "inflationView": "<speaker's view on inflation>",
-    "growthView": "<speaker's view on economic growth>",
-    "marketImpact": "<expected impact on markets>"
+    "rateOutlook": "<how this changes rate expectations vs what's priced>",
+    "inflationView": "<speaker's view on inflation relative to consensus>",
+    "growthView": "<speaker's view on growth relative to consensus>",
+    "marketImpact": "<expected FX/rates impact and direction>"
   },
-  "reasoning": "<detailed explanation of your analysis>"
+  "reasoning": "<detailed explanation of your analysis, explicitly referencing current macro context>"
 }`;
 
     const userPrompt = `Analyze the following ${centralBank} speech by ${speaker} from ${date}:

@@ -11,6 +11,7 @@ class Database {
     this.isProduction = process.env.NODE_ENV === 'production';
     this.pool = null;
     this.newsHistoryFile = path.join(__dirname, '..', 'data', 'news-history.json');
+    this.rateProbabilitiesFile = path.join(__dirname, '..', 'data', 'rate-probabilities.json');
 
     if (this.isProduction) {
       this.initPostgres();
@@ -73,6 +74,46 @@ class Database {
       console.log('News history table created successfully');
     } catch (error) {
       console.error('Error creating news history table:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create interest_rate_probabilities table if it doesn't exist
+   */
+  async createRateProbabilityTable() {
+    if (!this.isProduction || !this.pool) {
+      return; // Skip in development mode
+    }
+
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS interest_rate_probabilities (
+        id SERIAL PRIMARY KEY,
+        central_bank VARCHAR(10) NOT NULL,
+        currency VARCHAR(3) NOT NULL,
+        current_rate DECIMAL(5,2),
+        next_meeting TIMESTAMPTZ NOT NULL,
+        prob_hike DECIMAL(5,2),
+        prob_hold DECIMAL(5,2),
+        prob_cut DECIMAL(5,2),
+        expected_change DECIMAL(5,2),
+        next_expected_move VARCHAR(10),
+        timeline JSONB,
+        week_ago_data JSONB,
+        data_source TEXT,
+        last_updated TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(central_bank, next_meeting)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_central_bank ON interest_rate_probabilities(central_bank);
+      CREATE INDEX IF NOT EXISTS idx_last_updated ON interest_rate_probabilities(last_updated);
+    `;
+
+    try {
+      await this.pool.query(createTableQuery);
+      console.log('Interest rate probabilities table created successfully');
+    } catch (error) {
+      console.error('Error creating interest rate probabilities table:', error);
       throw error;
     }
   }
@@ -223,6 +264,155 @@ class Database {
       console.log(`Saved ${newsItems.length} news items to file`);
     } catch (error) {
       console.error('Error saving to file:', error);
+    }
+  }
+
+  /**
+   * Load rate probabilities from database or file
+   */
+  async loadRateProbabilities() {
+    if (this.isProduction && this.pool) {
+      return await this.loadRateProbabilitiesFromPostgres();
+    } else {
+      return this.loadRateProbabilitiesFromFile();
+    }
+  }
+
+  /**
+   * Load rate probabilities from PostgreSQL
+   */
+  async loadRateProbabilitiesFromPostgres() {
+    try {
+      const result = await this.pool.query(
+        `SELECT * FROM interest_rate_probabilities
+         ORDER BY central_bank ASC`
+      );
+
+      const probabilities = {};
+      for (const row of result.rows) {
+        probabilities[row.central_bank] = {
+          centralBank: row.central_bank,
+          currency: row.currency,
+          currentRate: parseFloat(row.current_rate),
+          nextMeeting: row.next_meeting,
+          probabilities: {
+            hike: parseFloat(row.prob_hike),
+            hold: parseFloat(row.prob_hold),
+            cut: parseFloat(row.prob_cut)
+          },
+          expectedChange: parseFloat(row.expected_change),
+          nextExpectedMove: row.next_expected_move,
+          timeline: row.timeline,
+          weekAgoData: row.week_ago_data,
+          dataSource: row.data_source,
+          lastUpdated: row.last_updated,
+          isAvailable: true
+        };
+      }
+
+      console.log(`Loaded ${Object.keys(probabilities).length} rate probabilities from PostgreSQL`);
+      return probabilities;
+    } catch (error) {
+      console.error('Error loading rate probabilities from PostgreSQL:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Load rate probabilities from JSON file (development mode)
+   */
+  loadRateProbabilitiesFromFile() {
+    try {
+      if (fs.existsSync(this.rateProbabilitiesFile)) {
+        const data = fs.readFileSync(this.rateProbabilitiesFile, 'utf8');
+        const probabilities = JSON.parse(data);
+        console.log(`Loaded ${Object.keys(probabilities).length} rate probabilities from file`);
+        return probabilities;
+      }
+      return {};
+    } catch (error) {
+      console.error('Error loading rate probabilities from file:', error);
+      return {};
+    }
+  }
+
+  /**
+   * Save rate probabilities to database or file
+   */
+  async saveRateProbabilities(probabilities) {
+    if (this.isProduction && this.pool) {
+      await this.saveRateProbabilitiesToPostgres(probabilities);
+    } else {
+      this.saveRateProbabilitiesToFile(probabilities);
+    }
+  }
+
+  /**
+   * Save rate probabilities to PostgreSQL
+   */
+  async saveRateProbabilitiesToPostgres(probabilities) {
+    try {
+      for (const [bankCode, data] of Object.entries(probabilities)) {
+        if (!data.isAvailable) continue;
+
+        await this.pool.query(
+          `INSERT INTO interest_rate_probabilities
+           (central_bank, currency, current_rate, next_meeting, prob_hike, prob_hold, prob_cut,
+            expected_change, next_expected_move, timeline, week_ago_data, data_source, last_updated)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+           ON CONFLICT (central_bank, next_meeting) DO UPDATE SET
+           current_rate = EXCLUDED.current_rate,
+           prob_hike = EXCLUDED.prob_hike,
+           prob_hold = EXCLUDED.prob_hold,
+           prob_cut = EXCLUDED.prob_cut,
+           expected_change = EXCLUDED.expected_change,
+           next_expected_move = EXCLUDED.next_expected_move,
+           timeline = EXCLUDED.timeline,
+           week_ago_data = EXCLUDED.week_ago_data,
+           data_source = EXCLUDED.data_source,
+           last_updated = EXCLUDED.last_updated`,
+          [
+            bankCode,
+            data.currency,
+            data.currentRate,
+            data.nextMeeting,
+            data.probabilities.hike,
+            data.probabilities.hold,
+            data.probabilities.cut,
+            data.expectedChange,
+            data.nextExpectedMove,
+            JSON.stringify(data.timeline),
+            JSON.stringify(data.weekAgoData),
+            data.dataSource,
+            data.lastUpdated
+          ]
+        );
+      }
+
+      console.log(`Saved ${Object.keys(probabilities).length} rate probabilities to PostgreSQL`);
+    } catch (error) {
+      console.error('Error saving rate probabilities to PostgreSQL:', error);
+    }
+  }
+
+  /**
+   * Save rate probabilities to JSON file (development mode)
+   */
+  saveRateProbabilitiesToFile(probabilities) {
+    try {
+      const dataDir = path.join(__dirname, '..', 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+
+      fs.writeFileSync(
+        this.rateProbabilitiesFile,
+        JSON.stringify(probabilities, null, 2),
+        'utf8'
+      );
+      console.log(`Saved ${Object.keys(probabilities).length} rate probabilities to file`);
+    } catch (error) {
+      console.error('Error saving rate probabilities to file:', error);
     }
   }
 

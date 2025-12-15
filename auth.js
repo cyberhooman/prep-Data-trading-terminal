@@ -48,6 +48,53 @@ async function createUser(email, password, displayName) {
   return newUser;
 }
 
+async function createPasswordResetToken(email) {
+  const users = await readUsers();
+  const user = users.find(u => u.email === email);
+
+  if (!user) {
+    return null;
+  }
+
+  // Generate a secure random token
+  const crypto = require('crypto');
+  const token = crypto.randomBytes(32).toString('hex');
+  const expires = Date.now() + (60 * 60 * 1000); // 1 hour from now
+
+  // Store reset token with user
+  user.resetToken = token;
+  user.resetTokenExpires = expires;
+
+  await writeUsers(users);
+  return token;
+}
+
+async function validateResetToken(token) {
+  const users = await readUsers();
+  const user = users.find(u => u.resetToken === token && u.resetTokenExpires > Date.now());
+  return user;
+}
+
+async function resetPassword(token, newPassword) {
+  const users = await readUsers();
+  const userIndex = users.findIndex(u => u.resetToken === token && u.resetTokenExpires > Date.now());
+
+  if (userIndex === -1) {
+    return false;
+  }
+
+  // Hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  // Update password and remove reset token
+  users[userIndex].password = hashedPassword;
+  delete users[userIndex].resetToken;
+  delete users[userIndex].resetTokenExpires;
+
+  await writeUsers(users);
+  return true;
+}
+
 // Validate required environment variables
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
   console.error('ERROR: Missing Google OAuth credentials!');
@@ -122,5 +169,8 @@ module.exports = {
   passport,
   ensureAuthenticated,
   findUserByEmail,
-  createUser
+  createUser,
+  createPasswordResetToken,
+  validateResetToken,
+  resetPassword
 };
