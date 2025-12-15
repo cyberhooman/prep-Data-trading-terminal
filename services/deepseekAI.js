@@ -110,60 +110,48 @@ class DeepSeekAI {
       return cached.data;
     }
 
-    const systemPrompt = `You are an expert monetary policy analyst and forex trader specializing in central bank communications. Your task is to analyze central bank speeches and determine their monetary policy stance IN THE CONTEXT OF CURRENT MACRO CONDITIONS.
+    const systemPrompt = `You are an expert in central bank policy analysis, specializing in assessing speeches for dovish (easing-oriented), hawkish (tightening-oriented), or neutral stances on interest rates. Your goal is to provide high-level, market-focused insights without granular word-by-word breakdowns.
 
-CURRENT MACRO CONTEXT (December 2024):
-- Global inflation has been moderating but remains above most CB targets
-- Fed has begun cutting rates but pace is data-dependent
-- ECB has started easing cycle amid weak European growth
-- BOE cautious on cuts due to sticky UK services inflation
-- BOJ ended negative rates, cautiously normalizing policy
-- Markets pricing in rate cuts for 2025 across most G8 central banks
-- Key themes: disinflation progress, labor market cooling, growth concerns, tariff/trade uncertainty
+When analyzing a speech:
+1. Focus exclusively on implications for future interest rates, economic outlook, inflation, and policy guidance.
+2. Summarize key points concisely.
+3. Rate the overall stance: HAWKISH (signals tighter policy, higher rates, or caution on cuts), DOVISH (signals easing, rate cuts, or optimism on inflation cooling), or NEUTRAL (no strong shift).
+4. Compare to previous speeches, noting shifts or surprises that could drive market reactions—markets only move on clear, unexpected guidance; ignore vague or repeated statements.
+5. Keep the entire response under 300 words.
 
-ANALYSIS FRAMEWORK - INTERPRET RELATIVE TO MARKET EXPECTATIONS:
-- HAWKISH: More restrictive than market expects - pushing back on rate cut expectations, emphasizing inflation risks, signaling patience on cuts
-  - In current context: Any resistance to priced-in cuts, emphasis on inflation not being defeated, upside risks to prices
-- DOVISH: More accommodative than market expects - supporting rate cuts, downplaying inflation, emphasizing growth/employment risks
-  - In current context: Faster/deeper cuts than priced, concerns about overtightening, focus on labor market weakness
-- NEUTRAL: In line with market expectations, balanced risks
-  - In current context: Data-dependent, no strong signal either direction
+Output in a professional, clean format using Markdown:
+- Use headings (# for main title, ## for sections)
+- Bold text for emphasis
+- Bullet points for summaries
+- A colored badge for the stance: 🟥 HAWKISH, 🟩 DOVISH, or 🟨 NEUTRAL
+- Ensure readability with short paragraphs and whitespace
 
-KEY ANALYSIS PRINCIPLES:
-1. Context matters: "Inflation is still above target" is neutral if everyone knows that - only hawkish if emphasized as reason to delay cuts
-2. Relative to expectations: A "patient" Fed when markets expect 6 cuts is hawkish; same language when expecting 2 cuts is neutral
-3. Look for surprises: What in this speech would move markets? That reveals the real signal
-4. Consider the speaker: Hawks sounding dovish or doves sounding hawkish is more significant
+Example output structure:
+# Central Bank Speech Analysis: [Date/Speaker]
 
-Provide your analysis in the following JSON format:
-{
-  "sentiment": "HAWKISH" | "DOVISH" | "NEUTRAL",
-  "score": <number from -100 (very dovish) to +100 (very hawkish)>,
-  "confidence": <percentage 0-100>,
-  "summary": "<2-3 sentence summary focusing on what's NEW or SURPRISING vs market expectations>",
-  "keyQuotes": [
-    {
-      "quote": "<exact quote from the speech>",
-      "interpretation": "<why this quote matters in current macro context>",
-      "sentiment": "HAWKISH" | "DOVISH" | "NEUTRAL"
-    }
-  ],
-  "policyImplications": {
-    "rateOutlook": "<how this changes rate expectations vs what's priced>",
-    "inflationView": "<speaker's view on inflation relative to consensus>",
-    "growthView": "<speaker's view on growth relative to consensus>",
-    "marketImpact": "<expected FX/rates impact and direction>"
-  },
-  "reasoning": "<detailed explanation of your analysis, explicitly referencing current macro context>"
-}`;
+## Overall Stance
+🟩 DOVISH - Brief rationale.
+
+## Key Summary Points
+- **Bullet 1**: Main point on rates.
+- **Bullet 2**: Economic outlook.
+
+## Comparison to Previous Speech(es)
+**Shift from prior**: [Details on surprises].
+
+## Market Implications
+Potential reactions based on surprises.
+
+IMPORTANT: Return ONLY the markdown formatted analysis. Do NOT wrap it in JSON or code blocks.`;
 
     const userPrompt = `Analyze the following ${centralBank} speech by ${speaker} from ${date}:
 
+Latest speech text:
 ---
 ${speechText}
 ---
 
-Provide a detailed analysis of the monetary policy stance with specific quotes and citations from the speech.`;
+Note: Compare to previous speeches from this central bank if you have context, otherwise focus on the current speech's market implications.`;
 
     try {
       const response = await this.makeRequest([
@@ -173,29 +161,33 @@ Provide a detailed analysis of the monetary policy stance with specific quotes a
 
       const content = response.choices[0].message.content;
 
-      // Try to parse as JSON
-      let analysis;
-      try {
-        // Extract JSON from response (might be wrapped in markdown code blocks)
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          analysis = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (parseError) {
-        // If JSON parsing fails, create a structured response from the text
-        analysis = {
-          sentiment: 'NEUTRAL',
-          score: 0,
-          confidence: 50,
-          summary: content.substring(0, 500),
-          keyQuotes: [],
-          policyImplications: {},
-          reasoning: content,
-          rawResponse: content
-        };
+      // Extract sentiment from the markdown badge
+      let sentiment = 'NEUTRAL';
+      let score = 0;
+
+      if (content.includes('🟥 HAWKISH')) {
+        sentiment = 'HAWKISH';
+        score = 60;
+      } else if (content.includes('🟩 DOVISH')) {
+        sentiment = 'DOVISH';
+        score = -60;
+      } else if (content.includes('🟨 NEUTRAL')) {
+        sentiment = 'NEUTRAL';
+        score = 0;
       }
+
+      // Create analysis object with markdown content
+      const analysis = {
+        sentiment: sentiment,
+        score: score,
+        confidence: 75, // Default confidence
+        summary: content, // Full markdown content
+        markdown: content, // Store the full markdown for display
+        keyQuotes: [], // Not extracted from markdown format
+        policyImplications: {}, // Not extracted from markdown format
+        reasoning: content,
+        rawResponse: content
+      };
 
       // Add metadata
       analysis.speaker = speaker;

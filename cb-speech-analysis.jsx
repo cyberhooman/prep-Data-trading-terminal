@@ -219,19 +219,31 @@ const CBSpeechAnalysis = () => {
                 </div>
               </div>
 
-              {/* Analysis Result - Key Quotes */}
-              {analysis && analysis.keyQuotes?.length > 0 && (
-                <div style={{ marginTop: '0.65rem', paddingTop: '0.65rem', borderTop: '1px solid rgba(148, 163, 184, 0.1)' }}>
-                  {analysis.keyQuotes.slice(0, 3).map((quote, idx) => (
-                    <div key={idx} style={{ marginBottom: idx < 2 ? '0.5rem' : 0, paddingLeft: '0.6rem', borderLeft: `2px solid ${getSentimentColor(quote.sentiment)}` }}>
-                      <span style={{ color: getSentimentColor(quote.sentiment), fontSize: '0.7rem', fontWeight: 600 }}>[{quote.sentiment}]</span>
-                      <span style={{ color: 'rgba(226, 232, 240, 0.85)', fontSize: '0.8rem', fontStyle: 'italic', marginLeft: '0.35rem' }}>
-                        "{quote.quote?.substring(0, 120)}{quote.quote?.length > 120 ? '...' : ''}"
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Analysis Result - Markdown Content */}
+              {analysis && analysis.markdown && (
+                <div
+                  style={{
+                    marginTop: '0.85rem',
+                    paddingTop: '0.85rem',
+                    borderTop: '1px solid rgba(148, 163, 184, 0.15)',
+                    color: 'rgba(226, 232, 240, 0.9)',
+                    fontSize: '0.9rem',
+                    lineHeight: 1.6
+                  }}
+                  className="markdown-content"
+                  dangerouslySetInnerHTML={{
+                    __html: analysis.markdown
+                      .replace(/^# (.*$)/gim, '<h1 style="font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0.75rem 0 0.5rem 0;">$1</h1>')
+                      .replace(/^## (.*$)/gim, '<h2 style="font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin: 0.65rem 0 0.4rem 0;">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 style="font-size: 1rem; font-weight: 600; color: #cbd5e1; margin: 0.5rem 0 0.3rem 0;">$1</h3>')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #f1f5f9; font-weight: 600;">$1</strong>')
+                      .replace(/^- (.*$)/gim, '<li style="margin-left: 1.5rem; margin-bottom: 0.3rem;">$1</li>')
+                      .replace(/🟥 HAWKISH/g, '<span style="padding: 0.25rem 0.6rem; border-radius: 6px; background: rgba(239, 68, 68, 0.2); color: #ef4444; font-weight: 700; font-size: 0.9rem;">🟥 HAWKISH</span>')
+                      .replace(/🟩 DOVISH/g, '<span style="padding: 0.25rem 0.6rem; border-radius: 6px; background: rgba(34, 197, 94, 0.2); color: #22c55e; font-weight: 700; font-size: 0.9rem;">🟩 DOVISH</span>')
+                      .replace(/🟨 NEUTRAL/g, '<span style="padding: 0.25rem 0.6rem; border-radius: 6px; background: rgba(234, 179, 8, 0.2); color: #eab308; font-weight: 700; font-size: 0.9rem;">🟨 NEUTRAL</span>')
+                      .replace(/\n/g, '<br/>')
+                  }}
+                />
             </div>
           );
         })}
