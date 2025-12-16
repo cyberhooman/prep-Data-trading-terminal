@@ -2260,7 +2260,27 @@ app.get('/api/financial-news', async (req, res) => {
     const source = 'forex_factory';
 
     // Use Forex Factory calendar data - filter for high/medium impact events and CB speeches
-    const calendarData = await loadHighImpactEvents();
+    // Add timeout to prevent hanging
+    const calendarDataPromise = loadHighImpactEvents();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Calendar fetch timeout')), 20000)
+    );
+
+    let calendarData = [];
+    try {
+      calendarData = await Promise.race([calendarDataPromise, timeoutPromise]);
+    } catch (timeoutErr) {
+      console.error('Calendar data timeout or error:', timeoutErr.message);
+      // Return empty result on timeout instead of crashing
+      return res.json({
+        success: true,
+        count: 0,
+        data: [],
+        source: 'failed',
+        error: 'Calendar data temporarily unavailable',
+        lastUpdated: new Date().toISOString()
+      });
+    }
 
     // Get current time
     const now = new Date();
@@ -2345,7 +2365,26 @@ app.post('/api/financial-news/refresh', async (req, res) => {
     let news = [];
     const source = 'forex_factory';
 
-    const calendarData = await loadHighImpactEvents();
+    // Add timeout to prevent hanging
+    const calendarDataPromise = loadHighImpactEvents();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Calendar fetch timeout')), 20000)
+    );
+
+    let calendarData = [];
+    try {
+      calendarData = await Promise.race([calendarDataPromise, timeoutPromise]);
+    } catch (timeoutErr) {
+      console.error('Calendar data timeout or error during refresh:', timeoutErr.message);
+      return res.json({
+        success: true,
+        count: 0,
+        data: [],
+        source: 'failed',
+        error: 'Calendar data temporarily unavailable',
+        lastUpdated: new Date().toISOString()
+      });
+    }
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const next7Days = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
