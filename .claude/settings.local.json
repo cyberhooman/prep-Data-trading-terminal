@@ -42,7 +42,11 @@
       "Bash(ls:*)",
       "Bash(routes)",
       "Bash(server)",
-      "Bash(app \")"
+      "Bash(app \")",
+      "Bash(npm test:*)",
+      "Bash(npm run)",
+      "Bash(git push)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "ask": []
