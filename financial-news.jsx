@@ -8,17 +8,30 @@ function FinancialNewsFeed() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/financial-news');
+
+      // Add timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout
+
+      const response = await fetch('/api/financial-news', { signal: controller.signal });
+      clearTimeout(timeoutId);
       const data = await response.json();
 
       if (data.success) {
         setNews(data.data);
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
+        if (data.data.length === 0 && data.source === 'failed') {
+          setError('News source temporarily unavailable');
+        }
       } else {
         setError('Failed to load news');
       }
     } catch (err) {
-      setError('Error fetching news feed');
+      if (err.name === 'AbortError') {
+        setError('Request timeout - news source may be slow');
+      } else {
+        setError('Error fetching news feed');
+      }
       console.error(err);
     } finally {
       setLoading(false);

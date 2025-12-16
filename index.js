@@ -2414,24 +2414,56 @@ app.get('/api/financial-news', async (req, res) => {
     let news = [];
     let source = 'unknown';
 
+    // Create timeout promise (20 seconds for scraping)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Timeout')), 20000)
+    );
+
     // Try X API first (preferred method)
     if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
       try {
         console.log('Fetching news from X API...');
-        news = await xNewsScraper.getLatestNews();
+        news = await Promise.race([
+          xNewsScraper.getLatestNews(),
+          timeoutPromise
+        ]);
         source = 'x_api';
         console.log(`Successfully fetched ${news.length} items from X API`);
       } catch (xErr) {
-        console.error('X API failed, falling back to scraping:', xErr.message);
+        if (xErr.message === 'Timeout') {
+          console.error('X API timeout, falling back to scraping');
+        } else {
+          console.error('X API failed, falling back to scraping:', xErr.message);
+        }
         // Fall back to scraping
-        news = await financialJuiceScraper.getLatestNews();
-        source = 'web_scraping';
+        try {
+          news = await Promise.race([
+            financialJuiceScraper.getLatestNews(),
+            timeoutPromise
+          ]);
+          source = 'web_scraping';
+        } catch (scrapingErr) {
+          console.error('Scraping also failed:', scrapingErr.message);
+          // Return empty array instead of crashing
+          news = [];
+          source = 'failed';
+        }
       }
     } else {
-      // No X API token, use scraping
+      // No X API token, use scraping with timeout
       console.log('No X_BEARER_TOKEN found, using web scraping');
-      news = await financialJuiceScraper.getLatestNews();
-      source = 'web_scraping';
+      try {
+        news = await Promise.race([
+          financialJuiceScraper.getLatestNews(),
+          timeoutPromise
+        ]);
+        source = 'web_scraping';
+      } catch (scrapingErr) {
+        console.error('Scraping failed:', scrapingErr.message);
+        // Return empty array instead of crashing
+        news = [];
+        source = 'failed';
+      }
     }
 
     res.json({
@@ -3147,7 +3179,34 @@ app.get('/api/currency-strength', async (req, res) => {
 // API endpoint to get all events (calendar, CB speeches, Trump schedule)
 app.get('/api/events', async (_req, res) => {
   try {
-    const { combinedEvents, autoError } = await gatherEvents();
+    // If cache is available, return immediately
+    // Otherwise, wait for fresh data with a timeout
+    const hasCache = eventsCache !== null;
+
+    let eventData;
+    if (hasCache) {
+      // Return cached data immediately
+      eventData = await gatherEvents();
+    } else {
+      // First load: wait for data with timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout')), 15000)
+      );
+
+      try {
+        eventData = await Promise.race([
+          gatherEvents(),
+          timeoutPromise
+        ]);
+      } catch (timeoutErr) {
+        // Timeout: return empty data and let cache populate in background
+        console.log('First load timeout, returning empty data');
+        gatherEvents(); // Continue fetching in background
+        eventData = { combinedEvents: [], autoEvents: [], cbSpeeches: [], trumpSchedule: [], autoError: null };
+      }
+    }
+
+    const { combinedEvents, autoError } = eventData;
 
     const formattedEvents = combinedEvents.map((event) => {
       const eventDate = new Date(event.date);
@@ -3484,7 +3543,11 @@ app.get('/', async (req, res) => {
         // Fetch events asynchronously for faster page load
         async function loadEvents() {
           try {
-            const response = await fetch('/api/events');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+            const response = await fetch('/api/events', { signal: controller.signal });
+            clearTimeout(timeoutId);
             const data = await response.json();
 
             if (data.success) {
@@ -3498,6 +3561,8 @@ app.get('/', async (req, res) => {
                 const cbCount = events.filter(e => e.source === 'cb_speech').length;
                 const trumpCount = events.filter(e => e.source === 'trump').length;
                 countText.textContent = \`Tracking \${economicCount} economic + \${cbCount} CB speeches + \${trumpCount} Trump events\`;
+              } else {
+                if (countText) countText.textContent = 'No events available';
               }
 
               // Update next event panel
@@ -3508,9 +3573,28 @@ app.get('/', async (req, res) => {
 
               // Start countdown updates
               setInterval(updateCountdowns, 500);
+            } else {
+              showEventError('Failed to load events');
             }
           } catch (err) {
             console.error('Failed to load events:', err);
+            showEventError(err.name === 'AbortError' ? 'Request timeout - please refresh' : 'Failed to load events');
+          }
+        }
+
+        function showEventError(message) {
+          const panel = document.getElementById('next-event-loading');
+          if (panel) {
+            panel.innerHTML = \`
+              <div style="text-align: center; padding: 2rem; color: #ff6b6b;">
+                ⚠️ \${message}
+                <br><button onclick="loadEvents()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer;">Retry</button>
+              </div>
+            \`;
+          }
+          const countText = document.getElementById('events-count-text');
+          if (countText) {
+            countText.innerHTML = \`<span style="color: #ff6b6b;">⚠️ \${message}</span>\`;
           }
         }
 
