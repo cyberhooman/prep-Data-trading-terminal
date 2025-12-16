@@ -599,6 +599,7 @@ app.get('/login', (req, res) => {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
       <style>
         :root {
           --neon-red: #ff0055;
@@ -625,48 +626,6 @@ app.get('/login', (req, res) => {
           width: 100%;
           height: 100%;
           z-index: 0;
-          opacity: 0.85;
-          background: radial-gradient(ellipse at center, #1a0033 0%, #000000 50%, #001a33 100%);
-          animation: bgShift 20s ease-in-out infinite;
-        }
-
-        @keyframes bgShift {
-          0%, 100% {
-            background: radial-gradient(ellipse at 30% 50%, #1a0033 0%, #000000 40%, #001a33 100%);
-          }
-          25% {
-            background: radial-gradient(ellipse at 70% 30%, #0d1a33 0%, #000000 40%, #1a0033 100%);
-          }
-          50% {
-            background: radial-gradient(ellipse at 60% 70%, #001a33 0%, #000000 40%, #0d1a33 100%);
-          }
-          75% {
-            background: radial-gradient(ellipse at 40% 40%, #1a0033 0%, #000000 40%, #001a33 100%);
-          }
-        }
-
-        /* Scanline overlay effect */
-        #shader-bg::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: repeating-linear-gradient(
-            0deg,
-            var(--scan-line) 0px,
-            transparent 1px,
-            transparent 2px,
-            var(--scan-line) 3px
-          );
-          pointer-events: none;
-          animation: scanlines 8s linear infinite;
-        }
-
-        @keyframes scanlines {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(10px); }
         }
 
         .content-wrapper {
@@ -1226,7 +1185,65 @@ app.get('/login', (req, res) => {
           errorDiv.classList.add('show');
         }
 
-        // Lightweight CSS background - no heavy Three.js needed!
+        // Three.js WebGL Shader Animation
+        const container = document.getElementById('shader-bg');
+        const vertexShader = \`
+          void main() {
+            gl_Position = vec4( position, 1.0 );
+          }
+        \`;
+        const fragmentShader = \`
+          #define TWO_PI 6.2831853072
+          #define PI 3.14159265359
+          precision highp float;
+          uniform vec2 resolution;
+          uniform float time;
+          void main(void) {
+            vec2 uv = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
+            float t = time*0.05;
+            float lineWidth = 0.002;
+            vec3 color = vec3(0.0);
+            for(int j = 0; j < 3; j++){
+              for(int i=0; i < 5; i++){
+                color[j] += lineWidth*float(i*i) / abs(fract(t - 0.01*float(j)+float(i)*0.01)*5.0 - length(uv) + mod(uv.x+uv.y, 0.2));
+              }
+            }
+            gl_FragColor = vec4(color[0],color[1],color[2],1.0);
+          }
+        \`;
+        const camera = new THREE.Camera();
+        camera.position.z = 1;
+        const scene = new THREE.Scene();
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        const uniforms = {
+          time: { type: "f", value: 1.0 },
+          resolution: { type: "v2", value: new THREE.Vector2() }
+        };
+        const material = new THREE.ShaderMaterial({
+          uniforms: uniforms,
+          vertexShader: vertexShader,
+          fragmentShader: fragmentShader
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        function onWindowResize() {
+          const width = window.innerWidth;
+          const height = window.innerHeight;
+          renderer.setSize(width, height);
+          uniforms.resolution.value.x = renderer.domElement.width;
+          uniforms.resolution.value.y = renderer.domElement.height;
+        }
+        onWindowResize();
+        window.addEventListener("resize", onWindowResize, false);
+        function animate() {
+          requestAnimationFrame(animate);
+          uniforms.time.value += 0.05;
+          renderer.render(scene, camera);
+        }
+        animate();
       </script>
     </body>
   </html>`;
