@@ -348,21 +348,27 @@ async function loadCurrencyStrength() {
       const rawScore = strengthScores[currency];
       const normalizedScore = range > 0 ? ((rawScore - minScore) / range) * 100 : 50;
 
+      // Determine momentum label based on normalized score
+      let momentumLabel = 'Neutral';
+      if (normalizedScore >= 80) momentumLabel = 'Strong Buy';
+      else if (normalizedScore >= 60) momentumLabel = 'Buy';
+      else if (normalizedScore <= 20) momentumLabel = 'Strong Sell';
+      else if (normalizedScore <= 40) momentumLabel = 'Sell';
+
       return {
-        id: currency,
-        name: currency,
-        title: getCurrencyName(currency),
-        value: rawScore, // Keep raw percentage for display
-        momentum: Math.round(normalizedScore), // 0-100 momentum like BabyPips
+        currency: currency,
+        strength: normalizedScore, // 0-100 normalized strength
+        sevenDayChange: rawScore, // Raw percentage change
+        momentum: momentumLabel,
         trend: rawScore > 0 ? 'bullish' : 'bearish'
       };
     });
 
-    // Sort by raw strength (highest to lowest)
-    strengthData.sort((a, b) => b.value - a.value);
+    // Sort by strength (highest to lowest)
+    strengthData.sort((a, b) => b.strength - a.strength);
 
     console.log('✅ Currency strength calculated from 28 pairs');
-    console.log('Strongest:', strengthData[0].name, 'Weakest:', strengthData[strengthData.length - 1].name);
+    console.log('Strongest:', strengthData[0].currency, 'Weakest:', strengthData[strengthData.length - 1].currency);
 
     // Cache the result
     currencyStrengthCache.data = strengthData;
