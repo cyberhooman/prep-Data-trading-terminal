@@ -3127,6 +3127,40 @@ app.get('/api/currency-strength', async (req, res) => {
   }
 });
 
+// API endpoint to get all events (calendar, CB speeches, Trump schedule)
+app.get('/api/events', async (_req, res) => {
+  try {
+    const { combinedEvents, autoError } = await gatherEvents();
+
+    const formattedEvents = combinedEvents.map((event) => {
+      const eventDate = new Date(event.date);
+      return {
+        id: event.id,
+        title: event.title,
+        country: event.country,
+        timestamp: eventDate.getTime(),
+        formatted: formatEventDate(eventDate),
+        source: event.source,
+      };
+    });
+
+    res.json({
+      success: true,
+      data: formattedEvents,
+      nextEvent: formattedEvents[0] || null,
+      error: autoError || null,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error fetching events:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch events',
+      message: err.message
+    });
+  }
+});
+
 // API endpoint to get strongest and weakest currency pairs
 app.get('/api/currency-strength/extremes', async (req, res) => {
   try {
@@ -3163,66 +3197,10 @@ app.get('/api/currency-strength/extremes', async (req, res) => {
 });
 
 app.get('/', async (req, res) => {
-  let autoEvents = [];
-  let cbSpeeches = [];
-  let trumpSchedule = [];
-  let combinedEvents = [];
-  let errorMsg = '';
   const message = req.query.message ? String(req.query.message) : '';
 
-  try {
-    const { autoEvents: autoList, cbSpeeches: cbList, trumpSchedule: trumpList, combinedEvents: combined, autoError } =
-      await gatherEvents();
-    autoEvents = autoList;
-    cbSpeeches = cbList;
-    trumpSchedule = trumpList;
-    combinedEvents = combined;
-    if (autoError) {
-      errorMsg = autoError;
-    }
-  } catch (err) {
-    errorMsg = err.message;
-  }
-
-  const eventsJson = JSON.stringify(
-    combinedEvents.map((event) => {
-      const eventDate = new Date(event.date);
-      return {
-        id: event.id,
-        title: event.title,
-        country: event.country,
-        timestamp: eventDate.getTime(),
-        formatted: formatEventDate(eventDate),
-        source: event.source,
-      };
-    })
-  );
-  const nextEvent = combinedEvents[0] || null;
-  const nextEventJson = JSON.stringify(
-    nextEvent ? {
-      id: nextEvent.id,
-      title: nextEvent.title,
-      country: nextEvent.country,
-      timestamp: new Date(nextEvent.date).getTime(),
-      formatted: formatEventDate(new Date(nextEvent.date)),
-      source: nextEvent.source,
-    } : null
-  );
-
-  const nextEventPanel = nextEvent
-    ? `
-      <div class="next-event-card">
-        <div class="next-event-title">
-          [${escapeHtml(nextEvent.country)}] ${escapeHtml(nextEvent.title)}
-          <span class="badge ${nextEvent.source === 'manual' ? 'manual' : 'auto'}">
-            ${nextEvent.source === 'manual' ? 'Manual' : 'Auto'}
-          </span>
-        </div>
-        <div class="next-event-meta">Scheduled: ${formatEventDate(new Date(nextEvent.date))}</div>
-        <div class="countdown next-countdown" id="next-event-countdown">Loading...</div>
-      </div>
-    `
-    : '<p class="next-empty">No upcoming events yet. Use the form below to add one.</p>';
+  // Events will be loaded client-side for faster page load
+  const nextEventPanel = '<div class="next-event-card" id="next-event-loading" style="text-align: center; padding: 2rem; color: rgba(226, 232, 240, 0.6);">Loading next event...</div>';
 
   const userProfile = req.user || null;
   const userPrimaryEmail =
@@ -3438,8 +3416,8 @@ app.get('/', async (req, res) => {
           <!-- Upcoming Events Box (Top Right) -->
           <div class="bento-box bento-events">
             <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 700;">📰 Upcoming High Impact News</h2>
-            <p style="margin-bottom: 1rem; font-size: 0.85rem; color: rgba(226, 232, 240, 0.7);">
-              Tracking ${autoEvents.length} economic + ${cbSpeeches.length} CB speeches + ${trumpSchedule.length} Trump events
+            <p id="events-count-text" style="margin-bottom: 1rem; font-size: 0.85rem; color: rgba(226, 232, 240, 0.7);">
+              Loading events...
             </p>
             <div class="events-preview">
               <div class="events-limited"></div>
@@ -3480,12 +3458,68 @@ app.get('/', async (req, res) => {
       </footer>
       <script>
         const THREE_MINUTES = 3 * 60 * 1000;
-        const events = ${eventsJson};
-        const nextEventData = ${nextEventJson};
+        let events = [];
+        let nextEventData = null;
         let nextWarned = false;
         let nextAnnounced = false;
         let countdownSoundTimer = null;
         let sharedAudioCtx = null;
+
+        // Fetch events asynchronously for faster page load
+        async function loadEvents() {
+          try {
+            const response = await fetch('/api/events');
+            const data = await response.json();
+
+            if (data.success) {
+              events = data.data || [];
+              nextEventData = data.nextEvent || null;
+
+              // Update event count text
+              const countText = document.getElementById('events-count-text');
+              if (countText && events.length > 0) {
+                const economicCount = events.filter(e => e.source === 'forex').length;
+                const cbCount = events.filter(e => e.source === 'cb_speech').length;
+                const trumpCount = events.filter(e => e.source === 'trump').length;
+                countText.textContent = \`Tracking \${economicCount} economic + \${cbCount} CB speeches + \${trumpCount} Trump events\`;
+              }
+
+              // Update next event panel
+              updateNextEventPanel();
+
+              // Render events
+              renderEvents();
+
+              // Start countdown updates
+              setInterval(updateCountdowns, 500);
+            }
+          } catch (err) {
+            console.error('Failed to load events:', err);
+          }
+        }
+
+        function updateNextEventPanel() {
+          const panel = document.getElementById('next-event-loading');
+          if (!panel) return;
+
+          if (nextEventData) {
+            panel.id = ''; // Remove loading id
+            panel.className = 'next-event-card';
+            panel.style = '';
+            panel.innerHTML = \`
+              <div class="next-event-title">
+                [\${nextEventData.country}] \${nextEventData.title}
+                <span class="badge \${nextEventData.source === 'manual' ? 'manual' : 'auto'}">
+                  \${nextEventData.source === 'manual' ? 'Manual' : 'Auto'}
+                </span>
+              </div>
+              <div class="next-event-meta">Scheduled: \${nextEventData.formatted}</div>
+              <div class="countdown next-countdown" id="next-event-countdown">Loading...</div>
+            \`;
+          } else {
+            panel.innerHTML = '<p class="next-empty">No upcoming events yet. Use the form below to add one.</p>';
+          }
+        }
 
         function formatDuration(ms) {
           if (ms <= 0) return '00:00:00';
@@ -3702,14 +3736,9 @@ app.get('/', async (req, res) => {
           }
         }
 
-        renderEvents();
+        // Load events asynchronously on page load
+        loadEvents();
         setupEventsToggle();
-        updateCountdowns();
-        updateNextEventCountdown();
-        setInterval(() => {
-          updateCountdowns();
-          updateNextEventCountdown();
-        }, 1000);
 
         function pad2(n) { return String(n).padStart(2, '0'); }
         function formatForDatetimeLocal(d) {
