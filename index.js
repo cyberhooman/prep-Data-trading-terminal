@@ -1984,6 +1984,7 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
           <nav class="nav-bar">
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/interest-rates" class="nav-link">Interest Rates</a>
+            <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link active">CB Speeches</a>
             <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
@@ -2053,6 +2054,7 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           <nav class="nav-bar">
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/interest-rates" class="nav-link">Interest Rates</a>
+            <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link">CB Speeches</a>
             <a href="/weekly-calendar" class="nav-link active">Weekly Calendar</a>
           </nav>
@@ -2229,6 +2231,7 @@ app.get('/interest-rates', ensureAuthenticated, async (req, res) => {
           <nav class="nav-bar">
             <a href="/" class="nav-link">Dashboard</a>
             <a href="/interest-rates" class="nav-link active">Interest Rates</a>
+            <a href="/currency-strength" class="nav-link">Currency Strength</a>
             <a href="/cb-speeches" class="nav-link">CB Speeches</a>
             <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
           </nav>
@@ -2257,7 +2260,74 @@ app.get('/interest-rates', ensureAuthenticated, async (req, res) => {
 
   res.send(html);
 });
+// Currency Strength Page
+app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
+  const user = req.user;
 
+  const authControlsHtml = user
+    ? `<div class="auth-controls">
+         <div class="auth-user">
+           <strong>${user.displayName || user.email}</strong>
+           <span>Authenticated</span>
+         </div>
+         ${user.picture ? `<img src="${user.picture}" alt="User" class="auth-avatar" />` : ''}
+         <a href="/logout" class="auth-button logout">Logout</a>
+       </div>`
+    : `<a href="/login" class="auth-button login">Login</a>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Currency Strength - Alphalabs</title>
+    <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
+  </head>
+  <body>
+    <header style="padding: 1.5rem 0; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1.5rem; padding: 0 1rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
+          <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
+            <div>
+              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
+                Alphalabs
+              </h1>
+              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+            </div>
+          </a>
+          <nav class="nav-bar">
+            <a href="/" class="nav-link">Dashboard</a>
+            <a href="/interest-rates" class="nav-link">Interest Rates</a>
+            <a href="/currency-strength" class="nav-link active">Currency Strength</a>
+            <a href="/cb-speeches" class="nav-link">CB Speeches</a>
+            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
+          </nav>
+        </div>
+        ${authControlsHtml}
+      </div>
+    </header>
+
+    <main>
+      <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 0 1rem;">
+        <div id="currency-strength-root"></div>
+      </section>
+    </main>
+
+    <footer style="padding: 2rem 0; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; color: rgba(226, 232, 240, 0.5); font-size: 0.85rem;">
+      Updated every 4 hours • Real-time currency strength analysis
+    </footer>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" src="/currency-strength.jsx"></script>
+  </body>
+</html>`;
+
+  res.send(html);
+});
 
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
@@ -2865,6 +2935,12 @@ app.get('/weekly-calendar.jsx', (req, res) => {
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
 
+app.get('/currency-strength.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'currency-strength.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
 /**
  * Account Settings API - USER ISOLATED
  * ------------------------------------------------
@@ -3103,6 +3179,25 @@ app.put('/api/todos/:id', (req, res) => {
     // Rollback text change if save failed
     item.text = oldText;
     res.status(500).json({ error: 'Failed to update todo item' });
+  }
+});
+// API endpoint to get all currency strength data
+app.get('/api/currency-strength', async (req, res) => {
+  try {
+    const strengthData = await loadCurrencyStrength();
+
+    res.json({
+      success: true,
+      data: strengthData,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error fetching currency strength:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch currency strength data',
+      message: err.message
+    });
   }
 });
 
@@ -3392,6 +3487,7 @@ app.get('/', async (req, res) => {
             <nav class="nav-bar">
               <a href="/" class="nav-link ${req.path === '/' ? 'active' : ''}">Dashboard</a>
               <a href="/interest-rates" class="nav-link ${req.path === '/interest-rates' ? 'active' : ''}">Interest Rates</a>
+              <a href="/currency-strength" class="nav-link ${req.path === '/currency-strength' ? 'active' : ''}">Currency Strength</a>
               <a href="/cb-speeches" class="nav-link ${req.path === '/cb-speeches' ? 'active' : ''}">CB Speeches</a>
               <a href="/weekly-calendar" class="nav-link ${req.path === '/weekly-calendar' ? 'active' : ''}">Weekly Calendar</a>
             </nav>
