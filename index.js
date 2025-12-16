@@ -25,8 +25,8 @@ const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
 const cbSpeechScraper = require('./services/cbSpeechScraper');
-const trumpScheduleScraper = require('./services/trumpScheduleScraper');
 const emailService = require('./services/emailService');
+// Note: Trump schedule scraper removed to reduce GPU costs
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -429,47 +429,6 @@ const quickNotes = loadJson('notes.json', []);
 const userAccountSettings = {};
 
 /**
- * Load CB speeches and convert to event format
- */
-async function loadCBSpeeches() {
-  try {
-    const speeches = await cbSpeechScraper.fetchAllContent(financialJuiceScraper);
-    return speeches.map(speech => ({
-      id: speech.id,
-      title: `${speech.speaker} (${speech.bankCode}): ${speech.title}`,
-      country: speech.currency,
-      date: speech.timestamp || speech.date,
-      source: 'cb_speech',
-      type: speech.type
-    }));
-  } catch (err) {
-    console.error('Error loading CB speeches:', err.message);
-    return [];
-  }
-}
-
-/**
- * Load Trump schedule and convert to event format
- */
-async function loadTrumpSchedule() {
-  try {
-    const schedule = await trumpScheduleScraper.getUpcomingSchedule();
-    return schedule.map(item => ({
-      id: item.id,
-      title: item.title,
-      country: item.country, // Already USD
-      date: item.date,
-      source: 'trump_schedule',
-      type: item.type,
-      location: item.location
-    }));
-  } catch (err) {
-    console.error('Error loading Trump schedule:', err.message);
-    return [];
-  }
-}
-
-/**
  * Cache for gathered events
  */
 let eventsCache = null;
@@ -495,64 +454,39 @@ async function gatherEvents(forceRefresh = false) {
     return eventsCache;
   }
 
-  console.log('Gathering events from all sources...');
+  console.log('Gathering events from Forex Factory...');
 
   let autoEvents = [];
-  let cbSpeeches = [];
-  let trumpSchedule = [];
   let autoError = null;
 
-  // Load all sources in parallel with individual timeouts (10 seconds each)
-  const [forexResult, cbResult, trumpResult] = await Promise.all([
-    // Forex Factory economic events
-    withTimeout(
-      loadHighImpactEvents().catch(err => {
-        console.error('Error loading Forex Factory events:', err.message);
-        autoError = err.message.replace(/<[^>]+>/g, '').trim();
-        return [];
-      }),
+  // Load only Forex Factory events (includes high-impact economic data and CB speeches)
+  try {
+    const forexResult = await withTimeout(
+      loadHighImpactEvents(),
       10000,
       []
-    ),
-    // CB speeches
-    withTimeout(
-      loadCBSpeeches().catch(err => {
-        console.error('Error loading CB speeches:', err.message);
-        return [];
-      }),
-      10000,
-      []
-    ),
-    // Trump schedule
-    withTimeout(
-      loadTrumpSchedule().catch(err => {
-        console.error('Error loading Trump schedule:', err.message);
-        return [];
-      }),
-      10000,
-      []
-    )
-  ]);
+    );
+    autoEvents = Array.isArray(forexResult) ? forexResult : [];
+    console.log(`Loaded ${autoEvents.length} Forex Factory events`);
+  } catch (err) {
+    console.error('Error loading Forex Factory events:', err.message);
+    autoError = err.message.replace(/<[^>]+>/g, '').trim();
+    autoEvents = [];
+  }
 
-  autoEvents = Array.isArray(forexResult) ? forexResult : [];
-  cbSpeeches = Array.isArray(cbResult) ? cbResult : [];
-  trumpSchedule = Array.isArray(trumpResult) ? trumpResult : [];
-
-  console.log(`Loaded: ${autoEvents.length} Forex Factory, ${cbSpeeches.length} CB speeches, ${trumpSchedule.length} Trump events`);
-
-  // Combine all events and sort by date
-  const combinedEvents = [...autoEvents, ...cbSpeeches, ...trumpSchedule].sort((a, b) => {
+  // Combine all events and sort by date (only Forex Factory now)
+  const combinedEvents = [...autoEvents].sort((a, b) => {
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     return dateA.getTime() - dateB.getTime();
   });
 
-  console.log(`Total combined events: ${combinedEvents.length}`);
+  console.log(`Total events: ${combinedEvents.length}`);
 
   const result = {
     autoEvents,
-    cbSpeeches,
-    trumpSchedule,
+    cbSpeeches: [], // Disabled - using Forex Factory CB speeches instead
+    trumpSchedule: [], // Disabled - removed to reduce costs
     combinedEvents,
     autoError
   };
