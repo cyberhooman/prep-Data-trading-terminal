@@ -3401,7 +3401,6 @@ app.get('/', async (req, res) => {
       </header>
       <main>
         ${message ? `<div class="message" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(message)}</div>` : ''}
-        ${errorMsg ? `<div class="error" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(errorMsg)}</div>` : ''}
 
         <!-- BENTO LAYOUT: Event Countdown, Upcoming Events, Notes, Todo List -->
         <div class="bento-container" style="max-width: 1480px; margin: 0 auto 2rem;">
