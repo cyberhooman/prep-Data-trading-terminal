@@ -104,11 +104,13 @@ const CBSpeechAnalysis = () => {
     return '#eab308';
   };
 
-  const filteredSpeeches = speeches.filter(s => {
-    const bankMatch = filterBank === 'ALL' || s.bankCode === filterBank;
-    const typeMatch = filterType === 'ALL' || s.type === filterType;
-    return bankMatch && typeMatch;
-  });
+  const filteredSpeeches = React.useMemo(() => {
+    return speeches.filter(s => {
+      const bankMatch = filterBank === 'ALL' || s.bankCode === filterBank;
+      const typeMatch = filterType === 'ALL' || s.type === filterType;
+      return bankMatch && typeMatch;
+    });
+  }, [speeches, filterBank, filterType]);
 
   return (
     <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.7)' }}>
