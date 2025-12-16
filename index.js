@@ -479,6 +479,14 @@ const EVENTS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 /**
  * Gather all events from all sources (with caching)
  */
+// Helper to add timeout to any promise
+function withTimeout(promise, ms, fallback = []) {
+  const timeout = new Promise((resolve) =>
+    setTimeout(() => resolve(fallback), ms)
+  );
+  return Promise.race([promise, timeout]);
+}
+
 async function gatherEvents(forceRefresh = false) {
   // Return cached data if still valid
   const now = Date.now();
@@ -494,34 +502,43 @@ async function gatherEvents(forceRefresh = false) {
   let trumpSchedule = [];
   let autoError = null;
 
-  // Load Forex Factory economic events
-  try {
-    const loadedEvents = await loadHighImpactEvents();
-    autoEvents = Array.isArray(loadedEvents) ? loadedEvents : [];
-    console.log(`Loaded ${autoEvents.length} Forex Factory events`);
-  } catch (err) {
-    console.error('Error loading Forex Factory events:', err);
-    autoError = err.message.replace(/<[^>]+>/g, '').trim();
-    autoEvents = [];
-  }
+  // Load all sources in parallel with individual timeouts (10 seconds each)
+  const [forexResult, cbResult, trumpResult] = await Promise.all([
+    // Forex Factory economic events
+    withTimeout(
+      loadHighImpactEvents().catch(err => {
+        console.error('Error loading Forex Factory events:', err.message);
+        autoError = err.message.replace(/<[^>]+>/g, '').trim();
+        return [];
+      }),
+      10000,
+      []
+    ),
+    // CB speeches
+    withTimeout(
+      loadCBSpeeches().catch(err => {
+        console.error('Error loading CB speeches:', err.message);
+        return [];
+      }),
+      10000,
+      []
+    ),
+    // Trump schedule
+    withTimeout(
+      loadTrumpSchedule().catch(err => {
+        console.error('Error loading Trump schedule:', err.message);
+        return [];
+      }),
+      10000,
+      []
+    )
+  ]);
 
-  // Load CB speeches
-  try {
-    cbSpeeches = await loadCBSpeeches();
-    console.log(`Loaded ${cbSpeeches.length} CB speech events`);
-  } catch (err) {
-    console.error('Error loading CB speeches:', err);
-    cbSpeeches = [];
-  }
+  autoEvents = Array.isArray(forexResult) ? forexResult : [];
+  cbSpeeches = Array.isArray(cbResult) ? cbResult : [];
+  trumpSchedule = Array.isArray(trumpResult) ? trumpResult : [];
 
-  // Load Trump schedule
-  try {
-    trumpSchedule = await loadTrumpSchedule();
-    console.log(`Loaded ${trumpSchedule.length} Trump schedule events`);
-  } catch (err) {
-    console.error('Error loading Trump schedule:', err);
-    trumpSchedule = [];
-  }
+  console.log(`Loaded: ${autoEvents.length} Forex Factory, ${cbSpeeches.length} CB speeches, ${trumpSchedule.length} Trump events`);
 
   // Combine all events and sort by date
   const combinedEvents = [...autoEvents, ...cbSpeeches, ...trumpSchedule].sort((a, b) => {
@@ -2711,10 +2728,13 @@ app.post('/api/speeches/search', async (req, res) => {
   }
 });
 
-// Protect all routes except login and auth routes
+// Protect all routes except login, auth, static files, and API routes
 app.use((req, res, next) => {
-  // Allow access to login, auth, and static files
-  if (req.path === '/login' || req.path.startsWith('/auth/') || req.path.startsWith('/public/')) {
+  // Allow access to login, auth, static files, and API endpoints
+  if (req.path === '/login' ||
+      req.path.startsWith('/auth/') ||
+      req.path.startsWith('/public/') ||
+      req.path.startsWith('/api/')) {
     return next();
   }
 
@@ -3032,7 +3052,25 @@ app.get('/api/currency-strength', async (req, res) => {
 app.get('/api/events', async (_req, res) => {
   try {
     // Fetch events with a reasonable timeout
-    const eventData = await gatherEvents();
+    const gatherPromise = gatherEvents();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Events fetch timeout')), 20000)
+    );
+
+    let eventData;
+    try {
+      eventData = await Promise.race([gatherPromise, timeoutPromise]);
+    } catch (timeoutErr) {
+      console.error('Events fetch timeout:', timeoutErr.message);
+      return res.json({
+        success: true,
+        data: [],
+        nextEvent: null,
+        error: 'Events temporarily unavailable',
+        lastUpdated: new Date().toISOString()
+      });
+    }
+
     const { combinedEvents, autoError } = eventData;
 
     const formattedEvents = combinedEvents.map((event) => {
@@ -3716,12 +3754,28 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
       <script type="text/babel" data-presets="env,react">
-        const root = ReactDOM.createRoot(document.getElementById('todo-root'));
-        root.render(React.createElement(TodoCard));
-        const nroot = ReactDOM.createRoot(document.getElementById('notes-root'));
-        nroot.render(React.createElement(QuickNotes));
-        const fnroot = ReactDOM.createRoot(document.getElementById('financial-news-root'));
-        fnroot.render(React.createElement(FinancialNewsFeed));
+        try {
+          const root = ReactDOM.createRoot(document.getElementById('todo-root'));
+          root.render(React.createElement(TodoCard));
+        } catch (e) { console.error('TodoCard render error:', e); }
+
+        try {
+          const nroot = ReactDOM.createRoot(document.getElementById('notes-root'));
+          nroot.render(React.createElement(QuickNotes));
+        } catch (e) { console.error('QuickNotes render error:', e); }
+
+        try {
+          const fnroot = ReactDOM.createRoot(document.getElementById('financial-news-root'));
+          if (fnroot && typeof FinancialNewsFeed !== 'undefined') {
+            fnroot.render(React.createElement(FinancialNewsFeed));
+          } else {
+            console.error('FinancialNewsFeed not defined or root not found');
+            document.getElementById('financial-news-root').innerHTML = '<div style="padding:1rem;color:#ff6b6b;">Error loading Critical Market News component</div>';
+          }
+        } catch (e) {
+          console.error('FinancialNewsFeed render error:', e);
+          document.getElementById('financial-news-root').innerHTML = '<div style="padding:1rem;color:#ff6b6b;">Error: ' + e.message + '</div>';
+        }
       </script>
       <script>
         // Live reload WebSocket connection
