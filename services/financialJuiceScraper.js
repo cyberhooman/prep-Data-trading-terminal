@@ -416,7 +416,8 @@ class FinancialJuiceScraper {
             'Need to know'
           ];
 
-          if (fjFeatureSections.some(section => text.includes(section) || headline.includes(section))) {
+          // Only check text here - headline is not yet defined at this point
+          if (fjFeatureSections.some(section => text.includes(section))) {
             return;
           }
 

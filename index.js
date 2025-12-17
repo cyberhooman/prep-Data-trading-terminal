@@ -3481,6 +3481,9 @@ app.get('/', async (req, res) => {
 
         function updateCountdowns() {
           const now = Date.now();
+          // Update the main next event countdown first
+          updateNextEventCountdown();
+
           document.querySelectorAll('.event-card').forEach((card) => {
             const timestamp = Number(card.dataset.timestamp);
             const diff = timestamp - now;
