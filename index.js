@@ -2208,86 +2208,59 @@ app.post('/auth/reset-password', async (req, res) => {
 app.get('/api/financial-news', async (req, res) => {
   try {
     let news = [];
-    const source = 'forex_factory';
+    let source = 'unknown';
 
-    // Use Forex Factory calendar data - filter for high/medium impact events and CB speeches
-    // Add timeout to prevent hanging
-    const calendarDataPromise = loadHighImpactEvents();
+    // Create timeout promise (20 seconds for scraping)
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Calendar fetch timeout')), 20000)
+      setTimeout(() => reject(new Error('Timeout')), 20000)
     );
 
-    let calendarData = [];
-    try {
-      calendarData = await Promise.race([calendarDataPromise, timeoutPromise]);
-    } catch (timeoutErr) {
-      console.error('Calendar data timeout or error:', timeoutErr.message);
-      // Return empty result on timeout instead of crashing
-      return res.json({
-        success: true,
-        count: 0,
-        data: [],
-        source: 'failed',
-        error: 'Calendar data temporarily unavailable',
-        lastUpdated: new Date().toISOString()
-      });
-    }
-
-    // Get current time
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const next7Days = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    // Convert calendar events to news format
-    // Focus on: High impact events, CB speeches, rate decisions
-    for (const event of calendarData) {
-      const eventDate = new Date(event.date);
-
-      // Only include events from today to next 7 days
-      if (eventDate < todayStart || eventDate > next7Days) continue;
-
-      // Determine if it's a CB speech/press conference
-      const titleLower = event.title.toLowerCase();
-      const isCBSpeech = titleLower.includes('speak') ||
-                         titleLower.includes('press conference') ||
-                         titleLower.includes('testimony') ||
-                         titleLower.includes('gov ') ||
-                         titleLower.includes('fomc member') ||
-                         titleLower.includes('boe ') ||
-                         titleLower.includes('ecb ') ||
-                         titleLower.includes('boj ') ||
-                         titleLower.includes('rba ') ||
-                         titleLower.includes('boc ') ||
-                         titleLower.includes('snb ') ||
-                         titleLower.includes('rbnz ');
-
-      const isRateDecision = titleLower.includes('rate') &&
-                            (titleLower.includes('decision') || titleLower.includes('policy'));
-
-      // Include high impact, CB speeches, and rate decisions
-      if (event.impact === 'High' || event.impact === 'Medium' || isCBSpeech || isRateDecision) {
-        const isPast = eventDate < now;
-
-        news.push({
-          id: `ff-${event.id || Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          headline: `[${event.country}] ${event.title}`,
-          rawText: event.forecast ? `Forecast: ${event.forecast} | Previous: ${event.previous || 'N/A'}` : `Previous: ${event.previous || 'N/A'}`,
-          timestamp: eventDate.toISOString(),
-          isCritical: event.impact === 'High' || isRateDecision,
-          isActive: !isPast && (eventDate - now) < 60 * 60 * 1000, // Active if within 1 hour
-          impact: event.impact,
-          country: event.country,
-          type: isCBSpeech ? 'cb_speech' : isRateDecision ? 'rate_decision' : 'economic',
-          source: 'ForexFactory'
-        });
+    // Try X API first (preferred method)
+    if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
+      try {
+        console.log('Fetching news from X API...');
+        news = await Promise.race([
+          xNewsScraper.getLatestNews(),
+          timeoutPromise
+        ]);
+        source = 'x_api';
+        console.log(`Successfully fetched ${news.length} items from X API`);
+      } catch (xErr) {
+        if (xErr.message === 'Timeout') {
+          console.error('X API timeout, falling back to scraping');
+        } else {
+          console.error('X API failed, falling back to scraping:', xErr.message);
+        }
+        // Fall back to scraping
+        try {
+          news = await Promise.race([
+            financialJuiceScraper.getLatestNews(),
+            timeoutPromise
+          ]);
+          source = 'web_scraping';
+        } catch (scrapingErr) {
+          console.error('Scraping also failed:', scrapingErr.message);
+          // Return empty array instead of crashing
+          news = [];
+          source = 'failed';
+        }
+      }
+    } else {
+      // No X API token, use scraping with timeout
+      console.log('No X_BEARER_TOKEN found, using web scraping');
+      try {
+        news = await Promise.race([
+          financialJuiceScraper.getLatestNews(),
+          timeoutPromise
+        ]);
+        source = 'web_scraping';
+      } catch (scrapingErr) {
+        console.error('Scraping failed:', scrapingErr.message);
+        // Return empty array instead of crashing
+        news = [];
+        source = 'failed';
       }
     }
-
-    // Sort by date (upcoming first)
-    news.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-    // Limit to 30 items
-    news = news.slice(0, 30);
 
     res.json({
       success: true,
@@ -2309,78 +2282,19 @@ app.get('/api/financial-news', async (req, res) => {
 // API endpoint to force refresh financial news cache (public - no auth required)
 app.post('/api/financial-news/refresh', async (req, res) => {
   try {
-    // Clear calendar cache to force fresh data
-    calendarCache.nextAllowed = 0;
-
-    // Fetch fresh data using the same logic as GET endpoint
     let news = [];
-    const source = 'forex_factory';
+    let source = 'unknown';
 
-    // Add timeout to prevent hanging
-    const calendarDataPromise = loadHighImpactEvents();
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Calendar fetch timeout')), 20000)
-    );
-
-    let calendarData = [];
-    try {
-      calendarData = await Promise.race([calendarDataPromise, timeoutPromise]);
-    } catch (timeoutErr) {
-      console.error('Calendar data timeout or error during refresh:', timeoutErr.message);
-      return res.json({
-        success: true,
-        count: 0,
-        data: [],
-        source: 'failed',
-        error: 'Calendar data temporarily unavailable',
-        lastUpdated: new Date().toISOString()
-      });
+    // Clear both caches
+    if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
+      xNewsScraper.clearCache();
+      news = await xNewsScraper.getLatestNews();
+      source = 'x_api';
+    } else {
+      financialJuiceScraper.clearCache();
+      news = await financialJuiceScraper.getLatestNews();
+      source = 'web_scraping';
     }
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const next7Days = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-    for (const event of calendarData) {
-      const eventDate = new Date(event.date);
-      if (eventDate < todayStart || eventDate > next7Days) continue;
-
-      const titleLower = event.title.toLowerCase();
-      const isCBSpeech = titleLower.includes('speak') ||
-                         titleLower.includes('press conference') ||
-                         titleLower.includes('testimony') ||
-                         titleLower.includes('gov ') ||
-                         titleLower.includes('fomc member') ||
-                         titleLower.includes('boe ') ||
-                         titleLower.includes('ecb ') ||
-                         titleLower.includes('boj ') ||
-                         titleLower.includes('rba ') ||
-                         titleLower.includes('boc ') ||
-                         titleLower.includes('snb ') ||
-                         titleLower.includes('rbnz ');
-
-      const isRateDecision = titleLower.includes('rate') &&
-                            (titleLower.includes('decision') || titleLower.includes('policy'));
-
-      if (event.impact === 'High' || event.impact === 'Medium' || isCBSpeech || isRateDecision) {
-        const isPast = eventDate < now;
-
-        news.push({
-          id: `ff-${event.id || Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-          headline: `[${event.country}] ${event.title}`,
-          rawText: event.forecast ? `Forecast: ${event.forecast} | Previous: ${event.previous || 'N/A'}` : `Previous: ${event.previous || 'N/A'}`,
-          timestamp: eventDate.toISOString(),
-          isCritical: event.impact === 'High' || isRateDecision,
-          isActive: !isPast && (eventDate - now) < 60 * 60 * 1000,
-          impact: event.impact,
-          country: event.country,
-          type: isCBSpeech ? 'cb_speech' : isRateDecision ? 'rate_decision' : 'economic',
-          source: 'ForexFactory'
-        });
-      }
-    }
-
-    news.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-    news = news.slice(0, 30);
 
     res.json({
       success: true,
