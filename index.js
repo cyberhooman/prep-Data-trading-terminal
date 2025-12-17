@@ -546,7 +546,7 @@ app.get('/login', (req, res) => {
   const errorMsg = req.query.error || '';
 
   const html = `<!DOCTYPE html>
-  <html lang="en">
+  <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1215,7 +1215,7 @@ app.get('/signup', (req, res) => {
   const errorMsg = req.query.error || '';
 
   const html = `<!DOCTYPE html>
-  <html lang="en">
+  <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1586,7 +1586,7 @@ app.get('/forgot-password', (req, res) => {
   const successMsg = req.query.success || '';
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1676,7 +1676,7 @@ app.get('/reset-password', (req, res) => {
   }
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1769,7 +1769,7 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
     : `<a href="/login" class="auth-button login">Login</a>`;
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1928,7 +1928,7 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
     : `<a href="/login" class="auth-button login">Login</a>`;
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -2015,7 +2015,7 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
     : `<a href="/login" class="auth-button login">Login</a>`;
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -3022,7 +3022,7 @@ app.get('/', async (req, res) => {
         `;
 
   const html = `<!DOCTYPE html>
-  <html lang="en">
+  <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -3042,6 +3042,38 @@ app.get('/', async (req, res) => {
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
       <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+        tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              colors: {
+                notion: {
+                  bg: 'var(--bg)',
+                  sidebar: 'var(--sidebar)',
+                  hover: 'var(--hover)',
+                  border: 'var(--border)',
+                  text: 'var(--text)',
+                  muted: 'var(--muted)',
+                  block: 'var(--block)',
+                  overlay: 'var(--overlay)',
+                  blue: '#4E7CFF',
+                  red: '#FF5C5C',
+                  green: '#4CAF50',
+                  yellow: '#D9B310'
+                }
+              },
+              fontFamily: {
+                sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                display: ['Space Grotesk', 'sans-serif'],
+                mono: ['JetBrains Mono', 'monospace'],
+              }
+            }
+          }
+        }
+      </script>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
       <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
       <style>
         .auth-controls {
@@ -3669,7 +3701,7 @@ app.get('/next', async (req, res) => {
 
   if (!nextEvent) {
     const html = `<!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" class="dark">
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -3711,7 +3743,7 @@ app.get('/next', async (req, res) => {
   }
 
   const html = `<!DOCTYPE html>
-  <html lang="en">
+  <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
