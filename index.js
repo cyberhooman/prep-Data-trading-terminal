@@ -1757,17 +1757,6 @@ app.get('/reset-password', (req, res) => {
 app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
   const user = req.user;
 
-  const authControlsHtml = user
-    ? `<div class="auth-controls">
-         <div class="auth-user">
-           <strong>${user.displayName || user.email}</strong>
-           <span>Authenticated</span>
-         </div>
-         ${user.picture ? `<img src="${user.picture}" alt="User" class="auth-avatar" />` : ''}
-         <a href="/logout" class="auth-button logout">Logout</a>
-       </div>`
-    : `<a href="/login" class="auth-button login">Login</a>`;
-
   const html = `<!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
@@ -1953,7 +1942,7 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
       })();
     </script>
   </body>
-</html>``;
+</html>`;
 
   res.send(html);
 });
@@ -1961,17 +1950,6 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
 // Weekly Calendar Page
 app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
   const user = req.user;
-
-  const authControlsHtml = user
-    ? `<div class="auth-controls">
-         <div class="auth-user">
-           <strong>${user.displayName || user.email}</strong>
-           <span>Authenticated</span>
-         </div>
-         ${user.picture ? `<img src="${user.picture}" alt="User" class="auth-avatar" />` : ''}
-         <a href="/logout" class="auth-button logout">Logout</a>
-       </div>`
-    : `<a href="/login" class="auth-button login">Login</a>`;
 
   const html = `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -2155,7 +2133,7 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
       })();
     </script>
   </body>
-</html>``;
+</html>`;
 
   res.send(html);
 });
@@ -2180,21 +2158,9 @@ app.get('/api/calendar/weekly', async (req, res) => {
   }
 });
 
-// Interest Rate Probability Page
 // Currency Strength Page
 app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
   const user = req.user;
-
-  const authControlsHtml = user
-    ? `<div class="auth-controls">
-         <div class="auth-user">
-           <strong>${user.displayName || user.email}</strong>
-           <span>Authenticated</span>
-         </div>
-         ${user.picture ? `<img src="${user.picture}" alt="User" class="auth-avatar" />` : ''}
-         <a href="/logout" class="auth-button logout">Logout</a>
-       </div>`
-    : `<a href="/login" class="auth-button login">Login</a>`;
 
   const html = `<!DOCTYPE html>
 <html lang="en" class="dark">
@@ -2378,7 +2344,7 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
       })();
     </script>
   </body>
-</html>``;
+</html>`;
 
   res.send(html);
 });
