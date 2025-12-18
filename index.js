@@ -3558,9 +3558,9 @@ app.get('/', async (req, res) => {
           </div>
 
           <!-- Dashboard Content -->
-          <div class="flex flex-col overflow-hidden p-3 md:p-4 gap-3 h-[calc(100vh-4rem)]">
+          <div class="flex flex-col overflow-hidden p-2 md:p-3 gap-2 h-[calc(100vh-96px)]">
             <!-- Dashboard Header -->
-            <div class="flex items-center justify-between shrink-0">
+            <div class="flex items-center justify-between shrink-0 mb-1">
               <div class="flex items-center gap-3 md:gap-4">
                 <h1 class="text-xl md:text-2xl font-display font-bold text-notion-text tracking-tight">Market Dashboard</h1>
                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]">v2.5 PRO</span>
@@ -3570,10 +3570,10 @@ app.get('/', async (req, res) => {
             ${message ? '<div class="mb-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">' + escapeHtml(message) + '</div>' : ''}
 
             <!-- Dashboard Grid - 3 Column Layout -->
-            <div class="flex flex-col lg:grid lg:grid-cols-12 gap-3 md:gap-4 flex-1 min-h-0">
+            <div class="flex flex-col lg:grid lg:grid-cols-12 gap-2 md:gap-3 flex-1 min-h-0">
 
               <!-- LEFT COLUMN: Countdown + Trading Prep -->
-              <div class="col-span-12 lg:col-span-3 flex flex-col gap-3 h-auto lg:h-full min-h-0 order-1">
+              <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 h-auto lg:h-full min-h-0 order-1">
 
                 <!-- Countdown Block -->
                 <div class="h-40 lg:flex-[4] shrink-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-4 flex flex-col relative overflow-hidden group shadow-2xl transition-colors duration-300">
@@ -3640,7 +3640,7 @@ app.get('/', async (req, res) => {
               </div>
 
               <!-- RIGHT COLUMN: Schedule + Scratchpad -->
-              <div class="col-span-12 lg:col-span-3 flex flex-col gap-3 h-auto lg:h-full min-h-0 order-2 lg:order-3">
+              <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 h-auto lg:h-full min-h-0 order-2 lg:order-3">
 
                 <!-- Schedule Block -->
                 <div class="h-56 lg:flex-[6] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors duration-300">
