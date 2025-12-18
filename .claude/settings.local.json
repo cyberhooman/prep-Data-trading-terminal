@@ -46,7 +46,22 @@
       "Bash(npm test:*)",
       "Bash(npm run)",
       "Bash(git push)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFix slow loading and timeout issues\n\nChanges:\n- Updated financial news API to use Forex Factory calendar data\n  - No longer relies on flaky web scraping or Twitter API\n  - Includes CB speeches, rate decisions, and high-impact events\n  - Filters for events from today to next 7 days\n  - Shows forecast and previous values\n\n- Simplified /api/events endpoint\n  - Removed complex timeout logic that was causing issues\n  - Uses gatherEvents() caching directly\n\n- Fixed news source display\n  - Now shows \"ForexFactory\" as the data source\n  - Properly categorizes CB speeches and rate decisions\n\nThis fixes the \"News source temporarily unavailable\" error and\nimproves reliability of the Critical Market News section.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(taskkill //F //PID 55800)",
+      "Bash(taskkill //F //PID 38212)",
+      "Bash(timeout:*)",
+      "Bash(taskkill //F //PID 39752)",
+      "Bash(taskkill //F //PID 47284)",
+      "Bash(python:*)",
+      "Bash(python update_dashboard.py:*)",
+      "Bash(node --check:*)",
+      "Bash(git pull:*)",
+      "Bash(python update_dashboard_v2.py:*)",
+      "Bash(npm run build:*)",
+      "Bash(timeout 10 npm start)",
+      "Bash(exit 0)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nFilter news feed to show only critical items\n\nUpdated FinancialNewsFeed components to display only critical\n(red-flagged) news from FinancialJuice, filtering out regular news.\nThis ensures users see only the most important market-moving events.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

@@ -41,7 +41,9 @@ export default function FinancialNewsFeed() {
       const data: NewsResponse = await response.json();
 
       if (data.success) {
-        setNews(data.data);
+        // Filter to show only critical news items (red items from FinancialJuice)
+        const criticalNews = data.data.filter(item => item.isCritical);
+        setNews(criticalNews);
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
       } else {
         setError('Failed to load news');

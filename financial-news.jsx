@@ -18,9 +18,11 @@ function FinancialNewsFeed() {
       const data = await response.json();
 
       if (data.success) {
-        setNews(data.data);
+        // Filter to show only critical news items (red items from FinancialJuice)
+        const criticalNews = data.data.filter(item => item.isCritical);
+        setNews(criticalNews);
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
-        if (data.data.length === 0 && data.source === 'failed') {
+        if (criticalNews.length === 0 && data.source === 'failed') {
           setError('News source temporarily unavailable');
         }
       } else {
