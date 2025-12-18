@@ -3558,29 +3558,29 @@ app.get('/', async (req, res) => {
           </div>
 
           <!-- Dashboard Content -->
-          <div class="flex flex-col overflow-hidden p-2 md:p-3 gap-2 h-[calc(100vh-96px)]">
+          <div class="flex flex-col p-2 md:p-3 gap-2 h-[calc(100vh-96px)] lg:overflow-hidden overflow-y-auto">
             <!-- Dashboard Header -->
             <div class="flex items-center justify-between shrink-0 mb-1">
-              <div class="flex items-center gap-3 md:gap-4">
-                <h1 class="text-xl md:text-2xl font-display font-bold text-notion-text tracking-tight">Market Dashboard</h1>
+              <div class="flex items-center gap-2 md:gap-4">
+                <h1 class="text-lg md:text-2xl font-display font-bold text-notion-text tracking-tight">Market Dashboard</h1>
                 <span class="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]">v2.5 PRO</span>
               </div>
             </div>
 
-            ${message ? '<div class="mb-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">' + escapeHtml(message) + '</div>' : ''}
+            ${message ? '<div class="mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">' + escapeHtml(message) + '</div>' : ''}
 
             <!-- Dashboard Grid - 3 Column Layout -->
-            <div class="flex flex-col lg:grid lg:grid-cols-12 gap-2 md:gap-3 flex-1 min-h-0">
+            <div class="flex flex-col lg:grid lg:grid-cols-12 gap-2 md:gap-3 lg:flex-1 lg:min-h-0">
 
               <!-- LEFT COLUMN: Countdown + Trading Prep -->
               <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 h-auto lg:h-full min-h-0 order-1">
 
                 <!-- Countdown Block -->
-                <div class="h-40 lg:flex-[4] shrink-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-4 flex flex-col relative overflow-hidden group shadow-2xl transition-colors duration-300">
+                <div class="h-32 lg:h-40 lg:flex-[4] shrink-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 lg:p-4 flex flex-col relative overflow-hidden group shadow-2xl transition-colors duration-300">
                   <!-- Glow effect -->
                   <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 blur-[50px] rounded-full pointer-events-none group-hover:bg-blue-500/20 transition-colors duration-700"></div>
 
-                  <div class="flex items-center justify-between relative z-10 mb-4">
+                  <div class="flex items-center justify-between relative z-10 mb-2 lg:mb-4">
                     <span class="text-[10px] font-bold font-mono text-blue-300 uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">Next Event</span>
                     <div class="flex items-center gap-1.5" id="auto-badge-container">
                       <span class="text-[9px] font-mono text-green-400 opacity-80">AUTO</span>
@@ -3589,7 +3589,7 @@ app.get('/', async (req, res) => {
                   </div>
 
                   <div class="flex-1 flex flex-col items-center justify-center relative z-10">
-                    <div id="countdown-time" class="text-4xl xl:text-5xl font-display font-bold text-notion-text tracking-wider tabular-nums leading-none mb-3 drop-shadow-sm">
+                    <div id="countdown-time" class="text-3xl md:text-4xl xl:text-5xl font-display font-bold text-notion-text tracking-wider tabular-nums leading-none mb-2 lg:mb-3 drop-shadow-sm">
                       00:00:00
                     </div>
                     <div class="flex flex-col items-center gap-1">
@@ -3605,17 +3605,17 @@ app.get('/', async (req, res) => {
                 </div>
 
                 <!-- Trading Prep Block -->
-                <div class="h-auto lg:flex-[6] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-4 flex flex-col shadow-2xl relative overflow-hidden transition-colors duration-300">
+                <div class="h-auto lg:flex-[6] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 lg:p-4 flex flex-col shadow-2xl relative overflow-hidden transition-colors duration-300">
                   <div class="absolute inset-0 bg-gradient-to-br from-notion-hover/10 to-transparent opacity-50 pointer-events-none"></div>
                   <div id="todo-root" class="relative z-10 flex flex-col h-full"></div>
                 </div>
               </div>
 
               <!-- CENTER COLUMN: Live Newswire -->
-              <div class="col-span-12 lg:col-span-6 h-[400px] lg:h-full min-h-0 order-3 lg:order-2">
+              <div class="col-span-12 lg:col-span-6 h-[500px] lg:h-full min-h-0 order-3 lg:order-2">
                 <div class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl relative group transition-colors duration-300">
                   <!-- Header -->
-                  <div class="px-4 py-3 border-b border-notion-border flex items-center justify-between shrink-0 bg-notion-block/50">
+                  <div class="px-3 py-2 lg:px-4 lg:py-3 border-b border-notion-border flex items-center justify-between shrink-0 bg-notion-block/50">
                     <div class="flex items-center gap-2.5">
                       <div class="p-1.5 bg-red-500/10 rounded-md border border-red-500/20">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-500 animate-pulse">
@@ -3643,8 +3643,8 @@ app.get('/', async (req, res) => {
               <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 h-auto lg:h-full min-h-0 order-2 lg:order-3">
 
                 <!-- Schedule Block -->
-                <div class="h-56 lg:flex-[6] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors duration-300">
-                  <div class="px-4 py-3 border-b border-notion-border flex items-center justify-between shrink-0 bg-notion-block/50">
+                <div class="h-64 lg:h-56 lg:flex-[6] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors duration-300">
+                  <div class="px-3 py-2 lg:px-4 lg:py-3 border-b border-notion-border flex items-center justify-between shrink-0 bg-notion-block/50">
                     <div class="flex items-center gap-2">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-teal-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                       <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Schedule</h3>
@@ -3663,7 +3663,7 @@ app.get('/', async (req, res) => {
                 </div>
 
                 <!-- Scratchpad Block -->
-                <div class="h-48 lg:flex-[4] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
+                <div class="h-56 lg:h-48 lg:flex-[4] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
                   <div class="flex items-center gap-2 mb-2 shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-yellow-500"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/></svg>
                     <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Scratchpad</h3>
