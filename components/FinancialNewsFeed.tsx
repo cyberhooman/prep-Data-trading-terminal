@@ -92,7 +92,10 @@ export default function FinancialNewsFeed() {
   return (
     <div className="financial-news-feed">
       <div className="news-header">
-        <h2>📰 Market-Moving News</h2>
+        <div className="header-left">
+          <span className="header-icon">🔴</span>
+          <h2>Critical Market News</h2>
+        </div>
         <div className="news-controls">
           <button onClick={fetchNews} className="refresh-btn" disabled={loading}>
             {loading ? '⟳ Refreshing...' : '⟳ Refresh'}
@@ -165,23 +168,33 @@ export default function FinancialNewsFeed() {
           display: flex;
           flex-direction: column;
           height: 100%;
-          background: var(--card-bg, rgba(255, 255, 255, 0.05));
-          border-radius: 12px;
-          padding: 1.5rem;
+          padding: 1rem;
         }
 
         .news-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 1.5rem;
+          margin-bottom: 0.75rem;
           flex-wrap: wrap;
           gap: 1rem;
+          flex-shrink: 0;
+        }
+
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .header-icon {
+          font-size: 1.2rem;
         }
 
         .news-header h2 {
           margin: 0;
-          font-size: 1.5rem;
+          font-size: 1rem;
+          font-weight: 600;
           color: var(--text-primary, #fff);
         }
 
@@ -236,7 +249,7 @@ export default function FinancialNewsFeed() {
         .news-list {
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.5rem;
           flex: 1;
           min-height: 0;
           overflow-y: auto;
@@ -261,7 +274,7 @@ export default function FinancialNewsFeed() {
           background: rgba(255, 255, 255, 0.03);
           border-left: 3px solid transparent;
           border-radius: 8px;
-          padding: 1rem;
+          padding: 0.75rem;
           transition: all 0.2s;
         }
 
@@ -280,8 +293,8 @@ export default function FinancialNewsFeed() {
         }
 
         .news-headline {
-          margin: 0 0 0.75rem 0;
-          font-size: 1rem;
+          margin: 0 0 0.5rem 0;
+          font-size: 0.95rem;
           line-height: 1.4;
           color: var(--text-primary, #fff);
           display: flex;
@@ -292,17 +305,17 @@ export default function FinancialNewsFeed() {
         .critical-badge {
           background: #ff6b6b;
           color: #fff;
-          font-size: 0.65rem;
+          font-size: 0.6rem;
           font-weight: 700;
-          padding: 0.2rem 0.5rem;
+          padding: 0.15rem 0.4rem;
           border-radius: 4px;
           letter-spacing: 0.5px;
         }
 
         .economic-data {
           display: flex;
-          gap: 1rem;
-          margin-bottom: 0.75rem;
+          gap: 0.75rem;
+          margin-bottom: 0.5rem;
           flex-wrap: wrap;
         }
 
