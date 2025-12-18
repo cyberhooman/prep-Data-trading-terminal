@@ -3243,17 +3243,17 @@ app.get('/api/currency-strength/extremes', async (req, res) => {
 
     res.json({
       strongest: {
-        currency: strongest.name,
-        title: strongest.title,
-        value: strongest.value,
-        momentum: strongest.momentum,
+        currency: strongest.currency,
+        title: getCurrencyName(strongest.currency),
+        value: strongest.sevenDayChange,
+        momentum: strongest.strength.toFixed(1),
         trend: strongest.trend
       },
       weakest: {
-        currency: weakest.name,
-        title: weakest.title,
-        value: weakest.value,
-        momentum: weakest.momentum,
+        currency: weakest.currency,
+        title: getCurrencyName(weakest.currency),
+        value: weakest.sevenDayChange,
+        momentum: weakest.strength.toFixed(1),
         trend: weakest.trend
       }
     });
