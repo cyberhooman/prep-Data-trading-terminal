@@ -3884,17 +3884,41 @@ app.get('/', async (req, res) => {
 
         function createEventCard(event) {
           const card = document.createElement('div');
-          card.className = 'event-card';
+          card.className = 'schedule-event-item';
           card.dataset.timestamp = event.timestamp;
           card.dataset.eventId = event.id;
-          const badge = event.source === 'manual' ? '<span class="badge manual">Manual</span>' : '<span class="badge auto">Auto</span>';
+          
+          const eventDate = new Date(event.timestamp);
+          const timeStr = eventDate.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          });
+          
           card.innerHTML = \`
-            <div class="event-title">[\${event.country}] \${event.title} \${badge}</div>
-            <div class="event-meta">Scheduled: \${event.formatted}</div>
-            <div class="countdown">Loading...</div>
-            \${event.source === 'manual' ? \`<form class="delete-form" method="POST" action="/events/delete">
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: inline-block; padding: 0.125rem 0.5rem; background: rgba(20, 184, 166, 0.15); border: 1px solid rgba(20, 184, 166, 0.3); border-radius: 0.25rem; margin-bottom: 0.5rem;">
+                  <span style="font-size: 0.75rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: #14b8a6; letter-spacing: 0.05em;">\${event.country}</span>
+                </div>
+                <div style="font-size: 0.875rem; font-weight: 500; color: var(--text); line-height: 1.4; margin-bottom: 0.5rem;">
+                  \${event.title}
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.375rem;">
+                  <span style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%; display: inline-block;"></span>
+                  <span style="font-size: 0.65rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: #ef4444; text-transform: uppercase; letter-spacing: 0.05em;">HIGH IMPACT</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.375rem; flex-shrink: 0;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--muted); opacity: 0.5;">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/>
+                </svg>
+                <span style="font-size: 0.75rem; font-family: 'JetBrains Mono', monospace; color: var(--muted); white-space: nowrap;">\${timeStr}</span>
+              </div>
+            </div>
+            \${event.source === 'manual' ? \`<form class="delete-form" method="POST" action="/events/delete" style="margin-top: 0.5rem;">
               <input type="hidden" name="id" value="\${event.id}">
-              <button type="submit">Remove</button>
+              <button type="submit" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 0.25rem; cursor: pointer;">Remove</button>
             </form>\` : ''}
           \`;
           return card;

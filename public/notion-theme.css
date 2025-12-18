@@ -1398,6 +1398,40 @@ html, body {
   }
 }
 
+/* ===== SCHEDULE EVENT ITEM ===== */
+.schedule-event-item {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.schedule-event-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+}
+
+.schedule-event-item .delete-form {
+  margin-top: 0.5rem;
+}
+
+.schedule-event-item .delete-form button {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-event-item .delete-form button:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
 /* ===== UTILITY CLASSES ===== */
 .text-notion-text { color: var(--text); }
 .text-notion-muted { color: var(--muted); }
