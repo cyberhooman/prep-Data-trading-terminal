@@ -1,32 +1,37 @@
 [
   {
     "id": "mhd2ahjcoejl7d",
-    "title": "eurozone unemployment rate",
-    "country": "EUR",
-    "date": "2025-10-30T10:00:00.000Z"
+    "title": "GBP CPI y/y",
+    "country": "GBP",
+    "date": "2025-12-18T14:00:00.000Z",
+    "impact": "high"
   },
   {
     "id": "mhd8at4l5hcjtv",
-    "title": "EUROZONE UNEMPLOYMENT RATE",
+    "title": "Eurozone Unemployment Rate",
     "country": "EUR",
-    "date": "2025-10-30T10:00:00.000Z"
+    "date": "2025-12-19T10:00:00.000Z",
+    "impact": "medium"
   },
   {
     "id": "mhd8bcm24b09yl",
-    "title": "EUR UNEMPLOYMENT RATE",
-    "country": "EUR",
-    "date": "2025-10-30T10:00:00.000Z"
+    "title": "USD Core PCE Price Index",
+    "country": "USD",
+    "date": "2025-12-20T13:30:00.000Z",
+    "impact": "high"
   },
   {
     "id": "mheit8p4jbshjo",
-    "title": "EUROZONE CPI YOY FLASH",
+    "title": "EUR CPI YoY Flash",
     "country": "EUR",
-    "date": "2025-10-31T10:00:00.000Z"
+    "date": "2025-12-23T10:00:00.000Z",
+    "impact": "high"
   },
   {
     "id": "mhenhbm8u8ivzo",
-    "title": "AIDIL CEO ALPHALABS SPEECH",
-    "country": "EUR",
-    "date": "2025-10-31T09:30:00.000Z"
+    "title": "Fed Interest Rate Decision",
+    "country": "USD",
+    "date": "2025-12-27T19:00:00.000Z",
+    "impact": "high"
   }
 ]

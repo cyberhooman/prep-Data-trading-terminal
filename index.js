@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Alphalabs Data Trading Web Server
  * ------------------------------------------------
  * Serves a web dashboard on http://localhost:3000 that shows:
@@ -3755,6 +3755,9 @@ app.get('/', async (req, res) => {
               // Render events
               renderEvents();
 
+              // Update countdown immediately
+              updateNextEventCountdown();
+
               // Start countdown updates
               setInterval(updateCountdowns, 500);
             } else {
@@ -3991,14 +3994,39 @@ app.get('/', async (req, res) => {
         }
 
         function updateNextEventCountdown() {
-          if (!nextEventData) return;
-          const countdownEl = document.getElementById('next-event-countdown');
-          if (!countdownEl) return;
+          if (!nextEventData) {
+            // Set default values when no event
+            const countdownTimeEl = document.getElementById('countdown-time');
+            const currencyEl = document.getElementById('countdown-currency');
+            const nameEl = document.getElementById('countdown-name');
+            const localEl = document.getElementById('countdown-local');
+            
+            if (countdownTimeEl) countdownTimeEl.textContent = '00:00:00';
+            if (currencyEl) currencyEl.textContent = '[---]';
+            if (nameEl) nameEl.textContent = 'No upcoming events';
+            if (localEl) localEl.textContent = '';
+            return;
+          }
+
+          const countdownTimeEl = document.getElementById('countdown-time');
+          const currencyEl = document.getElementById('countdown-currency');
+          const nameEl = document.getElementById('countdown-name');
+          const localEl = document.getElementById('countdown-local');
+          
+          if (!countdownTimeEl) return;
+
+          // Update event details
+          if (currencyEl) currencyEl.textContent = `[${nextEventData.country}]`;
+          if (nameEl) nameEl.textContent = nextEventData.title;
+          if (localEl && nextEventData.formatted) {
+            localEl.textContent = nextEventData.formatted;
+          }
+
           const diff = nextEventData.timestamp - Date.now();
           if (diff <= 0) {
-            countdownEl.textContent = 'IN SESSION';
-            countdownEl.classList.add('started');
-            countdownEl.classList.remove('urgent');
+            countdownTimeEl.textContent = 'IN SESSION';
+            countdownTimeEl.classList.add('started');
+            countdownTimeEl.classList.remove('urgent');
             stopCountdownSound();
             if (!nextAnnounced) {
               announceStart(nextEventData.title, nextEventData.country);
@@ -4007,15 +4035,15 @@ app.get('/', async (req, res) => {
             return;
           }
 
-          countdownEl.textContent = formatDuration(diff);
+          countdownTimeEl.textContent = formatDuration(diff);
           if (diff <= THREE_MINUTES) {
-            countdownEl.classList.add('urgent');
+            countdownTimeEl.classList.add('urgent');
             if (!nextWarned) {
               startCountdownSound();
               nextWarned = true;
             }
           } else {
-            countdownEl.classList.remove('urgent');
+            countdownTimeEl.classList.remove('urgent');
             if (nextWarned) {
               stopCountdownSound();
             }
