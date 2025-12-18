@@ -3196,86 +3196,198 @@ app.get('/', async (req, res) => {
         }
       </style>
     </head>
-    <body>
-      <header style="padding: 1.5rem 0; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1.5rem; padding: 0 1rem;">
-          <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
-            <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
-              <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
-              <div>
-                <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
-                  Alphalabs
-                </h1>
-                <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+    <body class="bg-notion-bg">
+      <!-- Mobile Backdrop -->
+      <div id="mobile-backdrop" class="mobile-backdrop" onclick="closeSidebar()"></div>
+
+      <div class="app-container">
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+          <!-- Brand -->
+          <div class="sidebar-brand">
+            <div class="sidebar-brand-inner">
+              <div class="sidebar-logo">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/>
+                </svg>
               </div>
+              <div class="sidebar-brand-text">
+                <span class="sidebar-brand-name">AlphaLabs</span>
+                <span class="sidebar-brand-tagline">Pro Terminal</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navigation -->
+          <nav class="sidebar-nav">
+            <div class="sidebar-nav-label">Trading Data</div>
+            <a href="/" class="sidebar-nav-item ${req.path === '/' ? 'active' : ''}">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              <span>Dashboard</span>
             </a>
-            <nav class="nav-bar">
-              <a href="/" class="nav-link ${req.path === '/' ? 'active' : ''}">Dashboard</a>
-              <a href="/currency-strength" class="nav-link ${req.path === '/currency-strength' ? 'active' : ''}">Currency Strength</a>
-              <a href="/cb-speeches" class="nav-link ${req.path === '/cb-speeches' ? 'active' : ''}">CB Speeches</a>
-              <a href="/weekly-calendar" class="nav-link ${req.path === '/weekly-calendar' ? 'active' : ''}">Weekly Calendar</a>
-            </nav>
-          </div>
-          ${authControlsHtml}
-        </div>
-      </header>
-      <main>
-        ${message ? `<div class="message" style="max-width: 1480px; margin: 0 auto 1rem;">${escapeHtml(message)}</div>` : ''}
+            <a href="/currency-strength" class="sidebar-nav-item ${req.path === '/currency-strength' ? 'active' : ''}">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
+              <span>Currency Strength</span>
+            </a>
+            <a href="/cb-speeches" class="sidebar-nav-item ${req.path === '/cb-speeches' ? 'active' : ''}">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <span>CB Speeches</span>
+            </a>
+            <a href="/weekly-calendar" class="sidebar-nav-item ${req.path === '/weekly-calendar' ? 'active' : ''}">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>Weekly Calendar</span>
+            </a>
+          </nav>
 
-        <!-- BENTO LAYOUT: Event Countdown, Upcoming Events, Notes, Todo List -->
-        <div class="bento-container" style="max-width: 1480px; margin: 0 auto 2rem;">
-          <!-- Event Countdown Box (Top Left) -->
-          <div class="bento-box bento-countdown">
-            <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 700;">⏰ Next Event Countdown</h2>
-            <div id="next-event-panel">
-              ${nextEventPanel}
+          <!-- Footer -->
+          <div class="sidebar-footer">
+            <div class="sidebar-footer-item" onclick="toggleTheme()">
+              <svg id="theme-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              <span id="theme-text">Light Mode</span>
             </div>
+            ${user ? '<a href="/auth/logout" class="sidebar-footer-item logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></a>' : ''}
           </div>
+        </aside>
 
-          <!-- Upcoming Events Box (Top Right) -->
-          <div class="bento-box bento-events">
-            <h2 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 700;">📰 Upcoming High Impact News</h2>
-            <p id="events-count-text" style="margin-bottom: 1rem; font-size: 0.85rem; color: rgba(226, 232, 240, 0.7);">
-              Loading events...
-            </p>
-            <div class="events-preview">
-              <div class="events-limited"></div>
-            </div>
-            <button id="toggle-events-btn" class="toggle-events-btn" style="margin-top: 1rem; padding: 0.6rem 1.2rem; background: rgba(251, 146, 60, 0.18); border: 1px solid rgba(251, 146, 60, 0.3); border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 0.85rem; width: 100%; color: #fdba74;">
-              Show All Events
-            </button>
-            <div id="events-expanded" style="display: none; margin-top: 1rem;">
-              <div class="events-scroll" style="max-height: 350px; overflow-y: auto; padding: 0.5rem 0;">
-                <div class="events-all"></div>
+        <!-- Main Content -->
+        <div class="main-content">
+          <!-- Top Bar -->
+          <div class="top-bar">
+            <div class="top-bar-left">
+              <button class="mobile-menu-btn" onclick="openSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+              <div class="hidden lg:flex w-6 h-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md text-white items-center justify-center shadow-sm">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/></svg>
+              </div>
+              <div class="top-bar-breadcrumb">
+                <span class="hidden lg:block hover:text-notion-text cursor-pointer">AlphaLabs</span>
+                <span class="hidden lg:block top-bar-breadcrumb-divider">/</span>
+                <span class="text-notion-text font-medium">Dashboard</span>
               </div>
             </div>
+            <div class="top-bar-right">
+              <div class="status-badge hidden sm:flex">
+                <span class="status-dot"></span>
+                <span>DATA LIVE</span>
+              </div>
+              <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
+              <button class="top-bar-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <span class="notification-dot"></span>
+              </button>
+              ${user ? '<div class="hidden sm:flex items-center gap-2"><img src="' + (user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email) + '&background=6366f1&color=fff') + '" class="w-8 h-8 rounded-full border-2 border-indigo-500/30" alt=""/><span class="text-sm text-notion-text font-medium hidden md:block">' + (user.displayName || user.email.split('@')[0]) + '</span></div>' : ''}
+            </div>
           </div>
 
-          <!-- Quick Notes & Warnings Box (Bottom Right) -->
-          <div class="bento-box bento-notes">
-            <div id="notes-root"></div>
-          </div>
+          <!-- Dashboard Content -->
+          <div class="dashboard-content">
+            <!-- Dashboard Header -->
+            <div class="dashboard-header">
+              <div class="dashboard-title">
+                <h1>Market Dashboard</h1>
+                <span class="version-badge">v2.5 PRO</span>
+              </div>
+            </div>
 
-          <!-- Todo List Box (Bottom Left) -->
-          <div class="bento-box bento-todos">
-            <div id="todo-root"></div>
-          </div>
-        </div>
+            ${message ? '<div class="mb-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">' + escapeHtml(message) + '</div>' : ''}
 
-        <!-- Financial News Feed -->
-        <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
-          <div id="financial-news-root"></div>
-        </section>
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+              <!-- Countdown Block -->
+              <div class="block countdown-block col-span-12 lg:col-span-4">
+                <div class="block-inner">
+                  <div class="glow"></div>
+                  <span class="countdown-label">Next Event</span>
+                  <div id="next-event-panel">
+                    ${nextEventPanel}
+                  </div>
+                </div>
+              </div>
 
-        <!-- Interest Rate Probability -->
-        <section style="max-width: 1480px; margin: 0 auto 1.5rem;">
-          <div id="interest-rate-root"></div>
-        </section>
-      </main>
-      <footer>
-        Updated on demand • Times are shown in your local timezone • Final 3 minutes include an audible tick
-      </footer>
+              <!-- Events Block -->
+              <div class="block events-block col-span-12 lg:col-span-4">
+                <div class="block-header">
+                  <div class="block-header-left">
+                    <div class="block-header-icon teal">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <span class="block-title">Upcoming Events</span>
+                  </div>
+                  <p id="events-count-text" class="text-xs text-notion-muted">Loading...</p>
+                </div>
+                <div class="block-content events-preview">
+                  <div class="events-limited"></div>
+                </div>
+                <div class="px-3 pb-3">
+                  <button id="toggle-events-btn" class="w-full py-2 px-3 text-xs font-semibold rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 hover:bg-teal-500/20 transition-all">
+                    Show All Events
+                  </button>
+                </div>
+                <div id="events-expanded" style="display: none;">
+                  <div class="events-scroll px-3 pb-3" style="max-height: 300px; overflow-y: auto;">
+                    <div class="events-all"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Trading Prep Block -->
+              <div class="block prep-block col-span-12 lg:col-span-4">
+                <div id="todo-root"></div>
+              </div>
+
+              <!-- News Feed Block -->
+              <div class="block news-block col-span-12 lg:col-span-8">
+                <div id="financial-news-root"></div>
+              </div>
+
+              <!-- Quick Notes Block -->
+              <div class="block notes-block col-span-12 lg:col-span-4">
+                <div id="notes-root"></div>
+              </div>
+            </div>
+          </div><!-- end dashboard-content -->
+        </div><!-- end main-content -->
+      </div><!-- end app-container -->
+
+      <!-- Footer -->
+      <div class="fixed bottom-0 left-0 right-0 lg:left-64 py-2 px-4 text-center text-xs text-notion-muted bg-notion-bg/80 backdrop-blur-sm border-t border-notion-border">
+        Updated on demand • Times shown in local timezone • Final 3 minutes include audible tick
+      </div>
       <script>
+        // Sidebar functions
+        function openSidebar() {
+          document.getElementById('sidebar').classList.add('open');
+          document.getElementById('mobile-backdrop').classList.add('active');
+        }
+        function closeSidebar() {
+          document.getElementById('sidebar').classList.remove('open');
+          document.getElementById('mobile-backdrop').classList.remove('active');
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+          const html = document.documentElement;
+          const themeText = document.getElementById('theme-text');
+          if (html.classList.contains('dark')) {
+            html.classList.remove('dark');
+            if (themeText) themeText.textContent = 'Dark Mode';
+            localStorage.setItem('theme', 'light');
+          } else {
+            html.classList.add('dark');
+            if (themeText) themeText.textContent = 'Light Mode';
+            localStorage.setItem('theme', 'dark');
+          }
+        }
+
+        // Apply saved theme on load
+        (function() {
+          const savedTheme = localStorage.getItem('theme');
+          if (savedTheme === 'light') {
+            document.documentElement.classList.remove('dark');
+          }
+        })();
+
         const THREE_MINUTES = 3 * 60 * 1000;
         let events = [];
         let nextEventData = null;
