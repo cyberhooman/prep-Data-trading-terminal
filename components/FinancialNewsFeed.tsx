@@ -162,10 +162,12 @@ export default function FinancialNewsFeed() {
 
       <style jsx>{`
         .financial-news-feed {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
           background: var(--card-bg, rgba(255, 255, 255, 0.05));
           border-radius: 12px;
           padding: 1.5rem;
-          margin: 1rem 0;
         }
 
         .news-header {
@@ -235,7 +237,8 @@ export default function FinancialNewsFeed() {
           display: flex;
           flex-direction: column;
           gap: 1rem;
-          max-height: 600px;
+          flex: 1;
+          min-height: 0;
           overflow-y: auto;
           padding-right: 0.5rem;
         }
