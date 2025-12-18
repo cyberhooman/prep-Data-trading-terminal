@@ -167,13 +167,13 @@ html, body {
 .sidebar-logo {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5, #4338ca);
+  background: linear-gradient(135deg, #3b82f6, #2563eb, #1d4ed8);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   flex-shrink: 0;
 }
 
@@ -247,14 +247,14 @@ html, body {
 }
 
 .sidebar-nav-item.active {
-  background-color: rgba(99, 102, 241, 0.1);
-  color: #6366f1;
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
   font-weight: 500;
-  border-color: rgba(99, 102, 241, 0.2);
+  border-color: rgba(59, 130, 246, 0.2);
 }
 
 .sidebar-nav-item.active .nav-icon {
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 .sidebar-nav-item .nav-icon {
@@ -457,10 +457,10 @@ html, body {
   font-size: 10px;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 500;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.2));
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 /* Dashboard Grid */
@@ -516,9 +516,9 @@ html, body {
 }
 
 .block-header-icon.blue {
-  background-color: rgba(99, 102, 241, 0.1);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  color: #6366f1;
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
 }
 
 .block-header-icon.teal {
@@ -572,7 +572,7 @@ html, body {
   right: -40px;
   width: 128px;
   height: 128px;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(59, 130, 246, 0.1);
   filter: blur(50px);
   border-radius: 50%;
   pointer-events: none;
@@ -580,20 +580,20 @@ html, body {
 }
 
 .countdown-block:hover .glow {
-  background: rgba(99, 102, 241, 0.2);
+  background: rgba(59, 130, 246, 0.2);
 }
 
 .countdown-label {
   font-size: 10px;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
-  color: #818cf8;
+  color: #93c5fd;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: rgba(59, 130, 246, 0.1);
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.2);
   display: inline-block;
   margin-bottom: 1rem;
 }
@@ -607,7 +607,7 @@ html, body {
   font-variant-numeric: tabular-nums;
   line-height: 1;
   margin-bottom: 1rem;
-  text-shadow: 0 2px 20px rgba(99, 102, 241, 0.3);
+  text-shadow: 0 2px 20px rgba(59, 130, 246, 0.3);
 }
 
 .countdown-event {
@@ -627,8 +627,8 @@ html, body {
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
   font-size: 0.875rem;
-  color: #818cf8;
-  background-color: rgba(99, 102, 241, 0.1);
+  color: #60a5fa;
+  background-color: rgba(59, 130, 246, 0.1);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
 }
@@ -744,7 +744,7 @@ html, body {
 }
 
 .event-item:hover .event-name {
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 .event-impact {
@@ -844,7 +844,7 @@ html, body {
 }
 
 .news-item:hover .news-headline {
-  color: #818cf8;
+  color: #60a5fa;
 }
 
 .news-headline.urgent {
@@ -869,7 +869,7 @@ html, body {
 .news-action-link {
   font-size: 10px;
   font-weight: 500;
-  color: #6366f1;
+  color: #3b82f6;
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -878,7 +878,7 @@ html, body {
 }
 
 .news-action-link:hover {
-  color: #818cf8;
+  color: #60a5fa;
 }
 
 /* News Loading State */
@@ -893,7 +893,7 @@ html, body {
 
 .news-loading-spinner {
   animation: spin 1s linear infinite;
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 @keyframes spin {
@@ -904,7 +904,7 @@ html, body {
 .news-loading-text {
   font-size: 10px;
   font-family: 'JetBrains Mono', monospace;
-  color: #6366f1;
+  color: #3b82f6;
 }
 
 /* ===== TRADING PREP BLOCK ===== */
@@ -950,8 +950,8 @@ html, body {
   font-size: 0.75rem;
   font-family: 'JetBrains Mono', monospace;
   font-weight: 700;
-  color: #6366f1;
-  background-color: rgba(99, 102, 241, 0.1);
+  color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.1);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
 }
@@ -986,8 +986,8 @@ html, body {
 
 /* Trend Section */
 .prep-trend {
-  background-color: rgba(99, 102, 241, 0.05);
-  border: 1px solid rgba(99, 102, 241, 0.2);
+  background-color: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 0.75rem;
   padding: 1rem;
   margin-bottom: 0.75rem;
@@ -1001,7 +1001,7 @@ html, body {
   right: 0;
   width: 128px;
   height: 128px;
-  background: rgba(99, 102, 241, 0.1);
+  background: rgba(59, 130, 246, 0.1);
   filter: blur(48px);
   border-radius: 50%;
   margin-right: -40px;
@@ -1018,7 +1018,7 @@ html, body {
 
 .prep-trend-icon {
   padding: 0.25rem;
-  background-color: rgba(99, 102, 241, 0.1);
+  background-color: rgba(59, 130, 246, 0.1);
   border-radius: 50%;
   margin-top: 2px;
 }
@@ -1325,7 +1325,7 @@ html, body {
 
 .notes-input:focus {
   outline: none;
-  border-color: rgba(99, 102, 241, 0.5);
+  border-color: rgba(59, 130, 246, 0.5);
   background-color: var(--hover);
 }
 
@@ -1335,17 +1335,17 @@ html, body {
   top: 50%;
   transform: translateY(-50%);
   padding: 0.25rem;
-  background-color: #6366f1;
+  background-color: #3b82f6;
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
   color: white;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .notes-send-btn:hover {
-  background-color: #818cf8;
+  background-color: #60a5fa;
 }
 
 /* ===== MOBILE BACKDROP ===== */

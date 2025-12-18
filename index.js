@@ -1797,7 +1797,6 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
-    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
   </head>
   <body class="bg-notion-bg">
     <!-- Mobile Backdrop -->
@@ -1991,7 +1990,6 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
-    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
   </head>
   <body class="bg-notion-bg">
     <!-- Mobile Backdrop -->
@@ -2202,7 +2200,6 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
-    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
   </head>
   <body class="bg-notion-bg">
     <!-- Mobile Backdrop -->
@@ -3355,7 +3352,6 @@ app.get('/', async (req, res) => {
       </script>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
       <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
-      <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
       <style>
         .auth-controls {
           display: flex;
