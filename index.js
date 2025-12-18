@@ -1775,139 +1775,185 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CB Speeches & Analysis - Alphalabs</title>
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js" defer></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" defer></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              notion: {
+                bg: 'var(--bg)',
+                sidebar: 'var(--sidebar)',
+                hover: 'var(--hover)',
+                border: 'var(--border)',
+                text: 'var(--text)',
+                muted: 'var(--muted)',
+                block: 'var(--block)',
+                overlay: 'var(--overlay)',
+                blue: '#4E7CFF',
+                red: '#FF5C5C',
+                green: '#4CAF50',
+                yellow: '#D9B310'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
     <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
-    <style>
-      .auth-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-shrink: 0;
-      }
-      .auth-avatar {
-        width: 38px;
-        height: 38px;
-        min-width: 38px;
-        border-radius: 9999px;
-        border: 2px solid rgba(96, 165, 250, 0.35);
-        object-fit: cover;
-      }
-      .auth-user {
-        text-align: right;
-        line-height: 1.2;
-      }
-      .auth-user strong {
-        font-size: 0.95rem;
-        color: #e2e8f0;
-        font-weight: 600;
-      }
-      .auth-user span {
-        display: block;
-        font-size: 0.75rem;
-        color: rgba(226, 232, 240, 0.6);
-      }
-      .auth-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        padding: 0.45rem 1rem;
-        border-radius: 9999px;
-        text-decoration: none;
-        font-weight: 600;
-        transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
-      }
-      .auth-button.logout {
-        background: rgba(248, 113, 113, 0.2);
-        border: 1px solid rgba(248, 113, 113, 0.45);
-        color: #fecaca;
-      }
-      .auth-button.logout:hover {
-        background: rgba(248, 113, 113, 0.3);
-        border-color: rgba(248, 113, 113, 0.65);
-        color: #fee2e2;
-      }
-      .nav-bar {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        margin-left: 2rem;
-      }
-      .nav-link {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: rgba(226, 232, 240, 0.7);
-        transition: all 0.2s ease;
-        border: 1px solid transparent;
-      }
-      .nav-link:hover {
-        background: rgba(99, 102, 241, 0.15);
-        color: #c7d2fe;
-        border-color: rgba(99, 102, 241, 0.3);
-      }
-      .nav-link.active {
-        background: rgba(99, 102, 241, 0.22);
-        color: #e0e7ff;
-        border-color: rgba(99, 102, 241, 0.4);
-      }
-      @media (max-width: 768px) {
-        .nav-bar {
-          margin-left: 0;
-          gap: 0.25rem;
-        }
-        .nav-link {
-          padding: 0.4rem 0.7rem;
-          font-size: 0.8rem;
-        }
-      }
-    </style>
   </head>
-  <body>
-    <header style="padding: 1.5rem 0; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
-      <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1.5rem; padding: 0 1rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
-          <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
-            <div>
-              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
-                Alphalabs
-              </h1>
-              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+  <body class="bg-notion-bg">
+    <!-- Mobile Backdrop -->
+    <div id="mobile-backdrop" class="mobile-backdrop" onclick="closeSidebar()"></div>
+
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <!-- Brand -->
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-inner">
+            <div class="sidebar-logo">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/>
+              </svg>
             </div>
-          </a>
-          <nav class="nav-bar">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/currency-strength" class="nav-link">Currency Strength</a>
-            <a href="/cb-speeches" class="nav-link active">CB Speeches</a>
-            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
-          </nav>
+            <div class="sidebar-brand-text">
+              <span class="sidebar-brand-name">AlphaLabs</span>
+              <span class="sidebar-brand-tagline">Pro Terminal</span>
+            </div>
+          </div>
         </div>
-        ${authControlsHtml}
-      </div>
-    </header>
 
-    <main>
-      <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 0 1rem;">
-        <div id="cb-speech-root"></div>
-      </section>
-    </main>
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+          <div class="sidebar-nav-label">Trading Data</div>
+          <a href="/" class="sidebar-nav-item ${req.path === '/' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="/currency-strength" class="sidebar-nav-item ${req.path === '/currency-strength' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
+            <span>Currency Strength</span>
+          </a>
+          <a href="/cb-speeches" class="sidebar-nav-item ${req.path === '/cb-speeches' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span>CB Speeches</span>
+          </a>
+          <a href="/weekly-calendar" class="sidebar-nav-item ${req.path === '/weekly-calendar' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Weekly Calendar</span>
+          </a>
+        </nav>
 
-    <footer style="padding: 2rem 0; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; color: rgba(226, 232, 240, 0.5); font-size: 0.85rem;">
+        <!-- Footer -->
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-item" onclick="toggleTheme()">
+            <svg id="theme-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <span id="theme-text">Light Mode</span>
+          </div>
+          ${user ? '<a href="/auth/logout" class="sidebar-footer-item logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></a>' : ''}
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+          <div class="top-bar-left">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="hidden lg:flex w-6 h-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md text-white items-center justify-center shadow-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/></svg>
+            </div>
+            <div class="top-bar-breadcrumb">
+              <span class="hidden lg:block hover:text-notion-text cursor-pointer">AlphaLabs</span>
+              <span class="hidden lg:block top-bar-breadcrumb-divider">/</span>
+              <span class="text-notion-text font-medium">CB Speeches</span>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <div class="status-badge hidden sm:flex">
+              <span class="status-dot"></span>
+              <span>DATA LIVE</span>
+            </div>
+            <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
+            <button class="top-bar-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            ${user ? '<div class="hidden sm:flex items-center gap-2"><img src="' + (user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email) + '&background=6366f1&color=fff') + '" class="w-8 h-8 rounded-full border-2 border-indigo-500/30" alt=""/><span class="text-sm text-notion-text font-medium hidden md:block">' + (user.displayName || user.email.split('@')[0]) + '</span></div>' : ''}
+          </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="dashboard-content">
+          <div id="cb-speech-root"></div>
+        </div>
+      </div><!-- end main-content -->
+    </div><!-- end app-container -->
+
+    <!-- Footer -->
+    <div class="fixed bottom-0 left-0 right-0 lg:left-64 py-2 px-4 text-center text-xs text-notion-muted bg-notion-bg/80 backdrop-blur-sm border-t border-notion-border">
       Updated on demand • Powered by AI Analysis
-    </footer>
+    </div>
 
-    <script type="text/babel" data-presets="env,react" src="/cb-speech-analysis.jsx"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" src="/cb-speech-analysis.jsx"></script>
     <script type="text/babel" data-presets="env,react">
       const cbroot = ReactDOM.createRoot(document.getElementById('cb-speech-root'));
       cbroot.render(React.createElement(CBSpeechAnalysis));
     </script>
+    <script>
+      // Sidebar functions
+      function openSidebar() {
+        document.getElementById('sidebar').classList.add('open');
+        document.getElementById('mobile-backdrop').classList.add('active');
+      }
+      function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('mobile-backdrop').classList.remove('active');
+      }
+      // Theme toggle
+      function toggleTheme() {
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (html.classList.contains('dark')) {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+          localStorage.setItem('theme', 'dark');
+        }
+      }
+      // Apply saved theme
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (savedTheme === 'light') {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+        }
+      })();
+    </script>
   </body>
-</html>`;
+</html>``;
 
   res.send(html);
 });
@@ -1933,47 +1979,183 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weekly Calendar - Alphalabs Data Trading</title>
-    <link rel="stylesheet" href="/public/theme-2025.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              notion: {
+                bg: 'var(--bg)',
+                sidebar: 'var(--sidebar)',
+                hover: 'var(--hover)',
+                border: 'var(--border)',
+                text: 'var(--text)',
+                muted: 'var(--muted)',
+                block: 'var(--block)',
+                overlay: 'var(--overlay)',
+                blue: '#4E7CFF',
+                red: '#FF5C5C',
+                green: '#4CAF50',
+                yellow: '#D9B310'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
+    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
   </head>
-  <body>
-    <header style="background: var(--primary-bg); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 1rem 0; position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px);">
-      <div style="max-width: 1600px; margin: 0 auto; padding: 0 2rem; display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 3rem;">
-          <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
-            <div>
-              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
-                Alphalabs
-              </h1>
-              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+  <body class="bg-notion-bg">
+    <!-- Mobile Backdrop -->
+    <div id="mobile-backdrop" class="mobile-backdrop" onclick="closeSidebar()"></div>
+
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <!-- Brand -->
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-inner">
+            <div class="sidebar-logo">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/>
+              </svg>
             </div>
-          </a>
-          <nav class="nav-bar">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/currency-strength" class="nav-link">Currency Strength</a>
-            <a href="/cb-speeches" class="nav-link">CB Speeches</a>
-            <a href="/weekly-calendar" class="nav-link active">Weekly Calendar</a>
-          </nav>
+            <div class="sidebar-brand-text">
+              <span class="sidebar-brand-name">AlphaLabs</span>
+              <span class="sidebar-brand-tagline">Pro Terminal</span>
+            </div>
+          </div>
         </div>
-        ${authControlsHtml}
-      </div>
-    </header>
 
-    <main>
-      <div id="weekly-calendar-root"></div>
-    </main>
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+          <div class="sidebar-nav-label">Trading Data</div>
+          <a href="/" class="sidebar-nav-item ${req.path === '/' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="/currency-strength" class="sidebar-nav-item ${req.path === '/currency-strength' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
+            <span>Currency Strength</span>
+          </a>
+          <a href="/cb-speeches" class="sidebar-nav-item ${req.path === '/cb-speeches' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span>CB Speeches</span>
+          </a>
+          <a href="/weekly-calendar" class="sidebar-nav-item ${req.path === '/weekly-calendar' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Weekly Calendar</span>
+          </a>
+        </nav>
 
-    <footer style="padding: 2rem 0; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; color: rgba(226, 232, 240, 0.5); font-size: 0.85rem;">
+        <!-- Footer -->
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-item" onclick="toggleTheme()">
+            <svg id="theme-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <span id="theme-text">Light Mode</span>
+          </div>
+          ${user ? '<a href="/auth/logout" class="sidebar-footer-item logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></a>' : ''}
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+          <div class="top-bar-left">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="hidden lg:flex w-6 h-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md text-white items-center justify-center shadow-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/></svg>
+            </div>
+            <div class="top-bar-breadcrumb">
+              <span class="hidden lg:block hover:text-notion-text cursor-pointer">AlphaLabs</span>
+              <span class="hidden lg:block top-bar-breadcrumb-divider">/</span>
+              <span class="text-notion-text font-medium">Weekly Calendar</span>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <div class="status-badge hidden sm:flex">
+              <span class="status-dot"></span>
+              <span>DATA LIVE</span>
+            </div>
+            <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
+            <button class="top-bar-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            ${user ? '<div class="hidden sm:flex items-center gap-2"><img src="' + (user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email) + '&background=6366f1&color=fff') + '" class="w-8 h-8 rounded-full border-2 border-indigo-500/30" alt=""/><span class="text-sm text-notion-text font-medium hidden md:block">' + (user.displayName || user.email.split('@')[0]) + '</span></div>' : ''}
+          </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="dashboard-content">
+          <div id="weekly-calendar-root"></div>
+        </div>
+      </div><!-- end main-content -->
+    </div><!-- end app-container -->
+
+    <!-- Footer -->
+    <div class="fixed bottom-0 left-0 right-0 lg:left-64 py-2 px-4 text-center text-xs text-notion-muted bg-notion-bg/80 backdrop-blur-sm border-t border-notion-border">
       All events auto-updated • Tracking Forex, CB Speeches & Trump Schedule
-    </footer>
+    </div>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="text/babel" src="/weekly-calendar.jsx"></script>
+    
+    <script>
+      // Sidebar functions
+      function openSidebar() {
+        document.getElementById('sidebar').classList.add('open');
+        document.getElementById('mobile-backdrop').classList.add('active');
+      }
+      function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('mobile-backdrop').classList.remove('active');
+      }
+      // Theme toggle
+      function toggleTheme() {
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (html.classList.contains('dark')) {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+          localStorage.setItem('theme', 'dark');
+        }
+      }
+      // Apply saved theme
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (savedTheme === 'light') {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+        }
+      })();
+    </script>
   </body>
-</html>`;
+</html>``;
 
   res.send(html);
 });
@@ -2021,49 +2203,182 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Currency Strength - Alphalabs</title>
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              notion: {
+                bg: 'var(--bg)',
+                sidebar: 'var(--sidebar)',
+                hover: 'var(--hover)',
+                border: 'var(--border)',
+                text: 'var(--text)',
+                muted: 'var(--muted)',
+                block: 'var(--block)',
+                overlay: 'var(--overlay)',
+                blue: '#4E7CFF',
+                red: '#FF5C5C',
+                green: '#4CAF50',
+                yellow: '#D9B310'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
     <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
   </head>
-  <body>
-    <header style="padding: 1.5rem 0; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
-      <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; max-width: 1480px; margin: 0 auto; gap: 1.5rem; padding: 0 1rem;">
-        <div style="display: flex; align-items: center; gap: 1rem; flex: 1;">
-          <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 1rem;">
-            <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #00D9FF, #8B5CF6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.1rem; color: #0B0F19; font-family: 'Inter Tight', sans-serif;">A</div>
-            <div>
-              <h1 style="font-size: 1.5rem; font-weight: 700; color: #F8FAFC; letter-spacing: -0.02em; font-family: 'Inter Tight', sans-serif; margin: 0;">
-                Alphalabs
-              </h1>
-              <p style="font-size: 0.75rem; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Data Trading</p>
+  <body class="bg-notion-bg">
+    <!-- Mobile Backdrop -->
+    <div id="mobile-backdrop" class="mobile-backdrop" onclick="closeSidebar()"></div>
+
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <!-- Brand -->
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-inner">
+            <div class="sidebar-logo">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/>
+              </svg>
             </div>
-          </a>
-          <nav class="nav-bar">
-            <a href="/" class="nav-link">Dashboard</a>
-            <a href="/interest-rates" class="nav-link">Interest Rates</a>
-            <a href="/currency-strength" class="nav-link active">Currency Strength</a>
-            <a href="/cb-speeches" class="nav-link">CB Speeches</a>
-            <a href="/weekly-calendar" class="nav-link">Weekly Calendar</a>
-          </nav>
+            <div class="sidebar-brand-text">
+              <span class="sidebar-brand-name">AlphaLabs</span>
+              <span class="sidebar-brand-tagline">Pro Terminal</span>
+            </div>
+          </div>
         </div>
-        ${authControlsHtml}
-      </div>
-    </header>
 
-    <main>
-      <section style="max-width: 1480px; margin: 0 auto 1.5rem; padding: 0 1rem;">
-        <div id="currency-strength-root"></div>
-      </section>
-    </main>
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+          <div class="sidebar-nav-label">Trading Data</div>
+          <a href="/" class="sidebar-nav-item ${req.path === '/' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="/currency-strength" class="sidebar-nav-item ${req.path === '/currency-strength' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
+            <span>Currency Strength</span>
+          </a>
+          <a href="/cb-speeches" class="sidebar-nav-item ${req.path === '/cb-speeches' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span>CB Speeches</span>
+          </a>
+          <a href="/weekly-calendar" class="sidebar-nav-item ${req.path === '/weekly-calendar' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Weekly Calendar</span>
+          </a>
+        </nav>
 
-    <footer style="padding: 2rem 0; margin-top: 4rem; border-top: 1px solid rgba(255,255,255,0.06); text-align: center; color: rgba(226, 232, 240, 0.5); font-size: 0.85rem;">
+        <!-- Footer -->
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-item" onclick="toggleTheme()">
+            <svg id="theme-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <span id="theme-text">Light Mode</span>
+          </div>
+          ${user ? '<a href="/auth/logout" class="sidebar-footer-item logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></a>' : ''}
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+          <div class="top-bar-left">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="hidden lg:flex w-6 h-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md text-white items-center justify-center shadow-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/></svg>
+            </div>
+            <div class="top-bar-breadcrumb">
+              <span class="hidden lg:block hover:text-notion-text cursor-pointer">AlphaLabs</span>
+              <span class="hidden lg:block top-bar-breadcrumb-divider">/</span>
+              <span class="text-notion-text font-medium">Currency Strength</span>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <div class="status-badge hidden sm:flex">
+              <span class="status-dot"></span>
+              <span>DATA LIVE</span>
+            </div>
+            <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
+            <button class="top-bar-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            ${user ? '<div class="hidden sm:flex items-center gap-2"><img src="' + (user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email) + '&background=6366f1&color=fff') + '" class="w-8 h-8 rounded-full border-2 border-indigo-500/30" alt=""/><span class="text-sm text-notion-text font-medium hidden md:block">' + (user.displayName || user.email.split('@')[0]) + '</span></div>' : ''}
+          </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="dashboard-content">
+          <div id="currency-strength-root"></div>
+        </div>
+      </div><!-- end main-content -->
+    </div><!-- end app-container -->
+
+    <!-- Footer -->
+    <div class="fixed bottom-0 left-0 right-0 lg:left-64 py-2 px-4 text-center text-xs text-notion-muted bg-notion-bg/80 backdrop-blur-sm border-t border-notion-border">
       Updated every 4 hours • Real-time currency strength analysis
-    </footer>
+    </div>
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="text/babel" src="/currency-strength.jsx"></script>
+    
+    <script>
+      // Sidebar functions
+      function openSidebar() {
+        document.getElementById('sidebar').classList.add('open');
+        document.getElementById('mobile-backdrop').classList.add('active');
+      }
+      function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('mobile-backdrop').classList.remove('active');
+      }
+      // Theme toggle
+      function toggleTheme() {
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (html.classList.contains('dark')) {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+          localStorage.setItem('theme', 'dark');
+        }
+      }
+      // Apply saved theme
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (savedTheme === 'light') {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+        }
+      })();
+    </script>
   </body>
-</html>`;
+</html>``;
 
   res.send(html);
 });
