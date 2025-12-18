@@ -80,310 +80,228 @@ export default function FinancialNewsFeed() {
 
   if (loading && news.length === 0) {
     return (
-      <div className="financial-news-feed loading">
-        <div className="news-header">
-          <h2>📰 Market-Moving News</h2>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        padding: '1rem'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flex: 1,
+          color: 'rgba(255, 255, 255, 0.6)'
+        }}>
+          Loading news feed...
         </div>
-        <div className="news-loading">Loading news feed...</div>
       </div>
     );
   }
 
   return (
-    <div className="financial-news-feed">
-      <div className="news-header">
-        <div className="header-left">
-          <span className="header-icon">🔴</span>
-          <h2>Critical Market News</h2>
+    <>
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '0.75rem 1rem',
+        borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+        flexShrink: 0,
+        gap: '0.5rem',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>🔴</span>
+          <h2 style={{
+            margin: 0,
+            fontSize: '0.95rem',
+            fontWeight: 600,
+            color: '#fff'
+          }}>
+            Critical Market News
+          </h2>
         </div>
-        <div className="news-controls">
-          <button onClick={fetchNews} className="refresh-btn" disabled={loading}>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            onClick={fetchNews}
+            disabled={loading}
+            style={{
+              background: '#51c6e1',
+              color: '#000',
+              border: 'none',
+              padding: '0.35rem 0.65rem',
+              borderRadius: '6px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              opacity: loading ? 0.6 : 1,
+              transition: 'all 0.2s'
+            }}
+          >
             {loading ? '⟳ Refreshing...' : '⟳ Refresh'}
           </button>
-          {lastUpdate && <span className="last-update">Updated: {lastUpdate}</span>}
+          {lastUpdate && (
+            <span style={{
+              fontSize: '0.75rem',
+              color: 'rgba(255, 255, 255, 0.5)',
+              whiteSpace: 'nowrap'
+            }}>
+              Updated: {lastUpdate}
+            </span>
+          )}
         </div>
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div className="news-error">
+        <div style={{
+          color: '#ff6b6b',
+          background: 'rgba(255, 107, 107, 0.1)',
+          borderRadius: '8px',
+          padding: '0.75rem',
+          margin: '0.75rem 1rem',
+          textAlign: 'center',
+          fontSize: '0.875rem'
+        }}>
           ⚠️ {error}
         </div>
       )}
 
-      <div className="news-list">
+      {/* News List */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        flex: 1,
+        minHeight: 0,
+        overflowY: 'auto',
+        padding: '0.75rem 1rem',
+        paddingRight: '0.5rem'
+      }}
+      className="custom-scrollbar"
+      >
         {news.length === 0 ? (
-          <div className="no-news">No high-impact news at the moment</div>
+          <div style={{
+            textAlign: 'center',
+            padding: '3rem 1rem',
+            color: 'rgba(255, 255, 255, 0.5)',
+            fontSize: '0.9rem'
+          }}>
+            No critical market news at the moment
+          </div>
         ) : (
           news.map((item, index) => (
             <div
               key={index}
-              className={`news-item ${item.isCritical ? 'critical' : item.isActive ? 'active' : ''}`}
+              style={{
+                background: item.isCritical ? 'rgba(255, 107, 107, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                borderLeft: `3px solid ${item.isCritical ? '#ff6b6b' : item.isActive ? '#51c6e1' : 'transparent'}`,
+                borderRadius: '8px',
+                padding: '0.75rem',
+                transition: 'all 0.2s'
+              }}
             >
-              <div className="news-content">
-                <h3 className="news-headline">
+              {/* Headline */}
+              <div style={{
+                marginBottom: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                flexWrap: 'wrap'
+              }}>
+                <h3 style={{
+                  margin: 0,
+                  fontSize: '0.9rem',
+                  lineHeight: 1.4,
+                  color: '#fff',
+                  flex: '1 1 auto'
+                }}>
                   {item.headline}
-                  {item.isCritical && <span className="critical-badge">CRITICAL</span>}
                 </h3>
-
-                {item.economicData && (
-                  <div className="economic-data">
-                    {item.economicData.actual && (
-                      <span className="data-point actual">
-                        Actual: <strong>{item.economicData.actual}</strong>
-                      </span>
-                    )}
-                    {item.economicData.forecast && (
-                      <span className="data-point forecast">
-                        Forecast: <strong>{item.economicData.forecast}</strong>
-                      </span>
-                    )}
-                    {item.economicData.previous && (
-                      <span className="data-point previous">
-                        Previous: <strong>{item.economicData.previous}</strong>
-                      </span>
-                    )}
-                  </div>
+                {item.isCritical && (
+                  <span style={{
+                    background: '#ff6b6b',
+                    color: '#fff',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: '4px',
+                    letterSpacing: '0.5px',
+                    flexShrink: 0
+                  }}>
+                    CRITICAL
+                  </span>
                 )}
+              </div>
 
-                <div className="news-meta">
-                  {item.timestamp && (
-                    <span className="news-time">{formatTimestamp(item.timestamp)}</span>
+              {/* Economic Data */}
+              {item.economicData && (
+                <div style={{
+                  display: 'flex',
+                  gap: '0.75rem',
+                  marginBottom: '0.5rem',
+                  flexWrap: 'wrap',
+                  fontSize: '0.85rem'
+                }}>
+                  {item.economicData.actual && (
+                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Actual: <strong style={{ color: '#51c6e1', marginLeft: '0.25rem' }}>{item.economicData.actual}</strong>
+                    </span>
                   )}
-                  {item.tags.length > 0 && (
-                    <div className="news-tags">
-                      {item.tags.slice(0, 5).map((tag, i) => (
-                        <span key={i} className="tag">{tag}</span>
-                      ))}
-                    </div>
+                  {item.economicData.forecast && (
+                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Forecast: <strong style={{ color: '#fff', marginLeft: '0.25rem' }}>{item.economicData.forecast}</strong>
+                    </span>
+                  )}
+                  {item.economicData.previous && (
+                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      Previous: <strong style={{ color: '#fff', marginLeft: '0.25rem' }}>{item.economicData.previous}</strong>
+                    </span>
                   )}
                 </div>
+              )}
+
+              {/* Meta Info */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                flexWrap: 'wrap'
+              }}>
+                {item.timestamp && (
+                  <span style={{
+                    fontSize: '0.75rem',
+                    color: 'rgba(255, 255, 255, 0.5)'
+                  }}>
+                    {formatTimestamp(item.timestamp)}
+                  </span>
+                )}
+                {item.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {item.tags.slice(0, 5).map((tag, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          background: 'rgba(81, 198, 225, 0.2)',
+                          color: '#51c6e1',
+                          fontSize: '0.7rem',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: 500
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))
         )}
       </div>
-
-      <style jsx>{`
-        .financial-news-feed {
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          padding: 1rem;
-        }
-
-        .news-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.75rem;
-          flex-wrap: wrap;
-          gap: 1rem;
-          flex-shrink: 0;
-        }
-
-        .header-left {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .header-icon {
-          font-size: 1.2rem;
-        }
-
-        .news-header h2 {
-          margin: 0;
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text-primary, #fff);
-        }
-
-        .news-controls {
-          display: flex;
-          gap: 1rem;
-          align-items: center;
-        }
-
-        .refresh-btn {
-          background: var(--accent-color, #51c6e1);
-          color: #000;
-          border: none;
-          padding: 0.35rem 0.75rem;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 600;
-          font-size: 0.875rem;
-          transition: all 0.2s;
-        }
-
-        .refresh-btn:hover:not(:disabled) {
-          transform: scale(1.05);
-          box-shadow: 0 4px 12px rgba(81, 198, 225, 0.3);
-        }
-
-        .refresh-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .last-update {
-          font-size: 0.85rem;
-          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-        }
-
-        .news-loading,
-        .news-error,
-        .no-news {
-          text-align: center;
-          padding: 2rem;
-          color: var(--text-secondary, rgba(255, 255, 255, 0.6));
-        }
-
-        .news-error {
-          color: #ff6b6b;
-          background: rgba(255, 107, 107, 0.1);
-          border-radius: 8px;
-          margin-bottom: 1rem;
-        }
-
-        .news-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          flex: 1;
-          min-height: 0;
-          overflow-y: auto;
-          padding-right: 0.5rem;
-        }
-
-        .news-list::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .news-list::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 3px;
-        }
-
-        .news-list::-webkit-scrollbar-thumb {
-          background: var(--accent-color, #51c6e1);
-          border-radius: 3px;
-        }
-
-        .news-item {
-          background: rgba(255, 255, 255, 0.03);
-          border-left: 3px solid transparent;
-          border-radius: 8px;
-          padding: 0.75rem;
-          transition: all 0.2s;
-        }
-
-        .news-item:hover {
-          background: rgba(255, 255, 255, 0.06);
-          transform: translateX(4px);
-        }
-
-        .news-item.critical {
-          border-left-color: #ff6b6b;
-          background: rgba(255, 107, 107, 0.1);
-        }
-
-        .news-item.active {
-          border-left-color: var(--accent-color, #51c6e1);
-        }
-
-        .news-headline {
-          margin: 0 0 0.5rem 0;
-          font-size: 0.95rem;
-          line-height: 1.4;
-          color: var(--text-primary, #fff);
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .critical-badge {
-          background: #ff6b6b;
-          color: #fff;
-          font-size: 0.6rem;
-          font-weight: 700;
-          padding: 0.15rem 0.4rem;
-          border-radius: 4px;
-          letter-spacing: 0.5px;
-        }
-
-        .economic-data {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 0.5rem;
-          flex-wrap: wrap;
-        }
-
-        .data-point {
-          font-size: 0.9rem;
-          color: var(--text-secondary, rgba(255, 255, 255, 0.7));
-        }
-
-        .data-point strong {
-          color: var(--text-primary, #fff);
-          margin-left: 0.25rem;
-        }
-
-        .data-point.actual strong {
-          color: #51c6e1;
-        }
-
-        .news-meta {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .news-time {
-          font-size: 0.85rem;
-          color: var(--text-secondary, rgba(255, 255, 255, 0.5));
-        }
-
-        .news-tags {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
-
-        .tag {
-          background: rgba(81, 198, 225, 0.2);
-          color: var(--accent-color, #51c6e1);
-          font-size: 0.75rem;
-          padding: 0.25rem 0.6rem;
-          border-radius: 4px;
-          font-weight: 500;
-        }
-
-        @media (max-width: 768px) {
-          .financial-news-feed {
-            padding: 1rem;
-          }
-
-          .news-header {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .news-header h2 {
-            font-size: 1.25rem;
-          }
-
-          .news-list {
-            max-height: 400px;
-          }
-
-          .economic-data {
-            flex-direction: column;
-            gap: 0.5rem;
-          }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }

@@ -3611,32 +3611,9 @@ app.get('/', async (req, res) => {
                 </div>
               </div>
 
-              <!-- CENTER COLUMN: Live Newswire -->
+              <!-- CENTER COLUMN: Critical Market News -->
               <div class="col-span-12 lg:col-span-6 h-[500px] lg:h-full min-h-0 order-3 lg:order-2">
-                <div class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl relative group transition-colors duration-300">
-                  <!-- Header -->
-                  <div class="px-3 py-2 lg:px-4 lg:py-3 border-b border-notion-border flex items-center justify-between shrink-0 bg-notion-block/50">
-                    <div class="flex items-center gap-2.5">
-                      <div class="p-1.5 bg-red-500/10 rounded-md border border-red-500/20">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-500 animate-pulse">
-                          <circle cx="12" cy="12" r="10"/><polygon points="10,8 16,12 10,16"/></svg>
-                      </div>
-                      <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Live Newswire</h3>
-                    </div>
-                    <div class="flex items-center gap-2">
-                      <span class="text-[10px] font-mono text-notion-muted hidden lg:block">REAL-TIME</span>
-                      <button id="refresh-news-btn" class="p-1.5 hover:bg-notion-hover rounded-md text-notion-muted hover:text-notion-text transition-all">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- News Feed -->
-                  <div id="financial-news-root" class="flex-1 overflow-y-auto custom-scrollbar"></div>
-
-                  <!-- Gradient fade at bottom -->
-                  <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-notion-bg to-transparent pointer-events-none opacity-80"></div>
-                </div>
+                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl relative group transition-colors duration-300"></div>
               </div>
 
               <!-- RIGHT COLUMN: Schedule + Scratchpad -->
