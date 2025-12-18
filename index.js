@@ -4016,7 +4016,7 @@ app.get('/', async (req, res) => {
           if (!countdownTimeEl) return;
 
           // Update event details
-          if (currencyEl) currencyEl.textContent = `[${nextEventData.country}]`;
+          if (currencyEl) currencyEl.textContent = '[' + nextEventData.country + ']';
           if (nameEl) nameEl.textContent = nextEventData.title;
           if (localEl && nextEventData.formatted) {
             localEl.textContent = nextEventData.formatted;
