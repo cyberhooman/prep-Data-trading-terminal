@@ -191,10 +191,11 @@ export default function FinancialNewsFeed() {
           background: var(--accent-color, #51c6e1);
           color: #000;
           border: none;
-          padding: 0.5rem 1rem;
+          padding: 0.35rem 0.75rem;
           border-radius: 6px;
           cursor: pointer;
           font-weight: 600;
+          font-size: 0.875rem;
           transition: all 0.2s;
         }
 
