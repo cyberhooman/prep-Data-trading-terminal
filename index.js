@@ -3613,7 +3613,7 @@ app.get('/', async (req, res) => {
 
               <!-- CENTER COLUMN: Critical Market News -->
               <div class="col-span-12 lg:col-span-6 h-[500px] lg:h-full min-h-0 order-3 lg:order-2">
-                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col h-full overflow-hidden shadow-2xl relative group transition-colors duration-300"></div>
+                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl h-full overflow-hidden shadow-2xl relative transition-colors duration-300"></div>
               </div>
 
               <!-- RIGHT COLUMN: Schedule + Scratchpad -->
