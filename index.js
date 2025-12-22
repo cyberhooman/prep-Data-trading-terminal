@@ -12,6 +12,9 @@
  * Auto-reload enabled via nodemon - server restarts on file changes.
  */
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const express = require('express');
 const https = require('https');
 const { URL } = require('url');
