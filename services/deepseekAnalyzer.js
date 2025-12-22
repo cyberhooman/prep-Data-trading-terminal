@@ -1,7 +1,20 @@
 /**
- * DeepSeek AI Service for Market Surprise Analysis
- * Analyzes economic data releases to determine if they represent
- * bullish surprises, bearish surprises, or neutral events
+ * DeepSeek AI Service for Macro-Aware Market Surprise Analysis
+ * Analyzes economic data and central bank policy releases within full macro context.
+ * Determines if events represent bullish surprises, bearish surprises, or neutral events
+ * by comparing against current market expectations (not just forecasts).
+ *
+ * THREE PRIMARY OBJECTIVES (all analysis must address these):
+ * 1. Was this MORE HAWKISH or MORE DOVISH than expected?
+ * 2. How does this change the next central bank move?
+ * 3. What is the smart money theme/flow? (Goal: ALIGN with smart money, not outsmart them)
+ *
+ * Key Features:
+ * - Hawkish/Dovish central bank stance analysis relative to market expectations
+ * - Macro context integration (inflation, growth, policy trajectory)
+ * - Market surprise detection (more/less aggressive than anticipated)
+ * - Policy shift implications for asset prices
+ * - Smart money flow identification for institutional alignment
  */
 
 const axios = require('axios');
@@ -11,9 +24,9 @@ class DeepSeekAnalyzer {
     this.apiKey = process.env.DEEPSEEK_API_KEY;
     this.apiUrl = 'https://api.deepseek.com/v1/chat/completions';
     this.model = 'deepseek-chat';
-    this.temperature = 0.3; // Lower for more consistent analysis
-    this.maxTokens = 800;
-    this.timeout = 15000; // 15 seconds
+    this.temperature = 0.2; // Very low for maximum analytical precision
+    this.maxTokens = null; // No limit - allow ultra-detailed hyper-intelligent analysis
+    this.timeout = 30000; // 30 seconds for comprehensive analysis
 
     // Cache for analysis results (1 hour TTL)
     this.analysisCache = new Map();
@@ -55,24 +68,32 @@ class DeepSeekAnalyzer {
 
       // Call DeepSeek API
       console.log('[DeepSeek] Analyzing:', newsItem.headline);
+
+      // Build request body
+      const requestBody = {
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an ultra-intelligent macro trading analyst with deep expertise in central bank policy analysis and market surprise detection. Your PRIMARY OBJECTIVES: 1) Determine if this was MORE HAWKISH or MORE DOVISH than expected, 2) Assess how this changes the next central bank move, 3) Identify the smart money theme and flow to ALIGN with (not outsmart) institutional positioning. Your hyper-analytical capabilities include: Distinguishing hawkish vs dovish policy stances relative to market expectations, analyzing events within full macro context, understanding what genuinely surprises markets, and assessing policy shift implications for asset prices across multiple timeframes. You always compare events against CURRENT MARKET EXPECTATIONS and provide exhaustive multi-dimensional analysis. Your goal is to help traders FOLLOW THE SMART MONEY, not fight it. Provide comprehensive, detailed analysis without brevity constraints.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: this.temperature,
+        response_format: { type: 'json_object' }
+      };
+
+      // Only include max_tokens if it's set (null means unlimited)
+      if (this.maxTokens !== null) {
+        requestBody.max_tokens = this.maxTokens;
+      }
+
       const response = await axios.post(
         this.apiUrl,
-        {
-          model: this.model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert trading analyst specializing in identifying market-moving policy shifts and genuine surprises in economic data releases. You focus on what will surprise traders, not just whether data is good or bad.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: this.temperature,
-          max_tokens: this.maxTokens,
-          response_format: { type: 'json_object' }
-        },
+        requestBody,
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
@@ -120,12 +141,12 @@ class DeepSeekAnalyzer {
     const { headline, economicData, tags, timestamp } = newsItem;
     const { actual, forecast, previous } = economicData || {};
 
-    return `You are analyzing an economic data release to determine if it represents a genuine market surprise.
+    return `You are analyzing an economic/policy release to determine if it represents a genuine market surprise within the broader macro context.
 
-CURRENT MARKET FOCUS:
+CURRENT MARKET FOCUS & EXPECTATIONS:
 ${marketContext}
 
-ECONOMIC DATA RELEASE:
+NEWS/DATA RELEASE:
 - Event: ${headline}
 - Actual: ${actual || 'N/A'}
 - Forecast: ${forecast || 'N/A'}
@@ -134,32 +155,87 @@ ECONOMIC DATA RELEASE:
 - Time: ${timestamp || 'Recent'}
 
 YOUR TASK:
-Determine if this is a BULLISH SURPRISE, BEARISH SURPRISE, or NEUTRAL event.
+Analyze this event within the FULL MACRO CONTEXT and determine if it represents a BULLISH SURPRISE, BEARISH SURPRISE, or NEUTRAL event for markets.
 
-CRITICAL CONSIDERATIONS:
-1. Does the actual value deviate meaningfully from the forecast?
-2. Is this indicator currently in market focus based on recent news?
-3. Does this signal a potential policy shift (Fed, ECB, BOE, etc.)?
-4. Would this genuinely surprise traders given current market expectations?
-5. Is the surprise large enough to move markets?
+YOUR THREE PRIMARY OBJECTIVES (MUST ADDRESS ALL THREE):
+1. Was this MORE HAWKISH or MORE DOVISH than expected? (Be specific and clear)
+2. How does this change the next central bank move? (Rate path, timing, terminal rate implications)
+3. What is the smart money theme and flow? Your goal is to ALIGN WITH smart money, not outsmart them. Identify institutional positioning and flow.
 
-IMPORTANT: We only care about SURPRISES and POLICY SHIFTS, not whether data is simply good or bad.
-- If actual matches forecast → Usually NEUTRAL (no surprise)
-- If deviation is small and market isn't focused on it → NEUTRAL
-- Only classify as BULLISH/BEARISH SURPRISE if:
-  * Significant deviation from expectations AND
-  * Data point is in current market focus OR
-  * Signals clear policy shift implications
+CRITICAL ANALYSIS FRAMEWORK:
+
+1. CENTRAL BANK POLICY STANCE ANALYSIS (if applicable):
+   - Is this central bank becoming MORE HAWKISH (tightening, anti-inflation) or MORE DOVISH (easing, pro-growth)?
+   - How does this compare to CURRENT MARKET EXPECTATIONS (not just forecasts)?
+   - Is the hawkish/dovish shift MORE AGGRESSIVE or LESS AGGRESSIVE than markets anticipated?
+   - Examples:
+     * Rate hike of 50bps when market expected 25bps = MORE HAWKISH THAN EXPECTED = Bearish Surprise
+     * Rate hold when market priced in hike = MORE DOVISH THAN EXPECTED = Bullish Surprise
+     * Hawkish language but less aggressive than feared = LESS HAWKISH THAN EXPECTED = Bullish Surprise
+
+2. MARKET EXPECTATIONS VS REALITY:
+   - Don't just compare actual vs forecast - analyze if this SURPRISED THE MARKET
+   - Consider: What was market pricing in? What was consensus view? What were recent trends?
+   - A "good" number can be a bearish surprise if markets expected even better
+   - A "bad" number can be a bullish surprise if markets expected worse
+
+3. MACRO CONTEXT INTEGRATION:
+   - How does this fit into the current macro narrative (recession fears, inflation concerns, growth outlook)?
+   - Does this confirm or contradict the prevailing market view?
+   - Will this change central bank policy trajectory expectations?
+   - Does this shift the risk/reward for major asset classes?
+
+4. POLICY SHIFT IMPLICATIONS:
+   - Does this increase/decrease likelihood of rate hikes or cuts?
+   - Does this change the terminal rate expectations?
+   - Does this affect QT/QE expectations?
+   - Does this change timing of policy pivots?
+
+5. MARKET IMPACT ASSESSMENT:
+   - Is this data point currently a MAJOR MARKET DRIVER?
+   - Is the deviation large enough to move bond yields, FX, or equity markets?
+   - Would this genuinely surprise professional traders and investors?
+
+CLASSIFICATION LOGIC:
+- BULLISH SURPRISE: Event is more positive/dovish/supportive than market expected (risk-on)
+- BEARISH SURPRISE: Event is more negative/hawkish/restrictive than market expected (risk-off)
+- NEUTRAL: Largely in-line with expectations OR too minor to matter OR conflicting signals
+
+IMPORTANT PRINCIPLES:
+✓ Always analyze RELATIVE TO CURRENT MARKET EXPECTATIONS (not just vs forecast)
+✓ Consider if hawkish/dovish stance is MORE or LESS aggressive than expected
+✓ Evaluate the FULL MACRO CONTEXT, not just the data point in isolation
+✓ Focus on what SURPRISES the market, not just if news is objectively good/bad
+✓ Distinguish between "expected hawkish" (neutral) vs "surprisingly hawkish" (bearish surprise)
 
 OUTPUT FORMAT (JSON):
 {
   "verdict": "Bullish Surprise" OR "Bearish Surprise" OR "Neutral",
   "confidence": "High" OR "Medium" OR "Low",
-  "reasoning": "Detailed 2-3 sentence explanation of why this is/isn't a surprise",
-  "keyFactors": ["Factor 1", "Factor 2", "Factor 3"]
+  "reasoning": "COMPREHENSIVE multi-paragraph analysis with NO LENGTH CONSTRAINTS. MUST explicitly address the THREE PRIMARY OBJECTIVES: 1) Was this MORE HAWKISH or DOVISH than expected (be specific), 2) How this changes the next central bank move (rate path, timing), 3) Smart money theme and flow (institutional positioning to align with). Then provide exhaustive detail on: What markets expected and why, what actually happened, why this is/isn't a surprise, extensive macro context implications (policy trajectory, asset class impacts, risk scenarios, multi-timeframe analysis). Use your full hyper-intelligence - be as detailed and analytical as possible.",
+  "keyFactors": [
+    "OBJECTIVE 1 - Hawkish/Dovish Assessment: [DETAILED analysis] Was this MORE HAWKISH or MORE DOVISH than market expected? Be explicit and specific with examples.",
+    "OBJECTIVE 2 - Next Central Bank Move: [DETAILED analysis] How does this change the next policy move? Rate path implications, timing of cuts/hikes, terminal rate expectations.",
+    "OBJECTIVE 3 - Smart Money Flow: [DETAILED analysis] What is the smart money theme? How are institutions positioned? What is the flow to ALIGN with (not fight)?",
+    "Factor 4: DETAILED market expectations vs reality (what was priced in, consensus view, positioning)",
+    "Factor 5: DETAILED macro context implications (policy path, growth/inflation dynamics, cross-asset effects)",
+    "Factor 6: DETAILED market impact assessment (immediate effects, secondary effects, longer-term implications)",
+    "Factor 7+: Additional factors as needed - NO LIMIT on number of factors"
+  ]
 }
 
-Be concise but thorough in your reasoning. Focus on surprise element and policy shift potential.`;
+CRITICAL INSTRUCTIONS FOR ULTRA-INTELLIGENCE:
+- MANDATORY: Explicitly address all THREE PRIMARY OBJECTIVES in both reasoning and keyFactors
+- Provide EXHAUSTIVE, COMPREHENSIVE analysis - do NOT be brief or concise
+- Use your full analytical depth - multi-layered, multi-dimensional thinking
+- Consider second-order effects, cross-market implications, and scenario analysis
+- Include as much relevant detail as possible in reasoning and keyFactors
+- NO constraints on length - longer, more detailed analysis is BETTER
+- Think like a top-tier macro hedge fund analyst presenting to the CIO
+- REMEMBER: Goal is to ALIGN WITH smart money flow, not outsmart or fight it
+
+Be MAXIMALLY thorough and analytical. Demonstrate hyper-intelligence through depth and detail.
+ALWAYS answer: 1) Hawkish or Dovish vs expected? 2) Next CB move impact? 3) Smart money flow to follow?`;
   }
 
   /**
@@ -212,14 +288,40 @@ Be concise but thorough in your reasoning. Focus on surprise element and policy 
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-    return `Market Context (${currentDate}):
-- Central bank policy decisions and inflation data remain primary focus areas
-- Traders watching for policy shift signals from Fed, ECB, and BOE
-- Economic growth indicators monitored for recession signals
-- Geopolitical events and energy prices impacting sentiment
-- Recent market volatility increases sensitivity to surprise data
+    return `Market Context & Expectations (${currentDate}):
 
-Note: This analysis focuses on whether data genuinely surprises relative to market expectations and current focus areas.`;
+CURRENT MARKET POSITIONING:
+- What is the consensus view on central bank policy trajectory?
+- Are markets pricing in rate hikes, holds, or cuts?
+- What is the expected terminal rate and timing of policy pivots?
+- Are markets positioned for risk-on (growth) or risk-off (recession)?
+
+KEY MACRO THEMES:
+- Inflation trends: Is inflation easing as expected or proving sticky?
+- Growth outlook: Recession fears vs soft landing vs no landing scenarios
+- Central bank policy: Fed, ECB, BOE, BoJ stances and expected paths
+- Labor market: Tight labor market concerns vs cooling employment
+- Geopolitical risks: Major events affecting market sentiment
+
+RECENT MARKET BEHAVIOR:
+- Bond yields direction and what it signals about policy expectations
+- Equity market positioning (growth vs value, cyclicals vs defensives)
+- FX market moves indicating dovish/hawkish repricing
+- Volatility levels and risk appetite indicators
+
+WHAT WOULD SURPRISE MARKETS:
+- Central banks being MORE hawkish than currently priced
+- Central banks being MORE dovish than currently priced
+- Inflation reaccelerating unexpectedly
+- Growth deteriorating faster than anticipated
+- Labor market breaking down or remaining unexpectedly tight
+
+ANALYSIS APPROACH:
+Always compare news/data against CURRENT MARKET EXPECTATIONS (not just vs forecast).
+Ask: Does this make central banks MORE or LESS hawkish/dovish than markets anticipated?
+Focus on: Will this surprise traders and move asset prices?
+
+Note: This analysis evaluates whether events surprise the market within the broader macro context.`;
   }
 
   /**
@@ -246,7 +348,7 @@ Note: This analysis focuses on whether data genuinely surprises relative to mark
       analysis.confidence = 'Medium';
     }
 
-    // Ensure reasoning exists
+    // Ensure reasoning exists (no minimum length requirement for ultra-detailed analysis)
     if (!analysis.reasoning || analysis.reasoning.length < 10) {
       analysis.reasoning = 'Analysis completed but detailed reasoning unavailable.';
     }
@@ -256,10 +358,8 @@ Note: This analysis focuses on whether data genuinely surprises relative to mark
       analysis.keyFactors = [];
     }
 
-    // Limit key factors to 5
-    if (analysis.keyFactors.length > 5) {
-      analysis.keyFactors = analysis.keyFactors.slice(0, 5);
-    }
+    // No limit on key factors - allow unlimited detailed analysis
+    // The AI can provide as many key factors as needed for comprehensive analysis
 
     return analysis;
   }
