@@ -2593,71 +2593,9 @@ app.post('/api/financial-news/refresh', async (req, res) => {
 });
 
 // ============================================================================
-// Macro-AI AlphaLabs - Market Surprise Analysis Endpoint
 // ============================================================================
-
-const deepseekAnalyzer = require('./services/deepseekAnalyzer');
-
-/**
- * POST /api/analyze-market-surprise
- * Analyze economic data release to determine if it's a bullish/bearish surprise or neutral
- * Body: { headline, economicData: { actual, forecast, previous }, tags, timestamp }
- */
-app.post('/api/analyze-market-surprise', async (req, res) => {
-  try {
-    const { headline, economicData, tags, timestamp } = req.body;
-
-    // Validation
-    if (!headline) {
-      return res.status(400).json({
-        success: false,
-        error: 'Headline is required'
-      });
-    }
-
-    if (!economicData || !economicData.actual || !economicData.forecast) {
-      return res.status(400).json({
-        success: false,
-        error: 'Economic data with actual and forecast values is required'
-      });
-    }
-
-    console.log('[API] Market surprise analysis requested for:', headline);
-
-    // Prepare news item for analysis
-    const newsItem = {
-      headline,
-      economicData,
-      tags: tags || [],
-      timestamp: timestamp || new Date().toISOString()
-    };
-
-    // Analyze with DeepSeek AI
-    const analysis = await deepseekAnalyzer.analyzeMarketSurprise(newsItem);
-
-    // Return analysis
-    res.json({
-      success: true,
-      analysis: {
-        verdict: analysis.verdict,
-        confidence: analysis.confidence,
-        reasoning: analysis.reasoning,
-        keyFactors: analysis.keyFactors || [],
-        analyzedAt: analysis.analyzedAt,
-        cached: analysis.cached || false
-      }
-    });
-
-  } catch (err) {
-    console.error('[API] Market surprise analysis error:', err);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to analyze market surprise',
-      message: err.message
-    });
-  }
-});
-
+// Note: Market surprise analysis is now integrated into the Critical Market News component
+// See POST /api/financial-news/analyze endpoint
 // ============================================================================
 // DeepSeek AI - Central Bank Speech Analysis Endpoints
 // ============================================================================
@@ -2764,6 +2702,41 @@ app.post('/api/ai/compare-speeches', async (req, res) => {
 });
 
 /**
+ * POST /api/financial-news/analyze
+ * Analyze a specific news item for market surprise using DeepSeek AI
+ */
+app.post('/api/financial-news/analyze', async (req, res) => {
+  try {
+    const { newsItem } = req.body;
+
+    if (!newsItem || !newsItem.headline) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid news item - headline required'
+      });
+    }
+
+    // Import the deepseekAnalyzer
+    const deepseekAnalyzer = require('./services/deepseekAnalyzer');
+
+    // Analyze the news item
+    const analysis = await deepseekAnalyzer.analyzeMarketSurprise(newsItem);
+
+    res.json({
+      success: true,
+      analysis
+    });
+  } catch (err) {
+    console.error('News analysis error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to analyze news',
+      message: err.message
+    });
+  }
+});
+
+/**
  * GET /api/ai/status
  * Check if DeepSeek AI is configured and ready
  */
@@ -2773,7 +2746,7 @@ app.get('/api/ai/status', (req, res) => {
     success: true,
     configured: isConfigured,
     model: 'deepseek-chat',
-    features: ['speech-analysis', 'quick-sentiment', 'speech-comparison']
+    features: ['speech-analysis', 'quick-sentiment', 'speech-comparison', 'market-surprise-analysis']
   });
 });
 
@@ -2980,11 +2953,7 @@ app.get('/currency-strength.jsx', (req, res) => {
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
 
-app.get('/macro-ai-analysis.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'macro-ai-analysis.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
+// Removed: Macro-AI Analysis component (analysis now integrated into Critical Market News)
 
 /**
  * Account Settings API - USER ISOLATED
@@ -3683,10 +3652,9 @@ app.get('/', async (req, res) => {
                 </div>
               </div>
 
-              <!-- CENTER COLUMN: Critical Market News + Macro-AI -->
-              <div class="col-span-12 lg:col-span-6 h-[500px] lg:h-full min-h-0 order-3 lg:order-2 flex flex-col gap-4 overflow-y-auto">
-                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl overflow-hidden shadow-2xl relative transition-colors duration-300 flex-shrink-0"></div>
-                <div id="macro-ai-root" class="flex-shrink-0"></div>
+              <!-- CENTER COLUMN: Critical Market News (with integrated AI analysis) -->
+              <div class="col-span-12 lg:col-span-6 h-auto lg:h-full min-h-0 order-3 lg:order-2 flex flex-col gap-2 overflow-y-auto lg:overflow-hidden">
+                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl overflow-hidden shadow-2xl relative transition-colors duration-300 h-[400px] lg:h-auto lg:flex-1 min-h-0"></div>
               </div>
 
               <!-- RIGHT COLUMN: Schedule + Scratchpad -->
@@ -4178,7 +4146,6 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
-  <script type="text/babel" data-presets="env,react" src="/macro-ai-analysis.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         try {
           const root = ReactDOM.createRoot(document.getElementById('todo-root'));
@@ -4215,16 +4182,6 @@ app.get('/', async (req, res) => {
                 setNews(criticalNews);
                 criticalNewsData = criticalNews; // Share data globally
                 setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
-
-                // Update MacroAI component with new news
-                if (typeof MacroAIAnalysis !== 'undefined') {
-                  try {
-                    const airoot = ReactDOM.createRoot(document.getElementById('macro-ai-root'));
-                    airoot.render(React.createElement(MacroAIAnalysis, { newsItems: criticalNews }));
-                  } catch (e) {
-                    console.error('MacroAI render error:', e);
-                  }
-                }
 
                 if (criticalNews.length === 0 && data.source === 'failed') {
                   setError('News source temporarily unavailable');
@@ -4266,15 +4223,7 @@ app.get('/', async (req, res) => {
           document.getElementById('financial-news-root').innerHTML = '<div style="padding:1rem;color:#ff6b6b;">Error: ' + e.message + '</div>';
         }
 
-        // Initialize MacroAI component with empty data
-        try {
-          if (typeof MacroAIAnalysis !== 'undefined') {
-            const airoot = ReactDOM.createRoot(document.getElementById('macro-ai-root'));
-            airoot.render(React.createElement(MacroAIAnalysis, { newsItems: [] }));
-          }
-        } catch (e) {
-          console.error('MacroAI initial render error:', e);
-        }
+        // MacroAI component removed - AI analysis now integrated into Critical Market News
       </script>
       <script>
         // Live reload WebSocket connection
@@ -4603,7 +4552,6 @@ const watchedFiles = [
   path.join(__dirname, 'quick-notes.jsx'),
   path.join(__dirname, 'animated-title.jsx'),
   path.join(__dirname, 'financial-news.jsx'),
-  path.join(__dirname, 'macro-ai-analysis.jsx'),
   path.join(__dirname, 'cb-speech-analysis.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];

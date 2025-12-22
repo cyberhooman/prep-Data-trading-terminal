@@ -86,33 +86,30 @@ export default function FinancialNewsFeed() {
 
   return (
     <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
       display: 'flex',
       flexDirection: 'column',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      height: '100%',
+      minHeight: 0
     }}>
       {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: '0.75rem 1rem',
+        padding: '0.5rem 0.75rem',
         borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
         flexShrink: 0,
         gap: '0.5rem',
         flexWrap: 'wrap'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '1.1rem' }}>🔴</span>
-          <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+          <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>🔴</span>
+          <h2 style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             Critical Market News
           </h2>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button
             onClick={fetchNews}
             disabled={loading}
@@ -120,18 +117,20 @@ export default function FinancialNewsFeed() {
               background: '#51c6e1',
               color: '#000',
               border: 'none',
-              padding: '0.35rem 0.65rem',
+              padding: '0.3rem 0.6rem',
               borderRadius: '6px',
               cursor: loading ? 'not-allowed' : 'pointer',
               fontWeight: 600,
-              fontSize: '0.8rem',
-              opacity: loading ? 0.6 : 1
+              fontSize: '0.75rem',
+              opacity: loading ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+              minHeight: '32px'
             }}
           >
             {loading ? '⟳ Refreshing...' : '⟳ Refresh'}
           </button>
           {lastUpdate && (
-            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
               Updated: {lastUpdate}
             </span>
           )}
@@ -157,7 +156,7 @@ export default function FinancialNewsFeed() {
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '0.75rem 1rem',
+        padding: '0.5rem 0.75rem',
         paddingRight: '0.5rem',
         minHeight: 0
       }}
@@ -179,8 +178,8 @@ export default function FinancialNewsFeed() {
                 }}
               >
                 {/* Headline */}
-                <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <h3 style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.4, color: '#fff', flex: '1 1 auto' }}>
+                <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: '0.85rem', lineHeight: 1.4, color: '#fff', flex: '1 1 auto', minWidth: 0, wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                     {item.headline}
                   </h3>
                   {item.isCritical && (
@@ -191,7 +190,8 @@ export default function FinancialNewsFeed() {
                       fontWeight: 700,
                       padding: '0.15rem 0.4rem',
                       borderRadius: '4px',
-                      letterSpacing: '0.5px'
+                      letterSpacing: '0.5px',
+                      flexShrink: 0
                     }}>
                       CRITICAL
                     </span>
@@ -200,20 +200,20 @@ export default function FinancialNewsFeed() {
 
                 {/* Economic Data */}
                 {item.economicData && (
-                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem' }}>
                     {item.economicData.actual && (
-                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>
-                        Actual: <strong style={{ color: '#51c6e1', marginLeft: '0.25rem' }}>{item.economicData.actual}</strong>
+                      <span style={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+                        Actual: <strong style={{ color: '#51c6e1', marginLeft: '0.15rem' }}>{item.economicData.actual}</strong>
                       </span>
                     )}
                     {item.economicData.forecast && (
-                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>
-                        Forecast: <strong style={{ color: '#fff', marginLeft: '0.25rem' }}>{item.economicData.forecast}</strong>
+                      <span style={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+                        Forecast: <strong style={{ color: '#fff', marginLeft: '0.15rem' }}>{item.economicData.forecast}</strong>
                       </span>
                     )}
                     {item.economicData.previous && (
-                      <span style={{ color: 'rgba(255,255,255,0.7)' }}>
-                        Previous: <strong style={{ color: '#fff', marginLeft: '0.25rem' }}>{item.economicData.previous}</strong>
+                      <span style={{ color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap' }}>
+                        Previous: <strong style={{ color: '#fff', marginLeft: '0.15rem' }}>{item.economicData.previous}</strong>
                       </span>
                     )}
                   </div>

@@ -1462,6 +1462,74 @@ form.add-todo input[name="task"] {
   .calendar-event-item {
     padding: 0.75rem;
   }
+
+  /* Mobile-specific fixes for News Feed and Macro AI */
+  #financial-news-root {
+    max-height: 400px;
+  }
+
+  /* Ensure proper text wrapping on mobile */
+  h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Better touch targets on mobile */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Reduce excessive padding on small screens */
+  .p-4 {
+    padding: 0.75rem !important;
+  }
+
+  .px-4 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  .py-4 {
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+}
+
+/* Mobile landscape and tablets */
+@media (max-width: 768px) {
+  /* Fix dashboard content overflow */
+  .flex-col.p-2 {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure news feed doesn't overflow */
+  #financial-news-root {
+    max-height: 500px;
+  }
+
+  /* Better spacing for news items */
+  .space-y-2 > * + * {
+    margin-top: 0.5rem;
+  }
+
+  /* Improve flexbox wrapping */
+  .flex-wrap {
+    gap: 0.5rem;
+  }
+}
+
+/* Medium screens (tablets) */
+@media (min-width: 481px) and (max-width: 768px) {
+  #financial-news-root {
+    max-height: 450px;
+  }
+
+  /* Better button sizing */
+  button {
+    min-height: 40px;
+  }
 }
 
 /* Print styles */

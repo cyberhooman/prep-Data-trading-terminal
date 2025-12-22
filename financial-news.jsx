@@ -3,6 +3,8 @@ function FinancialNewsFeed() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [lastUpdate, setLastUpdate] = React.useState('');
+  const [analyzing, setAnalyzing] = React.useState({});
+  const [analyses, setAnalyses] = React.useState({});
 
   const fetchNews = async () => {
     try {
@@ -77,6 +79,61 @@ function FinancialNewsFeed() {
       const minutes = Math.floor(diff / (1000 * 60));
       return minutes > 0 ? `${minutes} min ago` : 'Just now';
     }
+  };
+
+  const analyzeNewsItem = async (item, index) => {
+    try {
+      setAnalyzing(prev => ({ ...prev, [index]: true }));
+
+      const response = await fetch('/api/financial-news/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ newsItem: item })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAnalyses(prev => ({ ...prev, [index]: data.analysis }));
+      } else {
+        setAnalyses(prev => ({
+          ...prev,
+          [index]: {
+            verdict: 'Error',
+            reasoning: data.error || 'Analysis failed',
+            error: true
+          }
+        }));
+      }
+    } catch (err) {
+      console.error('Analysis error:', err);
+      setAnalyses(prev => ({
+        ...prev,
+        [index]: {
+          verdict: 'Error',
+          reasoning: 'Failed to connect to AI service',
+          error: true
+        }
+      }));
+    } finally {
+      setAnalyzing(prev => ({ ...prev, [index]: false }));
+    }
+  };
+
+  const getVerdictColor = (verdict) => {
+    if (verdict === 'Bullish Surprise') return '#10b981';
+    if (verdict === 'Bearish Surprise') return '#ef4444';
+    if (verdict === 'Neutral') return '#6b7280';
+    return '#f59e0b';
+  };
+
+  const getVerdictEmoji = (verdict) => {
+    if (verdict === 'Bullish Surprise') return '🚀';
+    if (verdict === 'Bearish Surprise') return '📉';
+    if (verdict === 'Neutral') return '➡️';
+    return '⚠️';
   };
 
   if (loading && news.length === 0) {
@@ -306,6 +363,156 @@ function FinancialNewsFeed() {
                       }
                     }, tag)
                   )
+                )
+              ),
+
+              // AI Analysis Button
+              React.createElement('div', {
+                style: {
+                  marginTop: '0.75rem',
+                  paddingTop: '0.75rem',
+                  borderTop: '1px solid rgba(148, 163, 184, 0.2)'
+                }
+              },
+                !analyses[index] && React.createElement('button', {
+                  onClick: () => analyzeNewsItem(item, index),
+                  disabled: analyzing[index],
+                  style: {
+                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
+                    border: '1px solid rgba(168, 85, 247, 0.4)',
+                    color: '#c7d2fe',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    cursor: analyzing[index] ? 'not-allowed' : 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    transition: 'all 0.2s',
+                    opacity: analyzing[index] ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }
+                },
+                  analyzing[index] ? '🤖 Analyzing...' : '🤖 Analyze with AI'
+                ),
+
+                // AI Analysis Result
+                analyses[index] && React.createElement('div', {
+                  style: {
+                    background: analyses[index].error ? 'rgba(239, 68, 68, 0.1)' : 'rgba(168, 85, 247, 0.1)',
+                    borderLeft: `3px solid ${getVerdictColor(analyses[index].verdict)}`,
+                    borderRadius: '8px',
+                    padding: '1rem'
+                  }
+                },
+                  // Verdict Badge
+                  React.createElement('div', {
+                    style: {
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      marginBottom: '0.75rem'
+                    }
+                  },
+                    React.createElement('span', {
+                      style: {
+                        fontSize: '0.75rem',
+                        color: 'rgba(226, 232, 240, 0.6)',
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }
+                    }, '🤖 Policy Shift & Surprise Detection'),
+                    React.createElement('span', {
+                      style: {
+                        background: getVerdictColor(analyses[index].verdict),
+                        color: '#fff',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '0.3rem 0.7rem',
+                        borderRadius: '6px',
+                        letterSpacing: '0.5px'
+                      }
+                    }, `${getVerdictEmoji(analyses[index].verdict)} ${analyses[index].verdict.toUpperCase()}`)
+                  ),
+
+                  // Confidence (if available)
+                  analyses[index].confidence && React.createElement('div', {
+                    style: {
+                      fontSize: '0.8rem',
+                      color: 'rgba(226, 232, 240, 0.7)',
+                      marginBottom: '0.5rem'
+                    }
+                  },
+                    'Confidence: ',
+                    React.createElement('strong', {
+                      style: {
+                        color: analyses[index].confidence === 'High' ? '#10b981' :
+                               analyses[index].confidence === 'Medium' ? '#f59e0b' : '#ef4444'
+                      }
+                    }, analyses[index].confidence)
+                  ),
+
+                  // Reasoning
+                  React.createElement('p', {
+                    style: {
+                      margin: 0,
+                      fontSize: '0.9rem',
+                      lineHeight: 1.6,
+                      color: 'rgba(226, 232, 240, 0.9)',
+                      marginBottom: '0.75rem'
+                    }
+                  }, analyses[index].reasoning),
+
+                  // Key Factors
+                  analyses[index].keyFactors && analyses[index].keyFactors.length > 0 && React.createElement('div', {
+                    style: {
+                      marginTop: '0.75rem'
+                    }
+                  },
+                    React.createElement('div', {
+                      style: {
+                        fontSize: '0.75rem',
+                        color: 'rgba(226, 232, 240, 0.6)',
+                        fontWeight: 600,
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }
+                    }, 'Key Factors:'),
+                    React.createElement('ul', {
+                      style: {
+                        margin: 0,
+                        paddingLeft: '1.25rem',
+                        fontSize: '0.85rem',
+                        color: 'rgba(226, 232, 240, 0.8)',
+                        lineHeight: 1.6
+                      }
+                    },
+                      analyses[index].keyFactors.map((factor, i) =>
+                        React.createElement('li', { key: i }, factor)
+                      )
+                    )
+                  ),
+
+                  // Re-analyze button
+                  React.createElement('button', {
+                    onClick: () => analyzeNewsItem(item, index),
+                    disabled: analyzing[index],
+                    style: {
+                      marginTop: '0.75rem',
+                      background: 'rgba(168, 85, 247, 0.15)',
+                      border: '1px solid rgba(168, 85, 247, 0.3)',
+                      color: '#c7d2fe',
+                      padding: '0.4rem 0.8rem',
+                      borderRadius: '6px',
+                      cursor: analyzing[index] ? 'not-allowed' : 'pointer',
+                      fontWeight: 600,
+                      fontSize: '0.75rem',
+                      transition: 'all 0.2s',
+                      opacity: analyzing[index] ? 0.6 : 1
+                    }
+                  }, analyzing[index] ? '⟳ Re-analyzing...' : '⟳ Re-analyze')
                 )
               )
             )
