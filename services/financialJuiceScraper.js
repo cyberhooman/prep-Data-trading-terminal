@@ -439,16 +439,29 @@ class FinancialJuiceScraper {
           // Look for economic data patterns
           const hasEconomicData = text.match(/Actual|Forecast|Previous/i);
 
-          // Look for charts/images
+          // Look for charts/images (including background images)
           const hasChart = element.querySelector('img, canvas, svg') !== null;
+          const hasBackgroundImage = element.querySelector('[style*="background-image"]') !== null;
 
           // Extract timestamp
           const timeElement = element.querySelector('.time');
           const timeText = timeElement ? timeElement.innerText.trim() : '';
 
           // Extract headline/title using FinancialJuice's actual structure
-          const headlineElement = element.querySelector('.headline-title-nolink, .headline-title');
-          const headline = headlineElement ? headlineElement.innerText.trim() : text.split('\n')[0];
+          // Try multiple selectors to catch different formats
+          const headlineElement = element.querySelector('.headline-title-nolink, .headline-title, .headline, [class*="headline"]');
+          let headline = '';
+
+          if (headlineElement) {
+            headline = headlineElement.innerText.trim();
+          } else {
+            // Fallback: extract first meaningful line from text
+            const lines = text.split('\n').filter(line => line.trim().length > 10);
+            headline = lines[0] || text.split('\n')[0];
+          }
+
+          // Clean up headline - remove time prefix if present
+          headline = headline.replace(/^\d{1,2}:\d{2}\s+\w+\s+\d{1,2}\s*/, '').trim();
 
           // Extract economic data if present
           const actualMatch = text.match(/Actual[:\s]+([0-9.%\-+]+)/i);
@@ -473,7 +486,7 @@ class FinancialJuiceScraper {
             timestamp: timeText,
             economicData: Object.keys(economicData).length > 0 ? economicData : null,
             tags: tags,
-            hasChart: hasChart,
+            hasChart: hasChart || hasBackgroundImage,
             link: link,
             rawText: text.trim(),
             isCritical: isCritical,
@@ -499,8 +512,16 @@ class FinancialJuiceScraper {
       console.log(`DEBUG: Selector used: "${result.debug.selectorUsed}"`);
       console.log(`DEBUG: Found ${result.debug.totalElements} elements matching selectors`);
       console.log(`DEBUG: Critical items: ${result.debug.criticalCount}, Active items: ${result.debug.activeCount}, Other: ${result.debug.otherCount}`);
-
       console.log(`Found ${newsItems.length} high-impact news items before deduplication`);
+
+      // Log first 3 critical headlines for debugging
+      const criticalItems = newsItems.filter(item => item.isCritical);
+      if (criticalItems.length > 0) {
+        console.log(`DEBUG: First ${Math.min(3, criticalItems.length)} critical headlines:`);
+        criticalItems.slice(0, 3).forEach((item, i) => {
+          console.log(`  ${i + 1}. ${item.headline.substring(0, 80)}`);
+        });
+      }
 
       // Deduplicate based on headline and timestamp
       const seen = new Set();
