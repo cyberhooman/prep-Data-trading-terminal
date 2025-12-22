@@ -56,19 +56,19 @@ export default function QuickNotes() {
 
   if (loading) {
     return (
-      <div className="w-full rounded-2xl border border-slate-700 bg-slate-900/70 p-5">
+      <div className="w-full">
         <div className="text-sm text-slate-300">Loading notes...</div>
       </div>
     )
   }
 
   return (
-    <div className="w-full rounded-2xl border border-slate-700 bg-slate-900/70 p-5 shadow-lg">
-      <h3 className="text-lg font-bold text-slate-100 mb-4">
+    <div className="w-full flex flex-col flex-1 min-h-0">
+      <h3 className="text-lg font-bold text-slate-100 mb-3 shrink-0">
         Quick Notes & Warnings
       </h3>
 
-      <form onSubmit={addNote} className="mb-4 space-y-3">
+      <form onSubmit={addNote} className="mb-2 space-y-2 shrink-0">
         <div className="flex gap-2">
           <button
             type="button"
@@ -115,7 +115,7 @@ export default function QuickNotes() {
         </div>
       </form>
 
-      <div className="space-y-2 max-h-64 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-0 custom-scrollbar">
         {notes.length === 0 ? (
           <div className="text-sm text-slate-400 italic py-4 text-center">
             No notes yet. Add your first trading note or warning above.

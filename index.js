@@ -2907,6 +2907,12 @@ app.get('/components/tetris-loader.jsx', (req, res) => {
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
 
+app.get('/components/week-calendar.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'components', 'week-calendar.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
 app.get('/cb-speech-analysis.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'cb-speech-analysis.jsx');
   res.setHeader('Content-Type', 'application/javascript');
@@ -3637,19 +3643,14 @@ app.get('/', async (req, res) => {
                   <div class="px-3 py-2 lg:px-4 lg:py-3 border-b border-notion-border flex items-center justify-between shrink-0 bg-notion-block/50">
                     <div class="flex items-center gap-2">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-teal-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                      <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Schedule</h3>
+                      <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Calendar</h3>
                     </div>
                     <button class="text-notion-muted hover:text-notion-text">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                     </button>
                   </div>
 
-                  <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
-                    <div class="events-limited"></div>
-                    <div id="events-expanded" style="display: none;">
-                      <div class="events-all"></div>
-                    </div>
-                  </div>
+                  <div id="calendar-root" class="flex-1 p-3 min-h-0"></div>
                 </div>
 
                 <!-- Scratchpad Block -->
@@ -4118,6 +4119,7 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/components/tetris-loader.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/components/week-calendar.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         try {
@@ -4129,6 +4131,11 @@ app.get('/', async (req, res) => {
           const nroot = ReactDOM.createRoot(document.getElementById('notes-root'));
           nroot.render(React.createElement(QuickNotes));
         } catch (e) { console.error('QuickNotes render error:', e); }
+
+        try {
+          const calroot = ReactDOM.createRoot(document.getElementById('calendar-root'));
+          calroot.render(React.createElement(WeekCalendar));
+        } catch (e) { console.error('WeekCalendar render error:', e); }
 
         // Shared news data for both components
         let criticalNewsData = [];
@@ -4527,6 +4534,7 @@ const watchedFiles = [
   path.join(__dirname, 'financial-news.jsx'),
   path.join(__dirname, 'cb-speech-analysis.jsx'),
   path.join(__dirname, 'components', 'tetris-loader.jsx'),
+  path.join(__dirname, 'components', 'week-calendar.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 
