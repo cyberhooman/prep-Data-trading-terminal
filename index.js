@@ -180,7 +180,7 @@ function convertCalendarRecords(records) {
         country: item.country,
         impact: item.impact,
         date: eventDate.toISOString(),
-        source: 'auto'
+        source: 'forex'
       };
     })
     .filter(item => item !== null)
