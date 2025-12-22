@@ -150,7 +150,11 @@ function FinancialNewsFeed() {
       borderRadius: '16px',
       padding: '1.5rem',
       border: '1px solid rgba(148, 163, 184, 0.2)',
-      boxShadow: '0 6px 15px rgba(0, 0, 0, 0.2)'
+      boxShadow: '0 6px 15px rgba(0, 0, 0, 0.2)',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: 0
     }
   },
     // Header
@@ -162,7 +166,8 @@ function FinancialNewsFeed() {
         alignItems: 'center',
         marginBottom: '1.5rem',
         flexWrap: 'wrap',
-        gap: '1rem'
+        gap: '1rem',
+        flexShrink: 0
       }
     },
       React.createElement('h2', {
@@ -212,7 +217,8 @@ function FinancialNewsFeed() {
         borderRadius: '8px',
         padding: '1rem',
         marginBottom: '1rem',
-        textAlign: 'center'
+        textAlign: 'center',
+        flexShrink: 0
       }
     }, `⚠️ ${error}`),
 
@@ -223,7 +229,8 @@ function FinancialNewsFeed() {
         display: 'flex',
         flexDirection: 'column',
         gap: '1rem',
-        maxHeight: '600px',
+        flex: 1,
+        minHeight: 0,
         overflowY: 'auto',
         paddingRight: '0.5rem'
       }
