@@ -381,26 +381,47 @@ function FinancialNewsFeed() {
                   borderTop: '1px solid rgba(148, 163, 184, 0.2)'
                 }
               },
-                !analyses[index] && React.createElement('button', {
-                  onClick: () => analyzeNewsItem(item, index),
-                  disabled: analyzing[index],
-                  style: {
-                    background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
-                    border: '1px solid rgba(168, 85, 247, 0.4)',
-                    color: '#c7d2fe',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    cursor: analyzing[index] ? 'not-allowed' : 'pointer',
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    transition: 'all 0.2s',
-                    opacity: analyzing[index] ? 0.6 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }
-                },
-                  analyzing[index] ? '🤖 Analyzing...' : '🤖 Analyze with AI'
+                !analyses[index] && (
+                  analyzing[index] ?
+                    React.createElement('div', {
+                      style: {
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        padding: '1rem',
+                        background: 'rgba(99, 102, 241, 0.1)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(168, 85, 247, 0.3)'
+                      }
+                    },
+                      React.createElement(TetrisLoader, {
+                        size: 'sm',
+                        speed: 'fast',
+                        showLoadingText: true,
+                        loadingText: 'AI analyzing market surprise...'
+                      })
+                    )
+                  :
+                    React.createElement('button', {
+                      onClick: () => analyzeNewsItem(item, index),
+                      disabled: false,
+                      style: {
+                        background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
+                        border: '1px solid rgba(168, 85, 247, 0.4)',
+                        color: '#c7d2fe',
+                        padding: '0.5rem 1rem',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.85rem',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }
+                    },
+                      '🤖 Analyze with AI'
+                    )
                 ),
 
                 // AI Analysis Result
@@ -502,24 +523,43 @@ function FinancialNewsFeed() {
                     )
                   ),
 
-                  // Re-analyze button
-                  React.createElement('button', {
-                    onClick: () => analyzeNewsItem(item, index),
-                    disabled: analyzing[index],
-                    style: {
-                      marginTop: '0.75rem',
-                      background: 'rgba(168, 85, 247, 0.15)',
-                      border: '1px solid rgba(168, 85, 247, 0.3)',
-                      color: '#c7d2fe',
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: '6px',
-                      cursor: analyzing[index] ? 'not-allowed' : 'pointer',
-                      fontWeight: 600,
-                      fontSize: '0.75rem',
-                      transition: 'all 0.2s',
-                      opacity: analyzing[index] ? 0.6 : 1
-                    }
-                  }, analyzing[index] ? '⟳ Re-analyzing...' : '⟳ Re-analyze')
+                  // Re-analyze button or loading state
+                  analyzing[index] ?
+                    React.createElement('div', {
+                      style: {
+                        marginTop: '0.75rem',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        padding: '1rem',
+                        background: 'rgba(99, 102, 241, 0.1)',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(168, 85, 247, 0.3)'
+                      }
+                    },
+                      React.createElement(TetrisLoader, {
+                        size: 'sm',
+                        speed: 'fast',
+                        showLoadingText: true,
+                        loadingText: 'Re-analyzing...'
+                      })
+                    )
+                  :
+                    React.createElement('button', {
+                      onClick: () => analyzeNewsItem(item, index),
+                      disabled: false,
+                      style: {
+                        marginTop: '0.75rem',
+                        background: 'rgba(168, 85, 247, 0.15)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        color: '#c7d2fe',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.75rem',
+                        transition: 'all 0.2s'
+                      }
+                    }, '⟳ Re-analyze')
                 )
               )
             )

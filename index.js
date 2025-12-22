@@ -2901,6 +2901,12 @@ app.get('/financial-news.jsx', (req, res) => {
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
 
+app.get('/components/tetris-loader.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'components', 'tetris-loader.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
 app.get('/cb-speech-analysis.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'cb-speech-analysis.jsx');
   res.setHeader('Content-Type', 'application/javascript');
@@ -4111,6 +4117,7 @@ app.get('/', async (req, res) => {
       </script>
   <script type="text/babel" data-presets="env,react" src="/todo-card.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/components/tetris-loader.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         try {
@@ -4519,6 +4526,7 @@ const watchedFiles = [
   path.join(__dirname, 'animated-title.jsx'),
   path.join(__dirname, 'financial-news.jsx'),
   path.join(__dirname, 'cb-speech-analysis.jsx'),
+  path.join(__dirname, 'components', 'tetris-loader.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 
