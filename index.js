@@ -2482,7 +2482,7 @@ app.post('/auth/reset-password', async (req, res) => {
 });
 
 // API endpoint to get high-impact news (public - no auth required)
-// Uses X API as primary source, falls back to FinancialJuice scraping
+// Uses FinancialJuice web scraping only (X API disabled)
 app.get('/api/financial-news', async (req, res) => {
   try {
     let news = [];
@@ -2493,51 +2493,20 @@ app.get('/api/financial-news', async (req, res) => {
       setTimeout(() => reject(new Error('Timeout')), 20000)
     );
 
-    // Try X API first (preferred method)
-    if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
-      try {
-        console.log('Fetching news from X API...');
-        news = await Promise.race([
-          xNewsScraper.getLatestNews(),
-          timeoutPromise
-        ]);
-        source = 'x_api';
-        console.log(`Successfully fetched ${news.length} items from X API`);
-      } catch (xErr) {
-        if (xErr.message === 'Timeout') {
-          console.error('X API timeout, falling back to scraping');
-        } else {
-          console.error('X API failed, falling back to scraping:', xErr.message);
-        }
-        // Fall back to scraping
-        try {
-          news = await Promise.race([
-            financialJuiceScraper.getLatestNews(),
-            timeoutPromise
-          ]);
-          source = 'web_scraping';
-        } catch (scrapingErr) {
-          console.error('Scraping also failed:', scrapingErr.message);
-          // Return empty array instead of crashing
-          news = [];
-          source = 'failed';
-        }
-      }
-    } else {
-      // No X API token, use scraping with timeout
-      console.log('No X_BEARER_TOKEN found, using web scraping');
-      try {
-        news = await Promise.race([
-          financialJuiceScraper.getLatestNews(),
-          timeoutPromise
-        ]);
-        source = 'web_scraping';
-      } catch (scrapingErr) {
-        console.error('Scraping failed:', scrapingErr.message);
-        // Return empty array instead of crashing
-        news = [];
-        source = 'failed';
-      }
+    // Use web scraping only (X API disabled)
+    console.log('Fetching news from FinancialJuice web scraping...');
+    try {
+      news = await Promise.race([
+        financialJuiceScraper.getLatestNews(),
+        timeoutPromise
+      ]);
+      source = 'web_scraping';
+      console.log(`Successfully fetched ${news.length} items from web scraping`);
+    } catch (scrapingErr) {
+      console.error('Scraping failed:', scrapingErr.message);
+      // Return empty array instead of crashing
+      news = [];
+      source = 'failed';
     }
 
     res.json({
@@ -2561,18 +2530,12 @@ app.get('/api/financial-news', async (req, res) => {
 app.post('/api/financial-news/refresh', async (req, res) => {
   try {
     let news = [];
-    let source = 'unknown';
+    let source = 'web_scraping';
 
-    // Clear both caches
-    if (process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN) {
-      xNewsScraper.clearCache();
-      news = await xNewsScraper.getLatestNews();
-      source = 'x_api';
-    } else {
-      financialJuiceScraper.clearCache();
-      news = await financialJuiceScraper.getLatestNews();
-      source = 'web_scraping';
-    }
+    // Clear cache and fetch fresh data (X API disabled, web scraping only)
+    console.log('Clearing cache and refreshing from FinancialJuice...');
+    financialJuiceScraper.clearCache();
+    news = await financialJuiceScraper.getLatestNews();
 
     res.json({
       success: true,
