@@ -25,8 +25,8 @@ class DeepSeekAnalyzer {
     this.apiUrl = 'https://api.deepseek.com/v1/chat/completions';
     this.model = 'deepseek-chat';
     this.temperature = 0.2; // Very low for maximum analytical precision
-    this.maxTokens = null; // No limit - allow ultra-detailed hyper-intelligent analysis
-    this.timeout = 30000; // 30 seconds for comprehensive analysis
+    this.maxTokens = 4000; // Set reasonable limit to prevent timeouts while still allowing detailed analysis
+    this.timeout = 90000; // 90 seconds for comprehensive analysis (increased from 30s to handle long responses)
 
     // Cache for analysis results (1 hour TTL)
     this.analysisCache = new Map();
