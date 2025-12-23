@@ -20,8 +20,8 @@ class CBSpeechScraper {
       'FED': {
         name: 'Federal Reserve',
         currency: 'USD',
-        keywords: ['fed', 'fomc', 'federal reserve', 'powell', 'williams', 'waller', 'bowman', 'jefferson', 'cook', 'kugler', 'barr'],
-        speakers: ['Powell', 'Williams', 'Waller', 'Bowman', 'Jefferson', 'Cook', 'Kugler', 'Barr']
+        keywords: ['fed', 'fomc', 'federal reserve', 'powell', 'williams', 'waller', 'bowman', 'jefferson', 'cook', 'kugler', 'barr', 'miran'],
+        speakers: ['Powell', 'Williams', 'Waller', 'Bowman', 'Jefferson', 'Cook', 'Kugler', 'Barr', 'Miran']
       },
       'ECB': {
         name: 'European Central Bank',
@@ -187,12 +187,15 @@ class CBSpeechScraper {
     // More strict filter: requires explicit speech/presser keywords or direct quotes from named officials
     const hasExplicitSpeechKeyword = /\b(speech|remarks|testimony|press conference|presser|minutes|statement)\b/i.test(lower);
     const hasDirectQuote = /\b(says|said|comments?|speaks?|interview)\b/i.test(lower) && this.detectSpeaker(text, cbMatch.bank);
+    // Also detect "Speaker: statement" format (e.g., "Fed's Miran: I haven't decided...")
+    const hasColonQuote = /\b(fed's|ecb's|boe's|boc's|rba's|boj's|snb's|rbnz's)\s+\w+:/i.test(lower) ||
+                          (cbMatch.bank.speakers.some(speaker => new RegExp(`\\b${speaker}\\s*:`, 'i').test(text)));
     const hasRateDecision = /\b(rate decision|policy (decision|meeting)|monetary policy|interest rate)\b/i.test(lower);
 
     // Exclude general news about banks/countries even if they mention CB
     const isGeneralNews = /\b(stock|futures|equity|oil|import|export|trade|gdp|employment|cpi|inflation data|retail sales)\b/i.test(lower) && !hasExplicitSpeechKeyword;
 
-    return (hasExplicitSpeechKeyword || hasDirectQuote || hasRateDecision) && !isGeneralNews;
+    return (hasExplicitSpeechKeyword || hasDirectQuote || hasColonQuote || hasRateDecision) && !isGeneralNews;
   }
 
   /**
