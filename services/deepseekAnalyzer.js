@@ -25,8 +25,8 @@ class DeepSeekAnalyzer {
     this.apiUrl = 'https://api.deepseek.com/v1/chat/completions';
     this.model = 'deepseek-chat';
     this.temperature = 0.2; // Very low for maximum analytical precision
-    this.maxTokens = 4000; // Set reasonable limit to prevent timeouts while still allowing detailed analysis
-    this.timeout = 90000; // 90 seconds for comprehensive analysis (increased from 30s to handle long responses)
+    this.maxTokens = 1500; // Balanced limit for concise yet comprehensive analysis
+    this.timeout = 60000; // 60 seconds timeout
 
     // Cache for analysis results (1 hour TTL)
     this.analysisCache = new Map();
@@ -75,7 +75,7 @@ class DeepSeekAnalyzer {
         messages: [
           {
             role: 'system',
-            content: 'You are an ultra-intelligent macro trading analyst with deep expertise in central bank policy analysis and market surprise detection. Your PRIMARY OBJECTIVES: 1) Determine if this was MORE HAWKISH or MORE DOVISH than expected, 2) Assess how this changes the next central bank move, 3) Identify the smart money theme and flow to ALIGN with (not outsmart) institutional positioning. Your hyper-analytical capabilities include: Distinguishing hawkish vs dovish policy stances relative to market expectations, analyzing events within full macro context, understanding what genuinely surprises markets, and assessing policy shift implications for asset prices across multiple timeframes. You always compare events against CURRENT MARKET EXPECTATIONS and provide exhaustive multi-dimensional analysis. Your goal is to help traders FOLLOW THE SMART MONEY, not fight it. Provide comprehensive, detailed analysis without brevity constraints.'
+            content: 'You are a macro trading analyst specializing in central bank policy and market surprise detection. PRIMARY OBJECTIVES: 1) Determine if MORE HAWKISH or DOVISH than expected, 2) Assess impact on next central bank move, 3) Identify smart money flow to ALIGN with institutions. Analyze events against CURRENT MARKET EXPECTATIONS (not just forecasts). Provide clear, concise analysis focused on actionable insights. Be comprehensive but efficient - quality over quantity.'
           },
           {
             role: 'user',
@@ -212,29 +212,24 @@ OUTPUT FORMAT (JSON):
 {
   "verdict": "Bullish Surprise" OR "Bearish Surprise" OR "Neutral",
   "confidence": "High" OR "Medium" OR "Low",
-  "reasoning": "COMPREHENSIVE multi-paragraph analysis with NO LENGTH CONSTRAINTS. MUST explicitly address the THREE PRIMARY OBJECTIVES: 1) Was this MORE HAWKISH or DOVISH than expected (be specific), 2) How this changes the next central bank move (rate path, timing), 3) Smart money theme and flow (institutional positioning to align with). Then provide exhaustive detail on: What markets expected and why, what actually happened, why this is/isn't a surprise, extensive macro context implications (policy trajectory, asset class impacts, risk scenarios, multi-timeframe analysis). Use your full hyper-intelligence - be as detailed and analytical as possible.",
+  "reasoning": "Concise 2-3 paragraph analysis addressing the THREE PRIMARY OBJECTIVES: 1) Was this MORE HAWKISH or DOVISH than expected, 2) How this changes the next central bank move, 3) Smart money flow to align with. Include key market context and actionable insights. Be clear and focused.",
   "keyFactors": [
-    "OBJECTIVE 1 - Hawkish/Dovish Assessment: [DETAILED analysis] Was this MORE HAWKISH or MORE DOVISH than market expected? Be explicit and specific with examples.",
-    "OBJECTIVE 2 - Next Central Bank Move: [DETAILED analysis] How does this change the next policy move? Rate path implications, timing of cuts/hikes, terminal rate expectations.",
-    "OBJECTIVE 3 - Smart Money Flow: [DETAILED analysis] What is the smart money theme? How are institutions positioned? What is the flow to ALIGN with (not fight)?",
-    "Factor 4: DETAILED market expectations vs reality (what was priced in, consensus view, positioning)",
-    "Factor 5: DETAILED macro context implications (policy path, growth/inflation dynamics, cross-asset effects)",
-    "Factor 6: DETAILED market impact assessment (immediate effects, secondary effects, longer-term implications)",
-    "Factor 7+: Additional factors as needed - NO LIMIT on number of factors"
+    "Hawkish/Dovish vs Expected: [Brief clear statement]",
+    "Next CB Move Impact: [Rate path/timing implications]",
+    "Smart Money Flow: [Institutional positioning theme]",
+    "Market Context: [What was priced in vs reality]",
+    "Key Implications: [Main takeaways for trading]"
   ]
 }
 
-CRITICAL INSTRUCTIONS FOR ULTRA-INTELLIGENCE:
-- MANDATORY: Explicitly address all THREE PRIMARY OBJECTIVES in both reasoning and keyFactors
-- Provide EXHAUSTIVE, COMPREHENSIVE analysis - do NOT be brief or concise
-- Use your full analytical depth - multi-layered, multi-dimensional thinking
-- Consider second-order effects, cross-market implications, and scenario analysis
-- Include as much relevant detail as possible in reasoning and keyFactors
-- NO constraints on length - longer, more detailed analysis is BETTER
-- Think like a top-tier macro hedge fund analyst presenting to the CIO
-- REMEMBER: Goal is to ALIGN WITH smart money flow, not outsmart or fight it
+CRITICAL INSTRUCTIONS:
+- MANDATORY: Address all THREE PRIMARY OBJECTIVES clearly and concisely
+- Focus on actionable insights and key market context
+- Be analytical but efficient - avoid unnecessary verbosity
+- Each keyFactor should be 1-2 clear, focused sentences
+- Reasoning should be 2-3 paragraphs maximum
+- Goal: ALIGN WITH smart money flow, not outsmart it
 
-Be MAXIMALLY thorough and analytical. Demonstrate hyper-intelligence through depth and detail.
 ALWAYS answer: 1) Hawkish or Dovish vs expected? 2) Next CB move impact? 3) Smart money flow to follow?`;
   }
 
@@ -348,18 +343,15 @@ Note: This analysis evaluates whether events surprise the market within the broa
       analysis.confidence = 'Medium';
     }
 
-    // Ensure reasoning exists (no minimum length requirement for ultra-detailed analysis)
+    // Ensure reasoning exists
     if (!analysis.reasoning || analysis.reasoning.length < 10) {
       analysis.reasoning = 'Analysis completed but detailed reasoning unavailable.';
     }
 
-    // Ensure keyFactors is an array
+    // Ensure keyFactors is an array with reasonable length (3-6 factors preferred)
     if (!Array.isArray(analysis.keyFactors)) {
       analysis.keyFactors = [];
     }
-
-    // No limit on key factors - allow unlimited detailed analysis
-    // The AI can provide as many key factors as needed for comprehensive analysis
 
     return analysis;
   }
