@@ -29,18 +29,23 @@ function WeekCalendar() {
   async function loadEvents() {
     try {
       const response = await fetch('/api/events');
-      const data = await response.json();
-      setEvents(data);
+      const result = await response.json();
+      // API returns { success: true, data: [...], nextEvent: {...} }
+      setEvents(result.data || result || []);
     } catch (error) {
       console.error('Error loading events:', error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
   }
 
   function getEventsForDay(date) {
-    const dayStart = new Date(date.setHours(0, 0, 0, 0));
-    const dayEnd = new Date(date.setHours(23, 59, 59, 999));
+    // Create new Date objects to avoid mutating the original
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
 
     return events.filter(event => {
       const eventDate = new Date(event.timestamp);
@@ -244,4 +249,9 @@ function WeekCalendar() {
       </div>
     </div>
   );
+}
+
+// Make component globally available
+if (typeof window !== 'undefined') {
+  window.WeekCalendar = WeekCalendar;
 }
