@@ -206,13 +206,32 @@ const CBSpeechAnalysis = () => {
                     <span style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', background: getSentimentColor(analysis.sentiment) + '20', color: getSentimentColor(analysis.sentiment), fontWeight: 700, fontSize: '0.85rem' }}>
                       {analysis.sentiment} ({analysis.score > 0 ? '+' : ''}{analysis.score})
                     </span>
+                  ) : isAnalyzing ? (
+                    React.createElement('div', {
+                      style: {
+                        padding: '0.35rem 0.75rem',
+                        borderRadius: '6px',
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        border: '1px solid rgba(139, 92, 246, 0.3)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }
+                    },
+                      React.createElement(TetrisLoader, {
+                        size: 'sm',
+                        speed: 'fast',
+                        showLoadingText: true,
+                        loadingText: 'AI analyzing speech...'
+                      })
+                    )
                   ) : (
                     <button
                       onClick={() => analyzeSpeech(speech)}
-                      disabled={isAnalyzing}
-                      style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: 'none', background: isAnalyzing ? 'rgba(139, 92, 246, 0.4)' : '#8b5cf6', color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: isAnalyzing ? 'not-allowed' : 'pointer' }}
+                      disabled={false}
+                      style={{ padding: '0.35rem 0.75rem', borderRadius: '6px', border: 'none', background: '#8b5cf6', color: '#fff', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}
                     >
-                      {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+                      Analyze
                     </button>
                   )}
                   <a href={speech.link} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.75rem', textDecoration: 'none' }}>
