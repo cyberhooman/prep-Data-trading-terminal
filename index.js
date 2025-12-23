@@ -3589,7 +3589,7 @@ app.get('/', async (req, res) => {
             ${message ? '<div class="mb-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">' + escapeHtml(message) + '</div>' : ''}
 
             <!-- Dashboard Grid - 3 Column Layout -->
-            <div class="flex flex-col lg:grid lg:grid-cols-12 gap-2 md:gap-3 lg:flex-1 lg:min-h-0">
+            <div class="flex flex-col lg:grid lg:grid-cols-12 gap-4 md:gap-3 lg:flex-1 lg:min-h-0">
 
               <!-- LEFT COLUMN: Countdown + Trading Prep -->
               <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 h-auto lg:h-full min-h-0 order-1">
@@ -3631,12 +3631,12 @@ app.get('/', async (req, res) => {
               </div>
 
               <!-- CENTER COLUMN: Critical Market News (with integrated AI analysis) -->
-              <div class="col-span-12 lg:col-span-6 h-auto lg:h-full min-h-0 order-3 lg:order-2 flex flex-col gap-2 overflow-y-auto lg:overflow-hidden">
-                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl overflow-hidden shadow-2xl relative transition-colors duration-300 h-[400px] lg:h-auto lg:flex-1 min-h-0"></div>
+              <div class="col-span-12 lg:col-span-6 h-auto lg:h-full min-h-0 order-3 lg:order-2 flex flex-col gap-2 overflow-y-auto lg:overflow-hidden mb-4 lg:mb-0">
+                <div id="financial-news-root" class="bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl overflow-hidden shadow-2xl relative transition-colors duration-300 h-[500px] lg:h-auto lg:flex-1 min-h-0"></div>
               </div>
 
               <!-- RIGHT COLUMN: Schedule + Scratchpad -->
-              <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 h-auto lg:h-full min-h-0 order-2 lg:order-3">
+              <div class="col-span-12 lg:col-span-3 flex flex-col gap-3 md:gap-2 h-auto lg:h-full min-h-0 order-2 lg:order-3 mb-4 lg:mb-0">
 
                 <!-- Schedule Block -->
                 <div class="h-64 lg:h-56 lg:flex-[6] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl flex flex-col overflow-hidden shadow-xl transition-colors duration-300">
@@ -3654,7 +3654,7 @@ app.get('/', async (req, res) => {
                 </div>
 
                 <!-- Scratchpad Block -->
-                <div class="h-56 lg:h-48 lg:flex-[4] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
+                <div class="h-64 lg:h-48 lg:flex-[4] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
                   <div class="flex items-center gap-2 mb-2 shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-yellow-500"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/></svg>
                     <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Scratchpad</h3>
