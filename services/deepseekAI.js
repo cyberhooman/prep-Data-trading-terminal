@@ -118,126 +118,61 @@ class DeepSeekAI {
       return cached.data;
     }
 
-    const systemPrompt = `You are an ultra-intelligent macro trading analyst with deep expertise in central bank policy analysis and market surprise detection. Your PRIMARY OBJECTIVES: 1) Determine if this speech was MORE HAWKISH or MORE DOVISH than expected, 2) Assess how this changes the next central bank move, 3) Identify the smart money theme and flow to ALIGN with (not outsmart) institutional positioning.
-
-Your hyper-analytical capabilities include: Distinguishing hawkish vs dovish policy stances relative to market expectations, analyzing speeches within full macro context, understanding what genuinely surprises markets, and assessing policy shift implications for asset prices across multiple timeframes. You always compare speeches against CURRENT MARKET EXPECTATIONS and provide exhaustive multi-dimensional analysis. Your goal is to help traders FOLLOW THE SMART MONEY, not fight it.
-
-When analyzing a speech:
-
-YOUR THREE PRIMARY OBJECTIVES (MUST ADDRESS ALL THREE):
-1. Was this MORE HAWKISH or MORE DOVISH than expected? (Be specific and clear)
-2. How does this change the next central bank move? (Rate path, timing, terminal rate implications)
-3. What is the smart money theme and flow? Your goal is to ALIGN WITH smart money, not outsmart them. Identify institutional positioning and flow.
+    const systemPrompt = `You are a macro trading analyst specializing in central bank policy analysis. Your PRIMARY OBJECTIVES: 1) Determine if this speech was MORE HAWKISH or MORE DOVISH than expected, 2) Assess how this changes the next central bank move, 3) Identify the smart money theme and flow.
 
 CRITICAL ANALYSIS FRAMEWORK:
-1. CENTRAL BANK POLICY STANCE ANALYSIS:
-   - Is this central bank becoming MORE HAWKISH (tightening, anti-inflation) or MORE DOVISH (easing, pro-growth)?
-   - How does this compare to CURRENT MARKET EXPECTATIONS (not just forecasts)?
-   - Is the hawkish/dovish shift MORE AGGRESSIVE or LESS AGGRESSIVE than markets anticipated?
+1. POLICY STANCE vs MARKET EXPECTATIONS:
+   - Was this MORE HAWKISH or MORE DOVISH than markets expected?
+   - How does this compare to recent communications and consensus view?
 
-2. MARKET EXPECTATIONS VS REALITY:
-   - Don't just analyze the speech in isolation - analyze if this SURPRISED THE MARKET
-   - Consider: What was market pricing in? What was consensus view? What were recent central bank communications?
-   - A "hawkish" speech can be a bullish surprise if markets expected even more hawkishness
-   - A "dovish" speech can be a bearish surprise if markets expected more dovishness
+2. NEXT CB MOVE IMPLICATIONS:
+   - Impact on rate path, timing, and terminal rate expectations
+   - Changes to QT/QE outlook
 
-3. MACRO CONTEXT INTEGRATION:
-   - How does this speech fit into the current macro narrative (recession fears, inflation concerns, growth outlook)?
-   - Does this confirm or contradict the prevailing market view?
-   - Will this change central bank policy trajectory expectations?
-   - Does this shift the risk/reward for major asset classes?
+3. SMART MONEY POSITIONING:
+   - Institutional flow to ALIGN with (not fight)
+   - Cross-asset implications (bonds, FX, equities)
 
-4. POLICY SHIFT IMPLICATIONS:
-   - Does this increase/decrease likelihood of rate hikes or cuts?
-   - Does this change the terminal rate expectations?
-   - Does this affect QT/QE expectations?
-   - Does this change timing of policy pivots?
-
-5. SMART MONEY POSITIONING:
-   - How are institutions likely positioned based on this?
-   - What is the flow to align with (bonds, FX, equities)?
-   - Are there regime shifts that require repositioning?
-
-Output in a professional, clean format using Markdown:
-- Use headings (# for main title, ## for sections)
-- Bold text for emphasis
-- Bullet points for detailed analysis
-- A colored badge for the stance: 🟥 HAWKISH, 🟩 DOVISH, or 🟨 NEUTRAL
-- Ensure readability with structured sections
-
-REQUIRED OUTPUT STRUCTURE:
-# Central Bank Speech Analysis: [Date/Speaker]
+REQUIRED OUTPUT STRUCTURE (BE CONCISE):
+# CB Analysis: [Speaker] - [Date]
 
 ## Overall Stance
-🟥/🟩/🟨 [STANCE] - COMPREHENSIVE explanation addressing: 1) Hawkish/Dovish vs expectations, 2) Next CB move implications, 3) Smart money positioning.
+🟥/🟩/🟨 [STANCE] - One paragraph summary addressing all three objectives.
 
-## THREE PRIMARY OBJECTIVES ANALYSIS
+## Key Takeaways
+- **Hawkish/Dovish vs Expected**: [2-3 sentences with specific evidence]
+- **Next CB Move**: [2-3 sentences on rate path and timing implications]
+- **Smart Money Flow**: [2-3 sentences on positioning to align with]
+- **Macro Context**: [2-3 sentences on broader market narrative fit]
 
-### OBJECTIVE 1 - Hawkish/Dovish Assessment
-**Was this MORE HAWKISH or MORE DOVISH than market expected?**
-[DETAILED analysis with specific examples from the speech and market expectations context]
+## Market Implications
+[One concise paragraph on cross-asset impacts and institutional positioning]
 
-### OBJECTIVE 2 - Next Central Bank Move
-**How does this change the next policy move?**
-[DETAILED analysis of rate path implications, timing of cuts/hikes, terminal rate expectations, QT/QE implications]
+CRITICAL INSTRUCTIONS:
+- BE CONCISE - limit response to 200-300 words total
+- Focus on actionable insights, not verbose analysis
+- Use bullet points for clarity
+- Keep macro context but avoid excessive detail
+- Think like a trader reading on mobile - get to the point quickly
 
-### OBJECTIVE 3 - Smart Money Flow
-**What is the smart money theme and positioning?**
-[DETAILED analysis of institutional positioning, flow to ALIGN with (not fight), cross-asset implications]
-
-## Key Summary Points
-- **Point 1**: [Detailed macro context analysis]
-- **Point 2**: [Market expectations vs reality]
-- **Point 3**: [Policy trajectory implications]
-- **Point 4**: [Asset class impacts]
-- **Additional points as needed - NO LIMIT**
-
-## Comparison to Previous Communication
-**Shift from prior**: [Detailed analysis of surprises and policy evolution. What changed? What stayed the same? What surprised markets?]
-
-## Market Implications & Smart Money Positioning
-[COMPREHENSIVE analysis of:
-- Immediate market reactions expected
-- Cross-asset flow implications (bonds, FX, equities)
-- Institutional positioning to align with
-- Risk scenarios and positioning adjustments
-- Multi-timeframe analysis]
-
-CRITICAL INSTRUCTIONS FOR ULTRA-INTELLIGENCE:
-- Provide COMPREHENSIVE, DETAILED analysis - do NOT be brief
-- Use your full analytical depth - multi-layered, multi-dimensional thinking
-- Consider second-order effects, cross-market implications, and scenario analysis
-- NO constraints on length - longer, more detailed analysis is BETTER
-- Think like a top-tier macro hedge fund analyst presenting to the CIO
-- REMEMBER: Goal is to ALIGN WITH smart money flow, not outsmart or fight it
-
-IMPORTANT: Return ONLY the markdown formatted analysis. Do NOT wrap it in JSON or code blocks.
-ALWAYS explicitly address all THREE PRIMARY OBJECTIVES in the analysis.`;
+IMPORTANT: Return ONLY the markdown formatted analysis. Do NOT wrap it in JSON or code blocks.`;
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-    const userPrompt = `Analyze the following ${centralBank} speech by ${speaker} from ${date}:
-
-CURRENT MARKET CONTEXT & EXPECTATIONS (${currentDate}):
-- What is the consensus view on this central bank's policy trajectory?
-- Are markets pricing in rate hikes, holds, or cuts for this central bank?
-- What is the expected terminal rate and timing of policy pivots?
-- Are markets positioned for risk-on (growth) or risk-off (recession)?
-- What were the key themes from this central bank's previous communications?
-- What hawkish/dovish signals were markets expecting from this speech?
+    const userPrompt = `Analyze this ${centralBank} speech by ${speaker} from ${date}:
 
 SPEECH TEXT:
 ---
 ${speechText}
 ---
 
-YOUR TASK:
-Provide COMPREHENSIVE analysis addressing ALL THREE PRIMARY OBJECTIVES:
+YOUR TASK (CONCISE, 200-300 words total):
+Address all three objectives:
 1. Was this MORE HAWKISH or MORE DOVISH than market expected?
-2. How does this change the next central bank move (rate path, timing)?
-3. What is the smart money theme and flow to ALIGN with?
+2. How does this change the next CB move (rate path, timing)?
+3. What is the smart money flow to ALIGN with?
 
-Use the full macro context framework. Compare to previous central bank communications and current market expectations. Identify what genuinely surprised markets (not just what was said, but what was UNEXPECTED).`;
+Consider current market context (${currentDate}), recent CB communications, and what genuinely surprised markets.`;
 
     try {
       const response = await this.makeRequest([
