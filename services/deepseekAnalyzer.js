@@ -211,7 +211,12 @@ IMPORTANT PRINCIPLES:
 OUTPUT FORMAT (JSON):
 {
   "verdict": "Bullish Surprise" OR "Bearish Surprise" OR "Neutral",
-  "confidence": "High" OR "Medium" OR "Low",
+  "assetImpact": {
+    "USD": "Bullish" OR "Bearish" OR "Neutral",
+    "Stocks": "Bullish" OR "Bearish" OR "Neutral",
+    "Bonds": "Bullish" OR "Bearish" OR "Neutral",
+    "Gold": "Bullish" OR "Bearish" OR "Neutral"
+  },
   "reasoning": "Concise 2-3 paragraph analysis addressing the THREE PRIMARY OBJECTIVES: 1) Was this MORE HAWKISH or DOVISH than expected, 2) How this changes the next central bank move, 3) Smart money flow to align with. Include key market context and actionable insights. Be clear and focused.",
   "keyFactors": [
     "Hawkish/Dovish vs Expected: [Brief clear statement]",
@@ -224,6 +229,9 @@ OUTPUT FORMAT (JSON):
 
 CRITICAL INSTRUCTIONS:
 - MANDATORY: Address all THREE PRIMARY OBJECTIVES clearly and concisely
+- MANDATORY: Provide assetImpact for USD, Stocks, Bonds, and Gold based on the analysis
+- Asset impact should reflect how each asset class would react to this news
+- Consider: Hawkish = USD/Bonds up, Stocks/Gold down; Dovish = opposite
 - Focus on actionable insights and key market context
 - Be analytical but efficient - avoid unnecessary verbosity
 - Each keyFactor should be 1-2 clear, focused sentences
@@ -337,10 +345,22 @@ Note: This analysis evaluates whether events surprise the market within the broa
       }
     }
 
-    // Normalize confidence
-    const validConfidence = ['High', 'Medium', 'Low'];
-    if (!validConfidence.includes(analysis.confidence)) {
-      analysis.confidence = 'Medium';
+    // Normalize asset impact
+    const validAssetSentiment = ['Bullish', 'Bearish', 'Neutral'];
+    if (!analysis.assetImpact || typeof analysis.assetImpact !== 'object') {
+      analysis.assetImpact = {
+        USD: 'Neutral',
+        Stocks: 'Neutral',
+        Bonds: 'Neutral',
+        Gold: 'Neutral'
+      };
+    } else {
+      // Validate each asset
+      ['USD', 'Stocks', 'Bonds', 'Gold'].forEach(asset => {
+        if (!validAssetSentiment.includes(analysis.assetImpact[asset])) {
+          analysis.assetImpact[asset] = 'Neutral';
+        }
+      });
     }
 
     // Ensure reasoning exists

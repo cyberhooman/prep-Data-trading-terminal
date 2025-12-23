@@ -475,21 +475,75 @@ function FinancialNewsFeed() {
                     }, `${getVerdictEmoji(analyses[index].verdict)} ${analyses[index].verdict.toUpperCase()}`)
                   ),
 
-                  // Confidence (if available)
-                  analyses[index].confidence && React.createElement('div', {
+                  // Asset Impact (if available)
+                  analyses[index].assetImpact && React.createElement('div', {
                     style: {
-                      fontSize: '0.8rem',
-                      color: 'rgba(226, 232, 240, 0.7)',
-                      marginBottom: '0.5rem'
+                      marginBottom: '0.75rem',
+                      padding: '0.5rem',
+                      background: 'rgba(0, 0, 0, 0.2)',
+                      borderRadius: '6px',
+                      border: '1px solid rgba(148, 163, 184, 0.2)'
                     }
                   },
-                    'Confidence: ',
-                    React.createElement('strong', {
+                    React.createElement('div', {
                       style: {
-                        color: analyses[index].confidence === 'High' ? '#10b981' :
-                               analyses[index].confidence === 'Medium' ? '#f59e0b' : '#ef4444'
+                        fontSize: '0.7rem',
+                        color: 'rgba(226, 232, 240, 0.6)',
+                        fontWeight: 600,
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
                       }
-                    }, analyses[index].confidence)
+                    }, 'Asset Impact:'),
+                    React.createElement('div', {
+                      style: {
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gap: '0.5rem'
+                      }
+                    },
+                      ['USD', 'Stocks', 'Bonds', 'Gold'].map(asset => {
+                        const sentiment = analyses[index].assetImpact[asset];
+                        const color = sentiment === 'Bullish' ? '#10b981' :
+                                     sentiment === 'Bearish' ? '#ef4444' : '#6b7280';
+                        const icon = sentiment === 'Bullish' ? '📈' :
+                                    sentiment === 'Bearish' ? '📉' : '➡️';
+
+                        return React.createElement('div', {
+                          key: asset,
+                          style: {
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.25rem 0.5rem',
+                            background: `${color}15`,
+                            borderRadius: '4px',
+                            border: `1px solid ${color}30`
+                          }
+                        },
+                          React.createElement('span', {
+                            style: {
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              color: 'rgba(226, 232, 240, 0.9)'
+                            }
+                          }, asset),
+                          React.createElement('span', {
+                            style: {
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem'
+                            }
+                          },
+                            React.createElement('span', null, icon),
+                            React.createElement('span', null, sentiment)
+                          )
+                        );
+                      })
+                    )
                   ),
 
                   // Reasoning
