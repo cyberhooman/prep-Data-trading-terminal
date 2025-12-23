@@ -10,7 +10,7 @@ class FinancialJuiceScraper {
     this.baseUrl = 'https://www.financialjuice.com';
     this.newsCache = [];
     this.lastFetch = null;
-    this.cacheTimeout = 900000; // 15 minutes cache - critical news doesn't appear often, reduce API calls
+    this.cacheTimeout = 120000; // 2 minutes cache - capture real-time economic data releases
     this.browser = null;
     this.isLoggedIn = false;
     this.newsHistory = new Map(); // Store news with first seen timestamp
