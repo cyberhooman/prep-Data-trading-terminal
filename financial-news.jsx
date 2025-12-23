@@ -123,15 +123,15 @@ function FinancialNewsFeed() {
   };
 
   const getVerdictColor = (verdict) => {
-    if (verdict === 'Bullish Surprise') return '#10b981';
-    if (verdict === 'Bearish Surprise') return '#ef4444';
+    if (verdict === 'Bullish Surprise' || verdict === 'Bullish') return '#10b981';
+    if (verdict === 'Bearish Surprise' || verdict === 'Bearish') return '#ef4444';
     if (verdict === 'Neutral') return '#6b7280';
     return '#f59e0b';
   };
 
   const getVerdictEmoji = (verdict) => {
-    if (verdict === 'Bullish Surprise') return '🚀';
-    if (verdict === 'Bearish Surprise') return '📉';
+    if (verdict === 'Bullish Surprise' || verdict === 'Bullish') return '🚀';
+    if (verdict === 'Bearish Surprise' || verdict === 'Bearish') return '📉';
     if (verdict === 'Neutral') return '➡️';
     return '⚠️';
   };

@@ -43,6 +43,27 @@ class DeepSeekAnalyzer {
   }
 
   /**
+   * Detect if news is monetary policy related or equity/business news
+   */
+  detectNewsType(newsItem) {
+    const text = `${newsItem.headline} ${newsItem.rawText || ''}`.toLowerCase();
+
+    // Monetary policy keywords
+    const policyKeywords = [
+      'fed', 'fomc', 'ecb', 'boe', 'boj', 'rba', 'boc', 'snb', 'rbnz',
+      'central bank', 'interest rate', 'rate decision', 'monetary policy',
+      'gdp', 'cpi', 'inflation', 'pce', 'employment', 'jobless', 'unemployment',
+      'retail sales', 'manufacturing', 'pmi', 'ism', 'consumer confidence',
+      'hawkish', 'dovish', 'rate hike', 'rate cut', 'quantitative'
+    ];
+
+    // Check if it's monetary policy news
+    const isPolicyNews = policyKeywords.some(keyword => text.includes(keyword));
+
+    return isPolicyNews ? 'policy' : 'equity';
+  }
+
+  /**
    * Main analysis function
    * @param {Object} newsItem - The news item to analyze
    * @returns {Promise<Object>} Analysis result with verdict, confidence, reasoning, and key factors
@@ -60,14 +81,25 @@ class DeepSeekAnalyzer {
       // Rate limiting check
       await this.enforceRateLimit();
 
+      // Detect news type
+      const newsType = this.detectNewsType(newsItem);
+      console.log('[DeepSeek] News type detected:', newsType);
+
       // Get current market context
       const marketContext = await this.getMarketContext();
 
-      // Build the analysis prompt
-      const prompt = this.buildAnalysisPrompt(newsItem, marketContext);
+      // Build the analysis prompt based on news type
+      const prompt = newsType === 'policy'
+        ? this.buildAnalysisPrompt(newsItem, marketContext)
+        : this.buildEquityAnalysisPrompt(newsItem, marketContext);
 
       // Call DeepSeek API
       console.log('[DeepSeek] Analyzing:', newsItem.headline);
+
+      // Choose system prompt based on news type
+      const systemPrompt = newsType === 'policy'
+        ? 'You are a macro trading analyst specializing in central bank policy and market surprise detection. PRIMARY OBJECTIVES: 1) Determine if MORE HAWKISH or DOVISH than expected, 2) Assess impact on next central bank move, 3) Identify smart money flow to ALIGN with institutions. Analyze events against CURRENT MARKET EXPECTATIONS (not just forecasts). Provide clear, concise analysis focused on actionable insights. Be comprehensive but efficient - quality over quantity.'
+        : 'You are an equity and sector analyst specializing in market impact assessment. Analyze company news, earnings, M&A, contracts, and business developments. Focus on: 1) Sector impact and competitive dynamics, 2) Business fundamentals and growth implications, 3) Smart money positioning. Provide clear analysis of how this affects equity markets and related sectors.';
 
       // Build request body
       const requestBody = {
@@ -75,7 +107,7 @@ class DeepSeekAnalyzer {
         messages: [
           {
             role: 'system',
-            content: 'You are a macro trading analyst specializing in central bank policy and market surprise detection. PRIMARY OBJECTIVES: 1) Determine if MORE HAWKISH or DOVISH than expected, 2) Assess impact on next central bank move, 3) Identify smart money flow to ALIGN with institutions. Analyze events against CURRENT MARKET EXPECTATIONS (not just forecasts). Provide clear, concise analysis focused on actionable insights. Be comprehensive but efficient - quality over quantity.'
+            content: systemPrompt
           },
           {
             role: 'user',
@@ -242,6 +274,70 @@ ALWAYS answer: 1) Hawkish or Dovish vs expected? 2) Next CB move impact? 3) Smar
   }
 
   /**
+   * Build equity/business news analysis prompt
+   */
+  buildEquityAnalysisPrompt(newsItem, marketContext) {
+    const { headline, tags, timestamp, rawText } = newsItem;
+
+    return `You are analyzing a business/equity news event to assess its market impact.
+
+CURRENT MARKET ENVIRONMENT:
+${marketContext}
+
+NEWS EVENT:
+- Headline: ${headline}
+- Details: ${rawText || 'N/A'}
+- Tags: ${tags ? tags.join(', ') : 'N/A'}
+- Time: ${timestamp || 'Recent'}
+
+YOUR TASK:
+Analyze this event's impact on equity markets and related sectors. Determine if it's BULLISH, BEARISH, or NEUTRAL for markets.
+
+ANALYSIS FRAMEWORK:
+
+1. SECTOR & COMPETITIVE IMPACT:
+   - Which sectors/companies are directly affected?
+   - Is this positive or negative for competitive positioning?
+   - Does this shift market share or industry dynamics?
+
+2. BUSINESS FUNDAMENTALS:
+   - How does this affect revenue, earnings, margins?
+   - Does this accelerate or decelerate growth?
+   - What's the long-term strategic impact?
+
+3. SMART MONEY POSITIONING:
+   - How would institutional investors view this?
+   - Is this a sector rotation catalyst?
+   - What's the risk appetite implication?
+
+OUTPUT FORMAT (JSON):
+{
+  "verdict": "Bullish" OR "Bearish" OR "Neutral",
+  "assetImpact": {
+    "USD": "Bullish" OR "Bearish" OR "Neutral",
+    "Stocks": "Bullish" OR "Bearish" OR "Neutral",
+    "Bonds": "Bullish" OR "Bearish" OR "Neutral",
+    "Gold": "Bullish" OR "Bearish" OR "Neutral"
+  },
+  "reasoning": "Concise 2-3 paragraph analysis covering: 1) Sector and competitive impact, 2) Business fundamentals implications, 3) Smart money positioning. Focus on actionable insights for equity traders.",
+  "keyFactors": [
+    "Sector Impact: [Which sectors benefit/hurt and why]",
+    "Business Impact: [Effect on fundamentals and growth]",
+    "Market Positioning: [How smart money views this]",
+    "Asset Class Effects: [Cross-market implications]",
+    "Key Takeaways: [Main trading implications]"
+  ]
+}
+
+CRITICAL INSTRUCTIONS:
+- Do NOT use hawkish/dovish language (this is equity news, not monetary policy)
+- Focus on business fundamentals, not central bank policy
+- Analyze sector-specific implications
+- Consider growth, earnings, and competitive dynamics
+- Assess how institutional equity investors would react`;
+  }
+
+  /**
    * Get current market context via web search/news
    * Cached for 30 minutes to reduce API calls
    */
@@ -331,15 +427,19 @@ Note: This analysis evaluates whether events surprise the market within the broa
    * Validate and normalize AI response
    */
   validateAnalysis(analysis) {
-    // Normalize verdict format
-    const validVerdicts = ['Bullish Surprise', 'Bearish Surprise', 'Neutral'];
-    if (!validVerdicts.includes(analysis.verdict)) {
+    // Normalize verdict format - accept both policy and equity formats
+    const validPolicyVerdicts = ['Bullish Surprise', 'Bearish Surprise', 'Neutral'];
+    const validEquityVerdicts = ['Bullish', 'Bearish', 'Neutral'];
+    const allValidVerdicts = [...validPolicyVerdicts, ...validEquityVerdicts];
+
+    if (!allValidVerdicts.includes(analysis.verdict)) {
       // Try to map common variations
       const verdictLower = analysis.verdict.toLowerCase();
       if (verdictLower.includes('bullish')) {
-        analysis.verdict = 'Bullish Surprise';
+        // Keep as-is if it already says "Surprise", otherwise just use "Bullish"
+        analysis.verdict = verdictLower.includes('surprise') ? 'Bullish Surprise' : 'Bullish';
       } else if (verdictLower.includes('bearish')) {
-        analysis.verdict = 'Bearish Surprise';
+        analysis.verdict = verdictLower.includes('surprise') ? 'Bearish Surprise' : 'Bearish';
       } else {
         analysis.verdict = 'Neutral';
       }
