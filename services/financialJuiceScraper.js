@@ -425,6 +425,28 @@ class FinancialJuiceScraper {
           const isCritical = className.includes('active-critical');
           const isActive = className.includes('active');
 
+          // Check for bullish/bearish sentiment indicators (triangle icons)
+          let sentiment = null;
+          const triangleIcon = element.querySelector('.fa-caret-up, .fa-caret-down, .triangle-up, .triangle-down, [class*="bullish"], [class*="bearish"]');
+          if (triangleIcon) {
+            const iconClass = triangleIcon.className || '';
+            if (iconClass.includes('up') || iconClass.includes('bullish') || iconClass.includes('green')) {
+              sentiment = 'bullish';
+            } else if (iconClass.includes('down') || iconClass.includes('bearish') || iconClass.includes('red')) {
+              sentiment = 'bearish';
+            }
+          }
+
+          // Also check for text-based sentiment in the element
+          if (!sentiment && text) {
+            // Check for explicit bullish/bearish markers in text or classes
+            if (text.match(/📈|🟢|▲|↑/g) || className.includes('bull')) {
+              sentiment = 'bullish';
+            } else if (text.match(/📉|🔴|▼|↓/g) || className.includes('bear')) {
+              sentiment = 'bearish';
+            }
+          }
+
           if (isCritical) criticalCount++;
           else if (isActive) activeCount++;
           else otherCount++;
@@ -491,6 +513,7 @@ class FinancialJuiceScraper {
             rawText: text.trim(),
             isCritical: isCritical,
             isActive: isActive,
+            sentiment: sentiment, // 'bullish', 'bearish', or null
             className: className
           });
         });

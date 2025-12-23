@@ -20,8 +20,8 @@ function FinancialNewsFeed() {
       const data = await response.json();
 
       if (data.success) {
-        // Filter to show only critical news items (red items from FinancialJuice)
-        const criticalNews = data.data.filter(item => item.isCritical);
+        // Filter to show critical news items AND items with sentiment indicators (market commentary)
+        const criticalNews = data.data.filter(item => item.isCritical || item.sentiment);
         setNews(criticalNews);
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
         if (criticalNews.length === 0 && data.source === 'failed') {
@@ -265,6 +265,17 @@ function FinancialNewsFeed() {
                   flexWrap: 'wrap'
                 }
               },
+                // Sentiment indicator (triangle)
+                item.sentiment && React.createElement('span', {
+                  style: {
+                    fontSize: '0.85rem',
+                    color: item.sentiment === 'bullish' ? '#10b981' : '#ef4444',
+                    fontWeight: 'bold',
+                    display: 'inline-flex',
+                    alignItems: 'center'
+                  },
+                  title: item.sentiment === 'bullish' ? 'Bullish' : 'Bearish'
+                }, item.sentiment === 'bullish' ? '▲' : '▼'),
                 React.createElement('h3', {
                   style: {
                     margin: 0,
