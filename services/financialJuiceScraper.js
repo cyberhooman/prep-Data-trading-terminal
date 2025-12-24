@@ -123,12 +123,12 @@ class FinancialJuiceScraper {
     const password = process.env.FINANCIALJUICE_PASSWORD;
 
     if (!email || !password) {
-      console.log('No FinancialJuice credentials configured');
+      console.log('No news source credentials configured');
       return false;
     }
 
     try {
-      console.log('Attempting to login to FinancialJuice...');
+      console.log('Attempting to login to news source...');
 
       // Wait for page to be fully loaded
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -297,7 +297,7 @@ class FinancialJuiceScraper {
         return this.newsCache;
       }
 
-      console.log('Fetching fresh news from FinancialJuice...');
+      console.log('Fetching fresh market news...');
       const browser = await this.getBrowser();
       page = await browser.newPage();
 
@@ -571,8 +571,16 @@ class FinancialJuiceScraper {
       const oneWeekAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
 
       // Add new items to history with first seen timestamp
+      // Filter out items containing promotional branding
       processedItems.forEach(item => {
         const key = `${item.headline}-${item.timestamp}`;
+        const text = `${item.headline} ${item.rawText || ''}`.toLowerCase();
+
+        // Skip items containing promotional branding
+        if (text.includes('financialjuice') || text.includes('financial juice')) {
+          return;
+        }
+
         if (!this.newsHistory.has(key)) {
           this.newsHistory.set(key, {
             ...item,
@@ -605,7 +613,7 @@ class FinancialJuiceScraper {
 
       return allItems;
     } catch (error) {
-      console.error('Error scraping FinancialJuice:', error.message);
+      console.error('Error scraping news:', error.message);
       throw error;
     } finally {
       if (page) {

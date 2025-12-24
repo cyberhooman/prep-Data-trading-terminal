@@ -22,12 +22,54 @@ const flagEmojis = {
   'MXN': '🇲🇽'
 };
 
-// Event type configuration
+// Event type configuration - using SVG icons
+const createIcon = (type) => {
+  const iconProps = {
+    width: '16',
+    height: '16',
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: '2',
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round'
+  };
+
+  switch(type) {
+    case 'forex':
+      return React.createElement('svg', iconProps,
+        React.createElement('line', { x1: '12', y1: '1', x2: '12', y2: '23' }),
+        React.createElement('path', { d: 'M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6' })
+      );
+    case 'economic':
+      return React.createElement('svg', iconProps,
+        React.createElement('line', { x1: '12', y1: '20', x2: '12', y2: '10' }),
+        React.createElement('line', { x1: '18', y1: '20', x2: '18', y2: '4' }),
+        React.createElement('line', { x1: '6', y1: '20', x2: '6', y2: '16' })
+      );
+    case 'cb_speech':
+      return React.createElement('svg', iconProps,
+        React.createElement('path', { d: 'M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z' }),
+        React.createElement('path', { d: 'M19 10v2a7 7 0 0 1-14 0v-2' }),
+        React.createElement('line', { x1: '12', y1: '19', x2: '12', y2: '23' })
+      );
+    case 'trump_schedule':
+      return React.createElement('svg', iconProps,
+        React.createElement('path', { d: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' }),
+        React.createElement('polyline', { points: '9 22 9 12 15 12 15 22' })
+      );
+    default:
+      return React.createElement('svg', iconProps,
+        React.createElement('circle', { cx: '12', cy: '12', r: '10' })
+      );
+  }
+};
+
 const eventTypes = {
-  'forex': { icon: '💱', label: 'Economic', color: '#FF3366' },
-  'economic': { icon: '📊', label: 'Economic', color: '#FF3366' },
-  'cb_speech': { icon: '🎤', label: 'CB Speech', color: '#00D9FF' },
-  'trump_schedule': { icon: '🏛️', label: 'Trump', color: '#FFB800' }
+  'forex': { icon: createIcon('forex'), label: 'Economic', color: '#FF3366' },
+  'economic': { icon: createIcon('economic'), label: 'Economic', color: '#FF3366' },
+  'cb_speech': { icon: createIcon('cb_speech'), label: 'CB Speech', color: '#00D9FF' },
+  'trump_schedule': { icon: createIcon('trump_schedule'), label: 'Trump', color: '#FFB800' }
 };
 
 function WeeklyCalendar() {
@@ -159,7 +201,12 @@ function WeeklyCalendar() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '1.5rem' }}>📅</span>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
               Weekly Calendar
             </h1>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
@@ -471,12 +518,17 @@ function WeeklyCalendar() {
                       color: 'var(--text-muted)',
                       opacity: 0.5
                     }}>
-                      <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>📭</div>
+                      <div style={{ marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/>
+                          <line x1="2" y1="2" x2="22" y2="22"/>
+                        </svg>
+                      </div>
                       <div>No events</div>
                     </div>
                   ) : (
                     dayEvents.map((event, eventIndex) => {
-                      const eventConfig = eventTypes[event.source] || { icon: '📌', color: '#666' };
+                      const eventConfig = eventTypes[event.source] || { icon: createIcon('default'), color: '#666' };
 
                       return (
                         <div

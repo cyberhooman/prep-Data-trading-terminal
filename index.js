@@ -4,7 +4,7 @@
  * Serves a web dashboard on http://localhost:3000 that shows:
  *   - Current currency strength snapshot.
  *   - Upcoming Forex Factory high-impact events with live countdown timers.
- *   - Critical market news from FinancialJuice with 1-week retention.
+ *   - Critical market news with 1-week retention.
  *
  * The timers flash and play a louder tick during the final 3 minutes before an event,
  * and announce when an event starts.
@@ -2486,7 +2486,7 @@ app.post('/auth/reset-password', async (req, res) => {
 });
 
 // API endpoint to get high-impact news (public - no auth required)
-// Uses FinancialJuice web scraping only (X API disabled)
+// Uses web scraping only (X API disabled)
 app.get('/api/financial-news', async (req, res) => {
   try {
     let news = [];
@@ -2498,7 +2498,7 @@ app.get('/api/financial-news', async (req, res) => {
     );
 
     // Use web scraping only (X API disabled)
-    console.log('Fetching news from FinancialJuice web scraping...');
+    console.log('Fetching news from web scraping...');
     try {
       news = await Promise.race([
         financialJuiceScraper.getLatestNews(),
@@ -2537,7 +2537,7 @@ app.post('/api/financial-news/refresh', async (req, res) => {
     let source = 'web_scraping';
 
     // Clear cache and fetch fresh data (X API disabled, web scraping only)
-    console.log('Clearing cache and refreshing from FinancialJuice...');
+    console.log('Clearing cache and refreshing from web scraping...');
     financialJuiceScraper.clearCache();
     news = await financialJuiceScraper.getLatestNews();
 
@@ -2760,7 +2760,7 @@ app.get('/api/speeches', async (req, res) => {
     res.json({
       success: true,
       count: content.length,
-      source: 'FinancialJuice',
+      source: 'Market News',
       data: content
     });
   } catch (err) {
@@ -2815,7 +2815,7 @@ app.post('/api/speeches/analyze', async (req, res) => {
       data: {
         ...analysis,
         bankCode,
-        source: 'FinancialJuice'
+        source: 'Market News'
       }
     });
   } catch (err) {
@@ -2910,6 +2910,12 @@ app.get('/components/tetris-loader.jsx', (req, res) => {
 
 app.get('/components/week-calendar.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'components', 'week-calendar.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/components/month-calendar.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'components', 'month-calendar.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -3646,9 +3652,15 @@ app.get('/', async (req, res) => {
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-teal-500"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                       <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Calendar</h3>
                     </div>
-                    <button class="text-notion-muted hover:text-notion-text">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <!-- View Toggle Buttons -->
+                      <button id="calendar-view-week" onclick="switchCalendarView('week')" class="px-2 py-1 text-[10px] font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30" title="Week view">
+                        Week
+                      </button>
+                      <button id="calendar-view-month" onclick="switchCalendarView('month')" class="px-2 py-1 text-[10px] font-semibold rounded transition-all text-notion-muted hover:text-notion-text" title="Month view">
+                        Month
+                      </button>
+                    </div>
                   </div>
 
                   <div id="calendar-root" class="flex-1 p-3 min-h-0"></div>
@@ -4121,6 +4133,7 @@ app.get('/', async (req, res) => {
   <script type="text/babel" data-presets="env,react" src="/quick-notes.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/components/tetris-loader.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/components/week-calendar.jsx"></script>
+  <script type="text/babel" data-presets="env,react" src="/components/month-calendar.jsx"></script>
   <script type="text/babel" data-presets="env,react" src="/financial-news.jsx"></script>
       <script type="text/babel" data-presets="env,react">
         try {
@@ -4133,10 +4146,52 @@ app.get('/', async (req, res) => {
           nroot.render(React.createElement(QuickNotes));
         } catch (e) { console.error('QuickNotes render error:', e); }
 
+        // Calendar view switching
+        let calendarRoot = null;
+        let currentCalendarView = 'week'; // Default to week view
+
+        function switchCalendarView(view) {
+          try {
+            currentCalendarView = view;
+
+            // Update button styles
+            const weekBtn = document.getElementById('calendar-view-week');
+            const monthBtn = document.getElementById('calendar-view-month');
+
+            if (view === 'week') {
+              weekBtn.className = 'px-2 py-1 text-[10px] font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30';
+              monthBtn.className = 'px-2 py-1 text-[10px] font-semibold rounded transition-all text-notion-muted hover:text-notion-text';
+            } else {
+              weekBtn.className = 'px-2 py-1 text-[10px] font-semibold rounded transition-all text-notion-muted hover:text-notion-text';
+              monthBtn.className = 'px-2 py-1 text-[10px] font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30';
+            }
+
+            // Render the appropriate calendar component
+            if (!calendarRoot) {
+              calendarRoot = ReactDOM.createRoot(document.getElementById('calendar-root'));
+            }
+
+            if (view === 'week') {
+              calendarRoot.render(React.createElement(WeekCalendar));
+            } else {
+              calendarRoot.render(React.createElement(MonthCalendar));
+            }
+
+            // Save preference to localStorage
+            localStorage.setItem('calendarView', view);
+          } catch (e) {
+            console.error('Calendar view switch error:', e);
+          }
+        }
+
+        // Initialize calendar with saved preference or default to week
         try {
-          const calroot = ReactDOM.createRoot(document.getElementById('calendar-root'));
-          calroot.render(React.createElement(WeekCalendar));
-        } catch (e) { console.error('WeekCalendar render error:', e); }
+          const savedView = localStorage.getItem('calendarView') || 'week';
+          switchCalendarView(savedView);
+        } catch (e) { console.error('Calendar initialization error:', e); }
+
+        // Make function globally available
+        window.switchCalendarView = switchCalendarView;
 
         // Shared news data for both components
         let criticalNewsData = [];
@@ -4536,6 +4591,7 @@ const watchedFiles = [
   path.join(__dirname, 'cb-speech-analysis.jsx'),
   path.join(__dirname, 'components', 'tetris-loader.jsx'),
   path.join(__dirname, 'components', 'week-calendar.jsx'),
+  path.join(__dirname, 'components', 'month-calendar.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 

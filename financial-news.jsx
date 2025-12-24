@@ -138,7 +138,29 @@ function FinancialNewsFeed() {
 
   if (loading && news.length === 0) {
     return React.createElement('div', { className: 'financial-news-feed loading', style: { padding: '2rem', textAlign: 'center' }},
-      React.createElement('h2', { style: { marginBottom: '1rem' }}, '🔴 Critical Market News'),
+      React.createElement('h2', {
+        style: {
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          justifyContent: 'center'
+        }
+      },
+        React.createElement('svg', {
+          width: '20',
+          height: '20',
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: '#ef4444',
+          strokeWidth: '2',
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round'
+        },
+          React.createElement('polygon', { points: '13 2 3 14 12 14 11 22 21 10 12 10 13 2' })
+        ),
+        'Critical Market News'
+      ),
       React.createElement('div', { className: 'news-loading' }, 'Loading critical news...')
     );
   }
@@ -174,9 +196,27 @@ function FinancialNewsFeed() {
         style: {
           margin: 0,
           fontSize: '1.5rem',
-          fontWeight: 700
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem'
         }
-      }, '🔴 Critical Market News'),
+      },
+        React.createElement('svg', {
+          width: '24',
+          height: '24',
+          viewBox: '0 0 24 24',
+          fill: 'none',
+          stroke: '#ef4444',
+          strokeWidth: '2',
+          strokeLinecap: 'round',
+          strokeLinejoin: 'round',
+          style: { flexShrink: 0 }
+        },
+          React.createElement('polygon', { points: '13 2 3 14 12 14 11 22 21 10 12 10 13 2' })
+        ),
+        'Critical Market News'
+      ),
       React.createElement('div', {
         className: 'news-controls',
         style: {
@@ -293,9 +333,23 @@ function FinancialNewsFeed() {
                     fontWeight: 700,
                     padding: '0.2rem 0.5rem',
                     borderRadius: '4px',
-                    letterSpacing: '0.5px'
+                    letterSpacing: '0.5px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
                   }
-                }, '🔴 CRITICAL')
+                },
+                  React.createElement('svg', {
+                    width: '10',
+                    height: '10',
+                    viewBox: '0 0 24 24',
+                    fill: 'currentColor',
+                    stroke: 'none'
+                  },
+                    React.createElement('polygon', { points: '13 2 3 14 12 14 11 22 21 10 12 10 13 2' })
+                  ),
+                  'CRITICAL'
+                )
               ),
 
               // Economic Data
@@ -358,9 +412,23 @@ function FinancialNewsFeed() {
                     background: 'rgba(255, 107, 107, 0.1)',
                     padding: '0.25rem 0.5rem',
                     borderRadius: '4px',
-                    fontWeight: 600
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem'
                   }
-                }, `🔴 ${formatTimeAgo(item.firstSeenAt)}`),
+                },
+                  React.createElement('svg', {
+                    width: '10',
+                    height: '10',
+                    viewBox: '0 0 24 24',
+                    fill: 'currentColor',
+                    stroke: 'none'
+                  },
+                    React.createElement('polygon', { points: '13 2 3 14 12 14 11 22 21 10 12 10 13 2' })
+                  ),
+                  formatTimeAgo(item.firstSeenAt)
+                ),
                 item.tags.length > 0 && React.createElement('div', {
                   style: {
                     display: 'flex',

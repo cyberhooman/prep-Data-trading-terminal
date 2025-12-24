@@ -183,10 +183,19 @@ class CBSpeechScraper {
     const cbMatch = this.detectCentralBank(text);
     if (!cbMatch) return false;
 
+    // EXCLUDE promotional/livestream links and empty announcements
+    const isPromotionalLink = /\b(watch live|live stream|live now|upcoming|scheduled|livestream)\b/i.test(lower);
+    const isJustTimingInfo = /^\s*\w+['']s\s+\w+\s+speaks?\s*\([0-9:]+\s*(et|gmt|utc|est|edt)\s*\)/i.test(text.trim());
+    const isTooShort = text.trim().length < 30; // Very short items are usually just announcements
+
+    if (isPromotionalLink || isJustTimingInfo || isTooShort) {
+      return false;
+    }
+
     // Must explicitly be a speech, press conference, or direct statement from CB official
     // More strict filter: requires explicit speech/presser keywords or direct quotes from named officials
     const hasExplicitSpeechKeyword = /\b(speech|remarks|testimony|press conference|presser|minutes|statement)\b/i.test(lower);
-    const hasDirectQuote = /\b(says|said|comments?|speaks?|interview)\b/i.test(lower) && this.detectSpeaker(text, cbMatch.bank);
+    const hasDirectQuote = /\b(says|said|comments?|interview)\b/i.test(lower) && this.detectSpeaker(text, cbMatch.bank);
     // Also detect "Speaker: statement" format (e.g., "Fed's Miran: I haven't decided...")
     const hasColonQuote = /\b(fed's|ecb's|boe's|boc's|rba's|boj's|snb's|rbnz's)\s+\w+:/i.test(lower) ||
                           (cbMatch.bank.speakers.some(speaker => new RegExp(`\\b${speaker}\\s*:`, 'i').test(text)));
@@ -199,7 +208,7 @@ class CBSpeechScraper {
   }
 
   /**
-   * Extract CB content from Financial Juice news feed
+   * Extract CB content from market news feed
    */
   extractCBContentFromFJ(fjNews) {
     const cbItems = [];
@@ -208,6 +217,13 @@ class CBSpeechScraper {
       if (!this.isCBContent(newsItem)) continue;
 
       const text = `${newsItem.headline} ${newsItem.rawText || ''}`;
+      const lowerText = text.toLowerCase();
+
+      // Skip items containing promotional branding
+      if (lowerText.includes('financialjuice') || lowerText.includes('financial juice')) {
+        continue;
+      }
+
       const cbMatch = this.detectCentralBank(text);
       if (!cbMatch) continue;
 
@@ -240,7 +256,7 @@ class CBSpeechScraper {
         bankCode,
         currency: bank.currency,
         type: contentType,
-        source: 'FinancialJuice',
+        source: 'Market News',
         isCritical: newsItem.isCritical || false,
         isActive: newsItem.isActive || false,
         firstSeenAt: newsItem.firstSeenAt || Date.now()
@@ -251,7 +267,7 @@ class CBSpeechScraper {
   }
 
   /**
-   * Fetch all CB speeches from Financial Juice
+   * Fetch all CB speeches from market news feed
    * This is called from the API endpoint
    */
   async fetchAllSpeeches(fjScraper) {
@@ -286,7 +302,7 @@ class CBSpeechScraper {
 
       return speeches;
     } catch (err) {
-      console.error('Error fetching CB speeches from FJ:', err.message);
+      console.error('Error fetching CB speeches:', err.message);
       // Return cached history on error
       return Array.from(this.cbContentHistory.values())
         .filter(item => item.type === 'speech')
@@ -329,7 +345,7 @@ class CBSpeechScraper {
 
       return pressConfs;
     } catch (err) {
-      console.error('Error fetching CB press conferences from FJ:', err.message);
+      console.error('Error fetching CB press conferences:', err.message);
       return Array.from(this.cbContentHistory.values())
         .filter(item => item.type === 'press_conference')
         .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -350,7 +366,7 @@ class CBSpeechScraper {
       // Extract CB-related content
       const cbItems = this.extractCBContentFromFJ(fjNews);
 
-      console.log(`Extracted ${cbItems.length} CB items from ${fjNews.length} FJ news items`);
+      console.log(`Extracted ${cbItems.length} CB items from ${fjNews.length} news items`);
 
       // Add to history
       for (const item of cbItems) {
@@ -370,7 +386,7 @@ class CBSpeechScraper {
 
       return allItems;
     } catch (err) {
-      console.error('Error fetching CB content from FJ:', err.message);
+      console.error('Error fetching CB content:', err.message);
       return Array.from(this.cbContentHistory.values())
         .sort((a, b) => new Date(b.date) - new Date(a.date));
     }
