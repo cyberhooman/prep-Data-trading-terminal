@@ -232,7 +232,7 @@ function MacroAIAnalysis({ newsItems }) {
     ),
 
     // Analysis Items
-    React.createElement('div', { style: { padding: '1rem' }},
+    React.createElement('div', { style: { padding: '0.65rem' }},
       analyzableItems.map((item) => {
         const itemKey = getItemKey(item);
         const analysis = analyses.get(itemKey);
@@ -243,8 +243,8 @@ function MacroAIAnalysis({ newsItems }) {
         return React.createElement('div', {
           key: itemKey,
           style: {
-            marginBottom: '1rem',
-            borderRadius: '10px',
+            marginBottom: '0.65rem',
+            borderRadius: '8px',
             border: '1px solid rgba(148, 163, 184, 0.2)',
             background: 'rgba(0, 0, 0, 0.2)',
             overflow: 'hidden'
@@ -253,7 +253,7 @@ function MacroAIAnalysis({ newsItems }) {
           // News Item Header
           React.createElement('div', {
             style: {
-              padding: '1rem',
+              padding: '0.65rem',
               borderBottom: analysis ? '1px solid rgba(148, 163, 184, 0.2)' : 'none'
             }
           },
@@ -262,26 +262,26 @@ function MacroAIAnalysis({ newsItems }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'flex-start',
-                gap: '1rem',
+                gap: '0.65rem',
                 flexWrap: 'wrap'
               }
             },
               React.createElement('div', { style: { flex: 1, minWidth: '200px' }},
                 React.createElement('div', {
                   style: {
-                    fontSize: '0.85rem',
+                    fontSize: '0.8rem',
                     fontWeight: '500',
                     color: '#fff',
-                    marginBottom: '0.5rem',
-                    lineHeight: '1.4'
+                    marginBottom: '0.4rem',
+                    lineHeight: '1.35'
                   }
                 }, item.headline),
                 item.economicData && React.createElement('div', {
                   style: {
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     color: 'rgba(226, 232, 240, 0.7)',
                     display: 'flex',
-                    gap: '1rem',
+                    gap: '0.65rem',
                     flexWrap: 'wrap'
                   }
                 },
@@ -304,12 +304,12 @@ function MacroAIAnalysis({ newsItems }) {
               !analysis && !isLoading && !error && React.createElement('button', {
                 onClick: () => analyzeItem(item),
                 style: {
-                  padding: '0.5rem 1rem',
+                  padding: '0.4rem 0.75rem',
                   background: 'linear-gradient(135deg, rgba(81, 198, 225, 0.3), rgba(81, 198, 225, 0.15))',
                   border: '1px solid #51c6e1',
-                  borderRadius: '6px',
+                  borderRadius: '5px',
                   color: '#51c6e1',
-                  fontSize: '0.8rem',
+                  fontSize: '0.75rem',
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -331,51 +331,51 @@ function MacroAIAnalysis({ newsItems }) {
             // Loading State
             isLoading && React.createElement('div', {
               style: {
-                marginTop: '0.75rem',
-                padding: '1rem',
+                marginTop: '0.5rem',
+                padding: '0.65rem',
                 textAlign: 'center',
                 background: 'rgba(81, 198, 225, 0.05)',
-                borderRadius: '6px'
+                borderRadius: '5px'
               }
             },
               React.createElement('div', {
                 style: {
-                  width: '24px',
-                  height: '24px',
-                  border: '3px solid rgba(81, 198, 225, 0.2)',
-                  borderTop: '3px solid #51c6e1',
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid rgba(81, 198, 225, 0.2)',
+                  borderTop: '2px solid #51c6e1',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
-                  margin: '0 auto 0.5rem'
+                  margin: '0 auto 0.35rem'
                 }
               }),
               React.createElement('div', {
-                style: { fontSize: '0.8rem', color: '#51c6e1' }
+                style: { fontSize: '0.75rem', color: '#7dd3fc', fontWeight: 600 }
               }, 'Analyzing market surprise...')
             ),
 
             // Error State
             error && React.createElement('div', {
               style: {
-                marginTop: '0.75rem',
-                padding: '0.75rem',
+                marginTop: '0.5rem',
+                padding: '0.5rem',
                 background: 'rgba(255, 51, 102, 0.1)',
-                borderRadius: '6px',
+                borderRadius: '5px',
                 borderLeft: '3px solid #FF3366'
               }
             },
               React.createElement('div', {
-                style: { fontSize: '0.8rem', color: '#FF3366', marginBottom: '0.5rem' }
+                style: { fontSize: '0.75rem', color: '#FF3366', marginBottom: '0.4rem' }
               }, `⚠️ ${error}`),
               React.createElement('button', {
                 onClick: () => analyzeItem(item),
                 style: {
-                  padding: '0.375rem 0.75rem',
+                  padding: '0.3rem 0.6rem',
                   background: 'rgba(255, 51, 102, 0.2)',
                   border: '1px solid #FF3366',
                   borderRadius: '4px',
                   color: '#FF3366',
-                  fontSize: '0.75rem',
+                  fontSize: '0.7rem',
                   cursor: 'pointer'
                 }
               }, 'Try Again')
@@ -386,9 +386,9 @@ function MacroAIAnalysis({ newsItems }) {
           analysis && !analysis.error && React.createElement('div', {
             style: {
               ...getVerdictStyle(analysis.verdict),
-              padding: '1rem',
+              padding: '0.65rem',
               border: `2px solid ${getVerdictStyle(analysis.verdict).borderColor}`,
-              borderRadius: '0 0 10px 10px'
+              borderRadius: '0 0 8px 8px'
             }
           },
             // Verdict Header
@@ -397,7 +397,7 @@ function MacroAIAnalysis({ newsItems }) {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: '0.75rem',
+                marginBottom: '0.5rem',
                 cursor: 'pointer'
               },
               onClick: () => toggleExpanded(itemKey)
@@ -405,10 +405,10 @@ function MacroAIAnalysis({ newsItems }) {
               React.createElement('div', {},
                 React.createElement('div', {
                   style: {
-                    fontSize: '1rem',
+                    fontSize: '0.9rem',
                     fontWeight: '700',
                     color: getVerdictStyle(analysis.verdict).textColor,
-                    marginBottom: '0.25rem'
+                    marginBottom: '0.2rem'
                   }
                 },
                   (analysis.verdict === 'Bullish Surprise' ? '📈 ' : '') +
@@ -418,14 +418,14 @@ function MacroAIAnalysis({ newsItems }) {
                 ),
                 React.createElement('div', {
                   style: {
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     color: 'rgba(226, 232, 240, 0.7)'
                   }
                 }, `Confidence: ${getConfidenceStars(analysis.confidence)} ${analysis.confidence}`)
               ),
               React.createElement('div', {
                 style: {
-                  fontSize: '1.25rem',
+                  fontSize: '1.1rem',
                   color: 'rgba(226, 232, 240, 0.6)',
                   transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.3s'
@@ -436,31 +436,31 @@ function MacroAIAnalysis({ newsItems }) {
             // Expandable Details
             isExpanded && React.createElement('div', {
               style: {
-                marginTop: '0.75rem',
-                paddingTop: '0.75rem',
+                marginTop: '0.5rem',
+                paddingTop: '0.5rem',
                 borderTop: `1px solid ${getVerdictStyle(analysis.verdict).borderColor}40`
               }
             },
               // Reasoning
-              React.createElement('div', { style: { marginBottom: '0.75rem' }},
+              React.createElement('div', { style: { marginBottom: '0.5rem' }},
                 React.createElement('div', {
                   style: {
-                    fontSize: '0.75rem',
+                    fontSize: '0.65rem',
                     fontWeight: '600',
                     color: '#fff',
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.35rem',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
+                    letterSpacing: '0.03em'
                   }
                 }, 'Reasoning:'),
                 React.createElement('div', {
                   style: {
-                    fontSize: '0.8rem',
+                    fontSize: '0.75rem',
                     color: 'rgba(226, 232, 240, 0.9)',
-                    lineHeight: '1.5',
+                    lineHeight: '1.4',
                     background: 'rgba(0, 0, 0, 0.2)',
-                    padding: '0.75rem',
-                    borderRadius: '6px'
+                    padding: '0.5rem',
+                    borderRadius: '5px'
                   }
                 }, analysis.reasoning)
               ),
@@ -469,27 +469,27 @@ function MacroAIAnalysis({ newsItems }) {
               analysis.keyFactors && analysis.keyFactors.length > 0 && React.createElement('div', {},
                 React.createElement('div', {
                   style: {
-                    fontSize: '0.75rem',
+                    fontSize: '0.65rem',
                     fontWeight: '600',
                     color: '#fff',
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.35rem',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
+                    letterSpacing: '0.03em'
                   }
                 }, 'Key Factors:'),
                 React.createElement('ul', {
                   style: {
                     margin: 0,
-                    paddingLeft: '1.5rem',
-                    fontSize: '0.8rem',
+                    paddingLeft: '1.2rem',
+                    fontSize: '0.75rem',
                     color: 'rgba(226, 232, 240, 0.9)',
-                    lineHeight: '1.6'
+                    lineHeight: '1.4'
                   }
                 },
                   analysis.keyFactors.map((factor, idx) =>
                     React.createElement('li', {
                       key: idx,
-                      style: { marginBottom: '0.25rem' }
+                      style: { marginBottom: '0.2rem' }
                     }, factor)
                   )
                 )
@@ -498,8 +498,8 @@ function MacroAIAnalysis({ newsItems }) {
               // Timestamp
               React.createElement('div', {
                 style: {
-                  marginTop: '0.75rem',
-                  fontSize: '0.7rem',
+                  marginTop: '0.5rem',
+                  fontSize: '0.65rem',
                   color: 'rgba(226, 232, 240, 0.5)',
                   textAlign: 'right'
                 }

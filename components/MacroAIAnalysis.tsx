@@ -248,7 +248,7 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
       </div>
 
       {/* Analysis Items */}
-      <div style={{ padding: '0.75rem' }}>
+      <div style={{ padding: '0.65rem' }}>
         {analyzableItems.map((item) => {
           const itemKey = getItemKey(item);
           const analysis = analyses.get(itemKey);
@@ -260,7 +260,7 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
             <div
               key={itemKey}
               style={{
-                marginBottom: '0.75rem',
+                marginBottom: '0.65rem',
                 borderRadius: '8px',
                 border: '1px solid var(--secondary-border)',
                 background: 'rgba(0, 0, 0, 0.2)',
@@ -269,14 +269,14 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
             >
               {/* News Item Header */}
               <div style={{
-                padding: '0.75rem',
+                padding: '0.65rem',
                 borderBottom: analysis ? '1px solid var(--secondary-border)' : 'none'
               }}>
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'flex-start',
-                  gap: '0.75rem',
+                  gap: '0.65rem',
                   flexWrap: 'wrap'
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -284,8 +284,8 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
                       fontSize: '0.8rem',
                       fontWeight: '500',
                       color: 'var(--text-primary)',
-                      marginBottom: '0.5rem',
-                      lineHeight: '1.4',
+                      marginBottom: '0.4rem',
+                      lineHeight: '1.35',
                       wordWrap: 'break-word',
                       overflowWrap: 'break-word'
                     }}>
@@ -296,7 +296,7 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
                         fontSize: '0.7rem',
                         color: 'var(--text-secondary)',
                         display: 'flex',
-                        gap: '0.5rem',
+                        gap: '0.65rem',
                         flexWrap: 'wrap'
                       }}>
                         <span style={{ whiteSpace: 'nowrap' }}>
@@ -365,7 +365,7 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
                       animation: 'spin 1s linear infinite',
                       margin: '0 auto 0.5rem'
                     }} />
-                    <div style={{ fontSize: '0.7rem', color: '#51c6e1' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#7dd3fc', fontWeight: 600 }}>
                       Analyzing market surprise...
                     </div>
                   </div>
