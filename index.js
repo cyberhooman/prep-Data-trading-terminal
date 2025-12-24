@@ -2062,10 +2062,19 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
             <div class="top-bar-breadcrumb">
               <span class="hidden lg:block hover:text-notion-text cursor-pointer">AlphaLabs</span>
               <span class="hidden lg:block top-bar-breadcrumb-divider">/</span>
-              <span class="text-notion-text font-medium">Weekly Calendar</span>
+              <span class="text-notion-text font-medium" id="calendar-title">Weekly Calendar</span>
             </div>
           </div>
           <div class="top-bar-right">
+            <!-- View Toggle Buttons -->
+            <div class="hidden sm:flex items-center gap-2 mr-4">
+              <button id="fullpage-view-week" onclick="switchFullPageCalendarView('week')" class="px-3 py-1.5 text-xs font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30">
+                Week
+              </button>
+              <button id="fullpage-view-month" onclick="switchFullPageCalendarView('month')" class="px-3 py-1.5 text-xs font-semibold rounded transition-all text-notion-muted hover:text-notion-text">
+                Month
+              </button>
+            </div>
             <div class="status-badge hidden sm:flex">
               <span class="status-dot"></span>
               <span>DATA LIVE</span>
@@ -2094,9 +2103,54 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="text/babel" src="/weekly-calendar.jsx"></script>
-    
+
     <script>
+      // Full-page calendar view switching
+      let currentFullPageView = 'week'; // Default to week view
+
+      function switchFullPageCalendarView(view) {
+        currentFullPageView = view;
+
+        // Update button styles
+        const weekBtn = document.getElementById('fullpage-view-week');
+        const monthBtn = document.getElementById('fullpage-view-month');
+        const title = document.getElementById('calendar-title');
+
+        if (view === 'week') {
+          weekBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30';
+          monthBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded transition-all text-notion-muted hover:text-notion-text';
+          title.textContent = 'Weekly Calendar';
+        } else {
+          weekBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded transition-all text-notion-muted hover:text-notion-text';
+          monthBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30';
+          title.textContent = 'Monthly Calendar';
+        }
+
+        // Clear and load the appropriate component
+        const container = document.getElementById('weekly-calendar-root');
+        container.innerHTML = '';
+
+        // Load the script dynamically
+        const script = document.createElement('script');
+        script.type = 'text/babel';
+        script.src = view === 'week' ? '/weekly-calendar.jsx' : '/monthly-calendar.jsx';
+        document.body.appendChild(script);
+
+        // Save preference to localStorage
+        localStorage.setItem('fullPageCalendarView', view);
+      }
+
+      // Initialize with saved preference or default to week
+      window.addEventListener('DOMContentLoaded', () => {
+        const savedView = localStorage.getItem('fullPageCalendarView') || 'week';
+        if (savedView === 'month') {
+          switchFullPageCalendarView('month');
+        } else {
+          // Week view is already loading, just ensure button states are correct
+          switchFullPageCalendarView('week');
+        }
+      });
+
       // Sidebar functions
       function openSidebar() {
         document.getElementById('sidebar').classList.add('open');
@@ -2928,6 +2982,12 @@ app.get('/cb-speech-analysis.jsx', (req, res) => {
 
 app.get('/weekly-calendar.jsx', (req, res) => {
   const filePath = path.join(__dirname, 'weekly-calendar.jsx');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.send(fs.readFileSync(filePath, 'utf8'));
+});
+
+app.get('/monthly-calendar.jsx', (req, res) => {
+  const filePath = path.join(__dirname, 'monthly-calendar.jsx');
   res.setHeader('Content-Type', 'application/javascript');
   res.send(fs.readFileSync(filePath, 'utf8'));
 });
@@ -4592,6 +4652,8 @@ const watchedFiles = [
   path.join(__dirname, 'components', 'tetris-loader.jsx'),
   path.join(__dirname, 'components', 'week-calendar.jsx'),
   path.join(__dirname, 'components', 'month-calendar.jsx'),
+  path.join(__dirname, 'weekly-calendar.jsx'),
+  path.join(__dirname, 'monthly-calendar.jsx'),
   path.join(__dirname, 'public', 'styles.css'),
 ];
 
