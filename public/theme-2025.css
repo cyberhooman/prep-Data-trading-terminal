@@ -12,7 +12,77 @@
  * ACCESSIBILITY: All colors tested for WCAG AA contrast compliance
  */
 
-:root {
+/* === LIGHT MODE THEME === */
+:root:not(.dark), html:not(.dark) {
+  /* === PRIMARY COLORS (60%) === */
+  --primary-bg: #FAFBFC;           /* Soft cloud white - main background */
+  --primary-bg-alt: #F5F7FA;       /* Light frost - alternate sections */
+  --primary-bg-light: #FFFFFF;     /* Pure white for layering */
+
+  /* === SECONDARY COLORS (30%) === */
+  --secondary-bg: #FFFFFF;         /* Clean white - cards & panels */
+  --secondary-bg-hover: #F0F4F8;   /* Soft hover - interactive hover */
+  --secondary-bg-active: #E6EBF1;  /* Active state background */
+  --secondary-border: #D1DAE5;     /* Defined borders for depth */
+  --secondary-border-light: #E0E7EF; /* Lighter borders */
+
+  /* === ACCENT COLORS (10%) === */
+  --accent-primary: #0088CC;       /* Rich blue - primary CTA & highlights */
+  --accent-primary-hover: #006BA6; /* Blue hover state */
+  --accent-primary-glow: rgba(0, 136, 204, 0.25); /* Glow effect */
+
+  --accent-success: #00AA5E;       /* Forest green - profit & growth */
+  --accent-success-dim: #008F4F;   /* Dimmed success */
+  --accent-success-glow: rgba(0, 170, 94, 0.2);
+
+  --accent-danger: #DC2626;        /* Bold red - loss & alerts */
+  --accent-danger-dim: #B91C1C;    /* Dimmed danger */
+  --accent-danger-glow: rgba(220, 38, 38, 0.2);
+
+  --accent-warning: #D97706;       /* Warm amber - warnings & pending */
+  --accent-warning-dim: #B45309;   /* Dimmed warning */
+
+  --accent-info: #7C3AED;          /* Royal purple - informational */
+  --accent-purple: #8B5CF6;        /* Bright purple accent */
+
+  /* === TEXT COLORS === */
+  --text-primary: #1A202C;         /* Deep charcoal - headings & key data */
+  --text-secondary: #4A5568;       /* Steel gray - body text */
+  --text-muted: #718096;           /* Cool gray - labels & hints */
+  --text-dim: #A0AEC0;             /* Light gray - disabled states */
+  --text-bright: #000000;          /* Pure black - emphasis */
+
+  /* === GRADIENTS === */
+  --gradient-primary: linear-gradient(135deg, #0088CC 0%, #0066AA 100%);
+  --gradient-success: linear-gradient(135deg, #00AA5E 0%, #008F4F 100%);
+  --gradient-danger: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  --gradient-warning: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+  --gradient-header: linear-gradient(135deg, #0088CC 0%, #7C3AED 50%, #00AA5E 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 251, 252, 0.95) 100%);
+  --gradient-mesh: radial-gradient(circle at 20% 50%, rgba(0, 136, 204, 0.04) 0%, transparent 50%),
+                   radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.04) 0%, transparent 50%),
+                   radial-gradient(circle at 40% 10%, rgba(0, 170, 94, 0.03) 0%, transparent 50%);
+
+  /* === SHADOWS === */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
+  --shadow-glow-cyan: 0 8px 32px rgba(0, 136, 204, 0.15);
+  --shadow-glow-success: 0 8px 32px rgba(0, 170, 94, 0.15);
+  --shadow-glow-danger: 0 8px 32px rgba(220, 38, 38, 0.15);
+
+  /* === GLASSMORPHISM === */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-bg-light: rgba(250, 251, 252, 0.6);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-border-bright: rgba(0, 136, 204, 0.3);
+  --glass-blur: blur(16px);
+  --glass-blur-heavy: blur(24px);
+}
+
+/* === DARK MODE THEME === */
+:root, html.dark {
   /* === PRIMARY COLORS (60%) === */
   --primary-bg: #0B0F19;           /* Deep midnight - main background */
   --primary-bg-alt: #13161F;       /* Charcoal ink - alternate sections */
@@ -78,6 +148,97 @@
   --glass-border-bright: rgba(0, 217, 255, 0.2);
   --glass-blur: blur(16px);
   --glass-blur-heavy: blur(24px);
+}
+
+/* === LIGHT MODE SPECIFIC ENHANCEMENTS === */
+html:not(.dark) body::before {
+  background: radial-gradient(circle at 10% 20%, rgba(0, 136, 204, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at 90% 80%, rgba(124, 58, 237, 0.05) 0%, transparent 40%),
+              radial-gradient(circle at 50% 50%, rgba(0, 170, 94, 0.04) 0%, transparent 50%);
+}
+
+html:not(.dark) .main-header {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 251, 252, 0.95) 100%);
+  border-bottom: 1px solid rgba(0, 136, 204, 0.2);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 0 60px rgba(0, 136, 204, 0.08);
+}
+
+html:not(.dark) .bento-box {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .bento-box:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 0 40px rgba(0, 136, 204, 0.12);
+}
+
+html:not(.dark) .bento-countdown {
+  background: linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 102, 170, 0.08));
+  border: 2px solid rgba(0, 136, 204, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 136, 204, 0.15);
+}
+
+html:not(.dark) .bento-todos {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(139, 92, 246, 0.05));
+  border-color: rgba(124, 58, 237, 0.3);
+}
+
+html:not(.dark) .bento-notes {
+  background: linear-gradient(135deg, rgba(0, 170, 94, 0.08), rgba(0, 143, 79, 0.04));
+  border-color: rgba(0, 170, 94, 0.3);
+}
+
+html:not(.dark) .bento-events {
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.08), rgba(180, 83, 9, 0.04));
+  border-color: rgba(217, 119, 6, 0.3);
+}
+
+html:not(.dark) .calendar-day.today {
+  border: 2px solid var(--accent-primary);
+  background: linear-gradient(135deg, rgba(0, 136, 204, 0.12), rgba(0, 102, 170, 0.06));
+  box-shadow: 0 0 30px rgba(0, 136, 204, 0.2), 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+html:not(.dark) th {
+  background: rgba(0, 136, 204, 0.12);
+  border-bottom: 2px solid rgba(0, 136, 204, 0.4);
+  color: var(--accent-primary);
+}
+
+html:not(.dark) tbody tr:hover {
+  background: rgba(0, 136, 204, 0.06);
+}
+
+html:not(.dark) .next-event-card {
+  background: linear-gradient(135deg, rgba(0, 136, 204, 0.12), rgba(0, 102, 170, 0.08));
+  border: 1px solid rgba(0, 136, 204, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+html:not(.dark) .next-countdown {
+  background: linear-gradient(135deg, rgba(0, 136, 204, 0.18), rgba(0, 102, 170, 0.12));
+  text-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+}
+
+html:not(.dark) .event-card {
+  border-color: var(--secondary-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .event-card.primary-card {
+  border-color: rgba(0, 136, 204, 0.4);
+  box-shadow: 0 0 0 1px rgba(0, 136, 204, 0.2), 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) button, html:not(.dark) .btn {
+  background: var(--secondary-bg);
+  border-color: var(--secondary-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) button:hover, html:not(.dark) .btn:hover {
+  background: var(--secondary-bg-hover);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* === TYPOGRAPHY === */
@@ -801,6 +962,22 @@ input::placeholder, textarea::placeholder {
   color: var(--accent-success);
 }
 
+/* === LIGHT MODE SCROLLBARS === */
+html:not(.dark) .events-scroll::-webkit-scrollbar-track,
+html:not(.dark) .calendar-day::-webkit-scrollbar-track {
+  background: rgba(209, 218, 229, 0.4);
+}
+
+html:not(.dark) .events-scroll::-webkit-scrollbar-thumb,
+html:not(.dark) .calendar-day::-webkit-scrollbar-thumb {
+  background: rgba(0, 136, 204, 0.35);
+}
+
+html:not(.dark) .events-scroll::-webkit-scrollbar-thumb:hover,
+html:not(.dark) .calendar-day::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 136, 204, 0.55);
+}
+
 /* === BADGES === */
 .badge {
   display: inline-flex;
@@ -825,6 +1002,24 @@ input::placeholder, textarea::placeholder {
   color: var(--accent-success);
 }
 
+/* Light mode badges */
+html:not(.dark) .badge {
+  background: rgba(209, 218, 229, 0.5);
+  color: var(--text-secondary);
+}
+
+html:not(.dark) .badge.manual {
+  background: rgba(0, 136, 204, 0.15);
+  color: var(--accent-primary);
+  border: 1px solid rgba(0, 136, 204, 0.25);
+}
+
+html:not(.dark) .badge.auto {
+  background: rgba(0, 170, 94, 0.15);
+  color: var(--accent-success);
+  border: 1px solid rgba(0, 170, 94, 0.25);
+}
+
 /* === MOMENTUM BADGES === */
 .momentum-badge {
   display: inline-block;
@@ -847,6 +1042,21 @@ input::placeholder, textarea::placeholder {
   border: 1px solid rgba(255, 51, 102, 0.4);
 }
 
+/* Light mode momentum badges */
+html:not(.dark) .momentum-badge.bullish {
+  background: rgba(0, 170, 94, 0.15);
+  color: #006B3D;
+  border: 1px solid rgba(0, 170, 94, 0.35);
+  font-weight: 700;
+}
+
+html:not(.dark) .momentum-badge.bearish {
+  background: rgba(220, 38, 38, 0.15);
+  color: #991B1B;
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  font-weight: 700;
+}
+
 /* === MESSAGES === */
 .message {
   border: 1px solid rgba(0, 217, 255, 0.35);
@@ -864,6 +1074,21 @@ input::placeholder, textarea::placeholder {
   border-radius: 8px;
   margin-bottom: 1rem;
   color: var(--accent-danger);
+}
+
+/* Light mode messages */
+html:not(.dark) .message {
+  border: 1px solid rgba(0, 136, 204, 0.4);
+  background: rgba(0, 136, 204, 0.08);
+  color: #005A8D;
+  font-weight: 500;
+}
+
+html:not(.dark) .error {
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.08);
+  color: #991B1B;
+  font-weight: 500;
 }
 
 footer {
@@ -903,6 +1128,19 @@ footer {
 
 .chip:hover {
   background: rgba(0, 217, 255, 0.25);
+}
+
+/* Light mode chips */
+html:not(.dark) .chip {
+  background: rgba(0, 136, 204, 0.1);
+  border: 1px solid rgba(0, 136, 204, 0.3);
+  color: #005A8D;
+  font-weight: 600;
+}
+
+html:not(.dark) .chip:hover {
+  background: rgba(0, 136, 204, 0.18);
+  border-color: rgba(0, 136, 204, 0.4);
 }
 
 .tz-hint {
@@ -1126,6 +1364,23 @@ form.add-todo input[name="task"] {
   text-align: center;
   font-style: italic;
   color: var(--text-secondary);
+}
+
+/* Light mode todo items */
+html:not(.dark) .todo-item {
+  background: var(--primary-bg-light);
+  border-color: var(--secondary-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+html:not(.dark) .todo-item.done {
+  border-color: rgba(0, 170, 94, 0.35);
+  background: rgba(0, 170, 94, 0.06);
+}
+
+html:not(.dark) .todo-empty {
+  background: rgba(209, 218, 229, 0.3);
+  border-color: rgba(113, 128, 150, 0.3);
 }
 
 /* === INTEREST RATE PROBABILITY COMPONENT === */
@@ -1406,6 +1661,18 @@ form.add-todo input[name="task"] {
 /* Event item active state */
 .calendar-event-item:active {
   transform: translateX(2px) scale(0.99);
+}
+
+/* Light mode calendar event items */
+html:not(.dark) .calendar-event-item {
+  border-left: 4px solid var(--accent-primary);
+  background: linear-gradient(135deg, rgba(0, 136, 204, 0.05), rgba(0, 102, 170, 0.02));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+html:not(.dark) .calendar-event-item:hover {
+  background: linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 102, 170, 0.05));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), -4px 0 8px rgba(0, 136, 204, 0.15);
 }
 
 /* Responsive Design */
