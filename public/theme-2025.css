@@ -26,6 +26,25 @@
   --secondary-border: #D1DAE5;     /* Defined borders for depth */
   --secondary-border-light: #E0E7EF; /* Lighter borders */
 
+  /* === NOTION COMPATIBILITY VARIABLES (for Tailwind classes) === */
+  --bg: #FAFBFC;                   /* Main background */
+  --sidebar: #F5F7FA;              /* Sidebar background */
+  --hover: #E6EBF1;                /* Hover states */
+  --border: #D1DAE5;               /* Border color */
+  --text: #1A202C;                 /* Primary text */
+  --muted: #718096;                /* Muted text */
+  --block: #FFFFFF;                /* Block/card background */
+  --overlay: rgba(255, 255, 255, 0.95); /* Overlay with backdrop blur */
+
+  /* Notion accent colors */
+  --notion-blue: #0088CC;
+  --notion-red: #DC2626;
+  --notion-green: #00AA5E;
+  --notion-yellow: #D97706;
+  --notion-purple: #7C3AED;
+  --notion-teal: #14B8A6;
+  --notion-orange: #F97316;
+
   /* === ACCENT COLORS (10%) === */
   --accent-primary: #0088CC;       /* Rich blue - primary CTA & highlights */
   --accent-primary-hover: #006BA6; /* Blue hover state */
@@ -94,6 +113,25 @@
   --secondary-bg-active: #343A52;  /* Active state background */
   --secondary-border: #2C3449;     /* Subtle borders for depth */
   --secondary-border-light: #3D4563; /* Lighter borders */
+
+  /* === NOTION COMPATIBILITY VARIABLES (for Tailwind classes) === */
+  --bg: #0B0F19;                   /* Main background */
+  --sidebar: #13161F;              /* Sidebar background */
+  --hover: #2A2F42;                /* Hover states */
+  --border: rgba(255, 255, 255, 0.08); /* Border color */
+  --text: #F8FAFC;                 /* Primary text */
+  --muted: #64748B;                /* Muted text */
+  --block: #1F2535;                /* Block/card background */
+  --overlay: rgba(31, 37, 53, 0.7); /* Overlay with backdrop blur */
+
+  /* Notion accent colors (same for both modes) */
+  --notion-blue: #00D9FF;
+  --notion-red: #FF3366;
+  --notion-green: #00FF88;
+  --notion-yellow: #FFB800;
+  --notion-purple: #8B5CF6;
+  --notion-teal: #14B8A6;
+  --notion-orange: #F97316;
 
   /* === ACCENT COLORS (10%) === */
   --accent-primary: #00D9FF;       /* Neon cyan - primary CTA & highlights */
@@ -240,6 +278,16 @@ html:not(.dark) button:hover, html:not(.dark) .btn:hover {
   background: var(--secondary-bg-hover);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
+
+/* === TAILWIND UTILITY CLASSES (Notion compatibility) === */
+.bg-notion-bg { background-color: var(--bg); }
+.bg-notion-sidebar { background-color: var(--sidebar); }
+.bg-notion-hover { background-color: var(--hover); }
+.bg-notion-block { background-color: var(--block); }
+.bg-notion-overlay { background-color: var(--overlay); }
+.border-notion-border { border-color: var(--border); }
+.text-notion-text { color: var(--text); }
+.text-notion-muted { color: var(--muted); }
 
 /* === TYPOGRAPHY === */
 /* Importing premium font families optimized for trading dashboards */
