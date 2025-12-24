@@ -17,13 +17,8 @@ function WeekCalendar() {
   }
 
   function getWeekDays(startDate) {
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(startDate);
-      day.setDate(startDate.getDate() + i);
-      days.push(day);
-    }
-    return days;
+    // Return only today
+    return [new Date()];
   }
 
   async function loadEvents() {
@@ -129,28 +124,29 @@ function WeekCalendar() {
             </svg>
           </button>
         </div>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace' }}>
-          {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        <div style={{ fontSize: '1rem', color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+          {weekDays[0].toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </div>
       </div>
 
       {/* Calendar Grid */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {/* Day Headers */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', marginBottom: '0.5rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', flexShrink: 0 }}>
           {weekDays.map((day, index) => (
             <div
               key={index}
               style={{
                 textAlign: 'center',
-                paddingBottom: '0.5rem',
-                borderBottom: `2px solid ${isToday(day) ? '#14b8a6' : '#334155'}`
+                paddingBottom: '0.75rem',
+                borderBottom: `3px solid #14b8a6`,
+                minWidth: '200px'
               }}
             >
-              <div style={{ fontSize: '0.625rem', color: '#64748b', fontWeight: 500, marginBottom: '0.25rem' }}>
-                {dayNames[index]}
+              <div style={{ fontSize: '1rem', color: '#64748b', fontWeight: 600, marginBottom: '0.5rem' }}>
+                {day.toLocaleDateString('en-US', { weekday: 'long' })}
               </div>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: isToday(day) ? '#5eead4' : '#cbd5e1' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#5eead4' }}>
                 {day.getDate()}
               </div>
             </div>
@@ -158,7 +154,7 @@ function WeekCalendar() {
         </div>
 
         {/* Events Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.25rem', flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
+        <div style={{ display: 'flex', justifyContent: 'center', flex: 1, overflowY: 'auto' }} className="custom-scrollbar">
           {weekDays.map((day, index) => {
             const dayEvents = getEventsForDay(new Date(day));
             return (
@@ -167,16 +163,18 @@ function WeekCalendar() {
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '0.25rem',
-                  padding: '0.25rem',
-                  borderRadius: '0.25rem',
-                  background: isToday(day) ? 'rgba(20, 184, 166, 0.05)' : 'rgba(30, 41, 59, 0.3)',
-                  border: isToday(day) ? '1px solid rgba(20, 184, 166, 0.2)' : 'none'
+                  gap: '0.5rem',
+                  padding: '1rem',
+                  borderRadius: '0.5rem',
+                  background: 'rgba(20, 184, 166, 0.05)',
+                  border: '1px solid rgba(20, 184, 166, 0.2)',
+                  width: '100%',
+                  maxWidth: '800px'
                 }}
               >
                 {dayEvents.length === 0 ? (
-                  <div style={{ fontSize: '0.625rem', color: '#475569', fontStyle: 'italic', textAlign: 'center', padding: '0.5rem 0' }}>
-                    No events
+                  <div style={{ fontSize: '1rem', color: '#475569', fontStyle: 'italic', textAlign: 'center', padding: '2rem 0' }}>
+                    No events today
                   </div>
                 ) : (
                   dayEvents.map((event) => (
@@ -184,9 +182,9 @@ function WeekCalendar() {
                       key={event.id}
                       style={{
                         background: '#1e293b',
-                        border: '1px solid #334155',
-                        borderRadius: '0.25rem',
-                        padding: '0.375rem',
+                        border: '2px solid #334155',
+                        borderRadius: '0.5rem',
+                        padding: '1rem',
                         cursor: 'default',
                         transition: 'border-color 0.2s'
                       }}
@@ -195,41 +193,39 @@ function WeekCalendar() {
                       onMouseLeave={(e) => e.currentTarget.style.borderColor = '#334155'}
                     >
                       {/* Time */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#64748b' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: '#64748b' }}>
                           <circle cx="12" cy="12" r="10"></circle>
                           <polyline points="12 6 12 12 16 14"></polyline>
                         </svg>
-                        <span style={{ fontSize: '0.625rem', fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8' }}>
+                        <span style={{ fontSize: '0.875rem', fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', fontWeight: 600 }}>
                           {formatTime(event.timestamp)}
                         </span>
                       </div>
 
                       {/* Country Badge */}
-                      <div style={{ display: 'inline-block', padding: '0.125rem 0.375rem', background: 'rgba(20, 184, 166, 0.15)', border: '1px solid rgba(20, 184, 166, 0.3)', borderRadius: '0.25rem', marginBottom: '0.25rem' }}>
-                        <span style={{ fontSize: '0.563rem', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#5eead4' }}>
+                      <div style={{ display: 'inline-block', padding: '0.375rem 0.75rem', background: 'rgba(20, 184, 166, 0.15)', border: '1px solid rgba(20, 184, 166, 0.3)', borderRadius: '0.375rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#5eead4' }}>
                           {event.country}
                         </span>
                       </div>
 
                       {/* Event Title */}
                       <div style={{
-                        fontSize: '0.625rem',
+                        fontSize: '1rem',
                         color: '#e2e8f0',
-                        lineHeight: 1.3,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
+                        lineHeight: 1.5,
+                        marginBottom: '0.5rem',
+                        fontWeight: 500
                       }}>
                         {event.title}
                       </div>
 
                       {/* High Impact Badge */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
-                        <span style={{ width: '4px', height: '4px', background: '#ef4444', borderRadius: '50%' }}></span>
-                        <span style={{ fontSize: '0.5rem', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace', color: '#f87171', textTransform: 'uppercase' }}>
-                          High
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <span style={{ width: '8px', height: '8px', background: '#ef4444', borderRadius: '50%' }}></span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: '#f87171', textTransform: 'uppercase' }}>
+                          High Impact
                         </span>
                       </div>
                     </div>
@@ -242,9 +238,9 @@ function WeekCalendar() {
       </div>
 
       {/* Events Count Footer */}
-      <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #334155', flexShrink: 0 }}>
-        <div style={{ fontSize: '0.625rem', color: '#64748b', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace' }}>
-          {events.length} event{events.length !== 1 ? 's' : ''} this week
+      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #334155', flexShrink: 0 }}>
+        <div style={{ fontSize: '0.875rem', color: '#64748b', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+          {getEventsForDay(new Date()).length} event{getEventsForDay(new Date()).length !== 1 ? 's' : ''} today
         </div>
       </div>
     </div>

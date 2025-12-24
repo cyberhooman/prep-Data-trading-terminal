@@ -154,7 +154,16 @@ function MacroAIAnalysis({ newsItems }) {
         textAlign: 'center'
       }
     },
-      React.createElement('div', { style: { fontSize: '1.5rem', marginBottom: '0.5rem' }}, '🤖'),
+      React.createElement('svg', {
+        width: '32',
+        height: '32',
+        viewBox: '0 0 512 512',
+        style: { marginBottom: '0.5rem' }
+      },
+        React.createElement('path', { d: 'M256 52L468 444H44L256 52Z', fill: '#0B3C46' }),
+        React.createElement('path', { d: 'M256 132L394 384H186L256 246L326 384H118L256 132Z', fill: '#c7d2fe' }),
+        React.createElement('path', { d: 'M256 220L312 324H200L256 220Z', fill: '#0B3C46' })
+      ),
       React.createElement('div', { style: { fontSize: '0.9rem', color: 'rgba(226, 232, 240, 0.6)' }},
         'No economic data available for AI analysis'
       )
@@ -191,7 +200,16 @@ function MacroAIAnalysis({ newsItems }) {
         React.createElement('div', {
           style: { display: 'flex', alignItems: 'center', gap: '0.75rem' }
         },
-          React.createElement('span', { style: { fontSize: '1.5rem' }}, '🤖'),
+          React.createElement('svg', {
+            width: '24',
+            height: '24',
+            viewBox: '0 0 512 512',
+            style: { flexShrink: 0 }
+          },
+            React.createElement('path', { d: 'M256 52L468 444H44L256 52Z', fill: '#0B3C46' }),
+            React.createElement('path', { d: 'M256 132L394 384H186L256 246L326 384H118L256 132Z', fill: '#c7d2fe' }),
+            React.createElement('path', { d: 'M256 220L312 324H200L256 220Z', fill: '#0B3C46' })
+          ),
           React.createElement('h2', {
             style: {
               fontSize: '1.1rem',

@@ -499,7 +499,17 @@ function FinancialNewsFeed() {
                         gap: '0.5rem'
                       }
                     },
-                      '🤖 Analyze with AI'
+                      React.createElement('svg', {
+                        width: '16',
+                        height: '16',
+                        viewBox: '0 0 512 512',
+                        style: { flexShrink: 0 }
+                      },
+                        React.createElement('path', { d: 'M256 52L468 444H44L256 52Z', fill: '#0B3C46' }),
+                        React.createElement('path', { d: 'M256 132L394 384H186L256 246L326 384H118L256 132Z', fill: '#c7d2fe' }),
+                        React.createElement('path', { d: 'M256 220L312 324H200L256 220Z', fill: '#0B3C46' })
+                      ),
+                      ' Analyze with AI'
                     )
                 ),
 
@@ -527,9 +537,24 @@ function FinancialNewsFeed() {
                         color: 'rgba(226, 232, 240, 0.6)',
                         fontWeight: 600,
                         textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        letterSpacing: '0.5px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.375rem'
                       }
-                    }, '🤖 Policy Shift & Surprise Detection'),
+                    },
+                      React.createElement('svg', {
+                        width: '12',
+                        height: '12',
+                        viewBox: '0 0 512 512',
+                        style: { flexShrink: 0 }
+                      },
+                        React.createElement('path', { d: 'M256 52L468 444H44L256 52Z', fill: '#0B3C46' }),
+                        React.createElement('path', { d: 'M256 132L394 384H186L256 246L326 384H118L256 132Z', fill: 'rgba(226, 232, 240, 0.6)' }),
+                        React.createElement('path', { d: 'M256 220L312 324H200L256 220Z', fill: '#0B3C46' })
+                      ),
+                      'Policy Shift & Surprise Detection'
+                    ),
                     React.createElement('span', {
                       style: {
                         background: getVerdictColor(analyses[index].verdict),

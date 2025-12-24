@@ -183,7 +183,11 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
         border: '1px solid var(--secondary-border)',
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🤖</div>
+        <svg width="32" height="32" viewBox="0 0 512 512" style={{ marginBottom: '0.5rem' }}>
+          <path d="M256 52L468 444H44L256 52Z" fill="#0B3C46" />
+          <path d="M256 132L394 384H186L256 246L326 384H118L256 132Z" fill="#c7d2fe" />
+          <path d="M256 220L312 324H200L256 220Z" fill="#0B3C46" />
+        </svg>
         <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
           No economic data available for AI analysis
         </div>
@@ -213,7 +217,11 @@ export default function MacroAIAnalysis({ newsItems }: MacroAIAnalysisProps) {
           gap: '0.5rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
-            <span style={{ fontSize: '1.25rem', flexShrink: 0 }}>🤖</span>
+            <svg width="20" height="20" viewBox="0 0 512 512" style={{ flexShrink: 0 }}>
+              <path d="M256 52L468 444H44L256 52Z" fill="#0B3C46" />
+              <path d="M256 132L394 384H186L256 246L326 384H118L256 132Z" fill="#c7d2fe" />
+              <path d="M256 220L312 324H200L256 220Z" fill="#0B3C46" />
+            </svg>
             <h2 style={{
               fontSize: '0.95rem',
               fontWeight: '700',
