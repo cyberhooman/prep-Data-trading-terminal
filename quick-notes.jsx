@@ -62,7 +62,7 @@ function QuickNotes() {
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
-      <h3 className="text-lg font-bold text-slate-100 mb-3 shrink-0">
+      <h3 className="text-lg font-bold mb-3 shrink-0" style={{ color: 'var(--text)' }}>
         Quick Notes & Warnings
       </h3>
 
@@ -74,7 +74,7 @@ function QuickNotes() {
             className={`px-3 py-1 rounded-md text-sm font-medium transition ${
               noteType === 'note'
                 ? 'bg-indigo-500 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-700'
             }`}
           >
             Note
@@ -85,7 +85,7 @@ function QuickNotes() {
             className={`px-3 py-1 rounded-md text-sm font-medium transition ${
               noteType === 'warning'
                 ? 'bg-amber-500 text-white'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-gray-200 dark:bg-slate-800 text-gray-700 dark:text-slate-300 hover:bg-gray-300 dark:hover:bg-slate-700'
             }`}
           >
             Warning
@@ -98,7 +98,7 @@ function QuickNotes() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={noteType === 'warning' ? 'Enter trade warning...' : 'Enter quick note...'}
-            className="flex-1 px-3 py-2 border border-slate-600 bg-slate-800 rounded-md text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded-md text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
             type="submit"
@@ -115,7 +115,7 @@ function QuickNotes() {
 
       <div className="space-y-2 flex-1 overflow-y-auto min-h-0">
         {notes.length === 0 ? (
-          <div className="text-sm text-slate-400 italic py-4 text-center">
+          <div className="text-sm text-gray-500 dark:text-slate-400 italic py-4 text-center">
             No notes yet. Add your first trading note or warning above.
           </div>
         ) : (
@@ -124,28 +124,28 @@ function QuickNotes() {
               key={note.id}
               className={`flex items-start justify-between gap-3 p-3 rounded-lg border transition ${
                 note.type === 'warning'
-                  ? 'bg-amber-900/20 border-amber-700/50'
-                  : 'bg-slate-800/70 border-slate-700'
+                  ? 'bg-amber-100 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700/50'
+                  : 'bg-gray-100 dark:bg-slate-800/70 border-gray-200 dark:border-slate-700'
               }`}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   {note.type === 'warning' && (
-                    <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                   )}
                   <span className={`text-xs font-medium ${
-                    note.type === 'warning' ? 'text-amber-400' : 'text-slate-400'
+                    note.type === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-slate-400'
                   }`}>
                     {new Date(note.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                <p className="text-sm text-slate-100 break-words">{note.text}</p>
+                <p className="text-sm text-gray-900 dark:text-slate-100 break-words">{note.text}</p>
               </div>
               <button
                 onClick={() => deleteNote(note.id)}
-                className="flex-shrink-0 text-slate-400 hover:text-rose-400 transition"
+                className="flex-shrink-0 text-gray-400 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition"
                 title="Delete note"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

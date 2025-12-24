@@ -113,19 +113,19 @@ const CBSpeechAnalysis = () => {
   }, [speeches, filterBank, filterType]);
 
   return (
-    <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', background: 'rgba(15, 23, 42, 0.7)' }}>
+    <div style={{ padding: '1.25rem', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--block)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <h2 style={{ color: '#f1f5f9', margin: 0, fontSize: '1.2rem' }}>
+        <h2 style={{ color: 'var(--text)', margin: 0, fontSize: '1.2rem' }}>
           CB Speech Analysis
-          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', borderRadius: '9999px', marginLeft: '0.5rem', verticalAlign: 'middle' }}>FJ</span>
+          <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', borderRadius: '9999px', marginLeft: '0.5rem', verticalAlign: 'middle' }}>FJ</span>
         </h2>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.85rem' }}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--hover)', color: 'var(--text)', fontSize: '0.85rem' }}
           >
             {contentTypes.map(t => (
               <option key={t.code} value={t.code}>{t.name}</option>
@@ -135,7 +135,7 @@ const CBSpeechAnalysis = () => {
           <select
             value={filterBank}
             onChange={(e) => setFilterBank(e.target.value)}
-            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(148, 163, 184, 0.3)', background: 'rgba(30, 41, 59, 0.8)', color: '#f1f5f9', fontSize: '0.85rem' }}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--hover)', color: 'var(--text)', fontSize: '0.85rem' }}
           >
             {banks.map(b => (
               <option key={b.code} value={b.code}>{b.name}</option>
@@ -154,21 +154,21 @@ const CBSpeechAnalysis = () => {
 
       {/* Error */}
       {error && (
-        <div style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.15)', color: '#fca5a5', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+        <div style={{ padding: '0.6rem', borderRadius: '6px', background: 'rgba(239, 68, 68, 0.1)', color: '#dc2626', fontSize: '0.85rem', marginBottom: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
           {error}
         </div>
       )}
 
       {/* Loading */}
       {loading && speeches.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(226, 232, 240, 0.6)' }}>
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
           Fetching latest CB speeches...
         </div>
       )}
 
       {/* Speeches List */}
       {!loading && filteredSpeeches.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(226, 232, 240, 0.6)' }}>
+        <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
           No speeches found. Click Refresh.
         </div>
       )}
@@ -179,7 +179,7 @@ const CBSpeechAnalysis = () => {
           const isAnalyzing = analyzing === speech.id;
 
           return (
-            <div key={speech.id} style={{ padding: '0.85rem', borderRadius: '8px', background: 'rgba(30, 41, 59, 0.5)', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
+            <div key={speech.id} style={{ padding: '0.85rem', borderRadius: '8px', background: 'var(--hover)', border: '1px solid var(--border)' }}>
               {/* Speech Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
@@ -192,10 +192,10 @@ const CBSpeechAnalysis = () => {
                         PRESS CONF
                       </span>
                     )}
-                    <span style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.75rem' }}>{speech.date}</span>
-                    <span style={{ color: 'rgba(226, 232, 240, 0.6)', fontSize: '0.8rem' }}>{speech.speaker}</span>
+                    <span style={{ color: 'var(--muted)', fontSize: '0.75rem' }}>{speech.date}</span>
+                    <span style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{speech.speaker}</span>
                   </div>
-                  <div style={{ color: '#f1f5f9', fontSize: '0.9rem', lineHeight: 1.35 }}>
+                  <div style={{ color: 'var(--text)', fontSize: '0.9rem', lineHeight: 1.35 }}>
                     {speech.title}
                   </div>
                 </div>
@@ -234,7 +234,7 @@ const CBSpeechAnalysis = () => {
                       Analyze
                     </button>
                   )}
-                  <a href={speech.link} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(226, 232, 240, 0.5)', fontSize: '0.75rem', textDecoration: 'none' }}>
+                  <a href={speech.link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', fontSize: '0.75rem', textDecoration: 'none' }}>
                     Source
                   </a>
                 </div>
@@ -246,18 +246,18 @@ const CBSpeechAnalysis = () => {
                   style={{
                     marginTop: '0.85rem',
                     paddingTop: '0.85rem',
-                    borderTop: '1px solid rgba(148, 163, 184, 0.15)',
-                    color: 'rgba(226, 232, 240, 0.9)',
+                    borderTop: '1px solid var(--border)',
+                    color: 'var(--text)',
                     fontSize: '0.9rem',
                     lineHeight: 1.6
                   }}
                   className="markdown-content"
                   dangerouslySetInnerHTML={{
                     __html: analysis.markdown
-                      .replace(/^# (.*$)/gim, '<h1 style="font-size: 1.3rem; font-weight: 700; color: #f1f5f9; margin: 0.75rem 0 0.5rem 0;">$1</h1>')
-                      .replace(/^## (.*$)/gim, '<h2 style="font-size: 1.1rem; font-weight: 600; color: #e2e8f0; margin: 0.65rem 0 0.4rem 0;">$1</h2>')
-                      .replace(/^### (.*$)/gim, '<h3 style="font-size: 1rem; font-weight: 600; color: #cbd5e1; margin: 0.5rem 0 0.3rem 0;">$1</h3>')
-                      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #f1f5f9; font-weight: 600;">$1</strong>')
+                      .replace(/^# (.*$)/gim, '<h1 style="font-size: 1.3rem; font-weight: 700; color: var(--text); margin: 0.75rem 0 0.5rem 0;">$1</h1>')
+                      .replace(/^## (.*$)/gim, '<h2 style="font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 0.65rem 0 0.4rem 0;">$1</h2>')
+                      .replace(/^### (.*$)/gim, '<h3 style="font-size: 1rem; font-weight: 600; color: var(--muted); margin: 0.5rem 0 0.3rem 0;">$1</h3>')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: var(--text); font-weight: 600;">$1</strong>')
                       .replace(/^- (.*$)/gim, '<li style="margin-left: 1.5rem; margin-bottom: 0.3rem;">$1</li>')
                       .replace(/🟥 HAWKISH/g, '<span style="padding: 0.25rem 0.6rem; border-radius: 6px; background: rgba(239, 68, 68, 0.2); color: #ef4444; font-weight: 700; font-size: 0.9rem;">🟥 HAWKISH</span>')
                       .replace(/🟩 DOVISH/g, '<span style="padding: 0.25rem 0.6rem; border-radius: 6px; background: rgba(34, 197, 94, 0.2); color: #22c55e; font-weight: 700; font-size: 0.9rem;">🟩 DOVISH</span>')

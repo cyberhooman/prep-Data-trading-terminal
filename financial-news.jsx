@@ -168,11 +168,11 @@ function FinancialNewsFeed() {
   return React.createElement('div', {
     className: 'financial-news-feed',
     style: {
-      background: 'rgba(15, 23, 42, 0.7)',
+      background: 'var(--block)',
       borderRadius: '16px',
       padding: '1.5rem',
-      border: '1px solid rgba(148, 163, 184, 0.2)',
-      boxShadow: '0 6px 15px rgba(0, 0, 0, 0.2)',
+      border: '1px solid var(--border)',
+      boxShadow: '0 6px 15px rgba(0, 0, 0, 0.1)',
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
@@ -243,7 +243,7 @@ function FinancialNewsFeed() {
         lastUpdate && React.createElement('span', {
           style: {
             fontSize: '0.85rem',
-            color: 'rgba(226, 232, 240, 0.6)'
+            color: 'var(--muted)'
           }
         }, `Updated: ${lastUpdate}`)
       )
@@ -321,7 +321,7 @@ function FinancialNewsFeed() {
                     margin: 0,
                     fontSize: '1rem',
                     lineHeight: 1.4,
-                    color: '#fff',
+                    color: 'var(--text)',
                     flex: 1
                   }
                 }, item.headline),
@@ -364,29 +364,29 @@ function FinancialNewsFeed() {
                 item.economicData.actual && React.createElement('span', {
                   style: {
                     fontSize: '0.9rem',
-                    color: 'rgba(226, 232, 240, 0.7)'
+                    color: 'var(--muted)'
                   }
                 },
                   'Actual: ',
-                  React.createElement('strong', { style: { color: '#51c6e1', marginLeft: '0.25rem' }}, item.economicData.actual)
+                  React.createElement('strong', { style: { color: '#0891b2', marginLeft: '0.25rem' }}, item.economicData.actual)
                 ),
                 item.economicData.forecast && React.createElement('span', {
                   style: {
                     fontSize: '0.9rem',
-                    color: 'rgba(226, 232, 240, 0.7)'
+                    color: 'var(--muted)'
                   }
                 },
                   'Forecast: ',
-                  React.createElement('strong', { style: { color: '#fff', marginLeft: '0.25rem' }}, item.economicData.forecast)
+                  React.createElement('strong', { style: { color: 'var(--text)', marginLeft: '0.25rem' }}, item.economicData.forecast)
                 ),
                 item.economicData.previous && React.createElement('span', {
                   style: {
                     fontSize: '0.9rem',
-                    color: 'rgba(226, 232, 240, 0.7)'
+                    color: 'var(--muted)'
                   }
                 },
                   'Previous: ',
-                  React.createElement('strong', { style: { color: '#fff', marginLeft: '0.25rem' }}, item.economicData.previous)
+                  React.createElement('strong', { style: { color: 'var(--text)', marginLeft: '0.25rem' }}, item.economicData.previous)
                 )
               ),
 
@@ -402,7 +402,7 @@ function FinancialNewsFeed() {
                 item.timestamp && React.createElement('span', {
                   style: {
                     fontSize: '0.85rem',
-                    color: 'rgba(226, 232, 240, 0.5)'
+                    color: 'var(--muted)'
                   }
                 }, formatTimestamp(item.timestamp)),
                 item.firstSeenAt && React.createElement('span', {

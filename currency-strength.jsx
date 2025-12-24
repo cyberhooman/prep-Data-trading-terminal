@@ -55,15 +55,15 @@ function CurrencyStrength() {
       style: {
         padding: '2rem',
         textAlign: 'center',
-        background: 'rgba(15, 23, 42, 0.7)',
+        background: 'var(--block)',
         borderRadius: '16px',
-        border: '1px solid rgba(148, 163, 184, 0.2)'
+        border: '1px solid var(--border)'
       }
     },
       React.createElement('h2', {
         style: {
           marginBottom: '1rem',
-          color: '#e2e8f0',
+          color: 'var(--text)',
           fontSize: '1.5rem',
           fontWeight: 700
         }
@@ -71,7 +71,7 @@ function CurrencyStrength() {
       React.createElement('div', {
         className: 'loading-message',
         style: {
-          color: 'rgba(226, 232, 240, 0.6)'
+          color: 'var(--muted)'
         }
       }, 'Loading currency strength data...')
     );
@@ -80,11 +80,11 @@ function CurrencyStrength() {
   return React.createElement('div', {
     className: 'currency-strength-container',
     style: {
-      background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.9) 100%)',
+      background: 'var(--block)',
       borderRadius: '16px',
       padding: '2rem',
-      border: '1px solid rgba(148, 163, 184, 0.2)',
-      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+      border: '1px solid var(--border)',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
       maxWidth: '1400px',
       margin: '0 auto'
     }
@@ -98,7 +98,7 @@ function CurrencyStrength() {
         alignItems: 'center',
         marginBottom: '2rem',
         paddingBottom: '1rem',
-        borderBottom: '2px solid rgba(148, 163, 184, 0.15)',
+        borderBottom: '2px solid var(--border)',
         flexWrap: 'wrap',
         gap: '1rem'
       }
@@ -108,7 +108,7 @@ function CurrencyStrength() {
           margin: 0,
           fontSize: '1.75rem',
           fontWeight: 700,
-          color: '#e2e8f0',
+          color: 'var(--text)',
           display: 'flex',
           alignItems: 'center',
           gap: '0.5rem'
@@ -129,9 +129,9 @@ function CurrencyStrength() {
           onClick: fetchCurrencyStrength,
           disabled: loading,
           style: {
-            background: loading ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.25)',
-            border: '1px solid rgba(37, 99, 235, 0.5)',
-            color: loading ? 'rgba(199, 210, 254, 0.5)' : '#c7d2fe',
+            background: '#3b82f6',
+            border: 'none',
+            color: '#ffffff',
             padding: '0.6rem 1.2rem',
             borderRadius: '8px',
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -139,24 +139,12 @@ function CurrencyStrength() {
             fontSize: '0.9rem',
             transition: 'all 0.2s',
             opacity: loading ? 0.6 : 1
-          },
-          onMouseEnter: (e) => {
-            if (!loading) {
-              e.target.style.background = 'rgba(37, 99, 235, 0.35)';
-              e.target.style.transform = 'translateY(-1px)';
-            }
-          },
-          onMouseLeave: (e) => {
-            if (!loading) {
-              e.target.style.background = 'rgba(37, 99, 235, 0.25)';
-              e.target.style.transform = 'translateY(0)';
-            }
           }
         }, loading ? '⟳ Refreshing...' : '⟳ Refresh'),
         lastUpdate && React.createElement('span', {
           style: {
             fontSize: '0.85rem',
-            color: 'rgba(226, 232, 240, 0.5)',
+            color: 'var(--muted)',
             fontWeight: 500
           }
         }, `Updated: ${lastUpdate}`)
@@ -166,8 +154,8 @@ function CurrencyStrength() {
     // Error message
     error && React.createElement('div', {
       style: {
-        color: '#fca5a5',
-        background: 'rgba(239, 68, 68, 0.15)',
+        color: '#dc2626',
+        background: 'rgba(239, 68, 68, 0.1)',
         borderRadius: '10px',
         padding: '1rem',
         marginBottom: '1.5rem',
@@ -182,7 +170,7 @@ function CurrencyStrength() {
       className: 'strength-table-wrapper',
       style: {
         overflowX: 'auto',
-        background: 'rgba(0, 0, 0, 0.2)',
+        background: 'var(--hover)',
         borderRadius: '12px',
         padding: '0.5rem'
       }
@@ -192,7 +180,7 @@ function CurrencyStrength() {
             style: {
               textAlign: 'center',
               padding: '3rem',
-              color: 'rgba(226, 232, 240, 0.5)',
+              color: 'var(--muted)',
               fontSize: '1rem'
             }
           }, 'No currency strength data available')
@@ -208,7 +196,7 @@ function CurrencyStrength() {
             React.createElement('thead', null,
               React.createElement('tr', {
                 style: {
-                  background: 'rgba(148, 163, 184, 0.1)'
+                  background: 'var(--sidebar)'
                 }
               },
                 React.createElement('th', {
@@ -216,7 +204,7 @@ function CurrencyStrength() {
                     textAlign: 'left',
                     padding: '1rem 1.5rem',
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--muted)',
                     fontSize: '0.85rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -229,7 +217,7 @@ function CurrencyStrength() {
                     textAlign: 'left',
                     padding: '1rem 1.5rem',
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--muted)',
                     fontSize: '0.85rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
@@ -240,7 +228,7 @@ function CurrencyStrength() {
                     textAlign: 'right',
                     padding: '1rem 1.5rem',
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--muted)',
                     fontSize: '0.85rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
@@ -251,7 +239,7 @@ function CurrencyStrength() {
                     textAlign: 'right',
                     padding: '1rem 1.5rem',
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--muted)',
                     fontSize: '0.85rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
@@ -262,7 +250,7 @@ function CurrencyStrength() {
                     textAlign: 'center',
                     padding: '1rem 1.5rem',
                     fontWeight: 700,
-                    color: '#94a3b8',
+                    color: 'var(--muted)',
                     fontSize: '0.85rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -277,25 +265,18 @@ function CurrencyStrength() {
               strengthData.map((item, index) =>
                 React.createElement('tr', {
                   key: item.currency,
+                  className: 'currency-row',
                   style: {
-                    background: index % 2 === 0 ? 'rgba(15, 23, 42, 0.4)' : 'rgba(30, 41, 59, 0.4)',
+                    background: 'var(--block)',
                     transition: 'all 0.2s',
                     cursor: 'default'
-                  },
-                  onMouseEnter: (e) => {
-                    e.currentTarget.style.background = 'rgba(37, 99, 235, 0.1)';
-                    e.currentTarget.style.transform = 'translateX(4px)';
-                  },
-                  onMouseLeave: (e) => {
-                    e.currentTarget.style.background = index % 2 === 0 ? 'rgba(15, 23, 42, 0.4)' : 'rgba(30, 41, 59, 0.4)';
-                    e.currentTarget.style.transform = 'translateX(0)';
                   }
                 },
                   React.createElement('td', {
                     style: {
                       padding: '1.25rem 1.5rem',
                       fontWeight: 700,
-                      color: '#64748b',
+                      color: 'var(--muted)',
                       fontSize: '0.95rem',
                       borderTopLeftRadius: '8px',
                       borderBottomLeftRadius: '8px'
@@ -306,7 +287,7 @@ function CurrencyStrength() {
                       padding: '1.25rem 1.5rem',
                       fontWeight: 700,
                       fontSize: '1.2rem',
-                      color: '#f1f5f9',
+                      color: 'var(--text)',
                       letterSpacing: '0.02em'
                     }
                   }, item.currency),
@@ -365,12 +346,12 @@ function CurrencyStrength() {
       style: {
         marginTop: '2rem',
         padding: '1.25rem',
-        background: 'rgba(100, 116, 139, 0.15)',
+        background: 'var(--hover)',
         borderRadius: '10px',
         fontSize: '0.9rem',
-        color: 'rgba(226, 232, 240, 0.7)',
+        color: 'var(--muted)',
         lineHeight: 1.7,
-        border: '1px solid rgba(148, 163, 184, 0.1)'
+        border: '1px solid var(--border)'
       }
     },
       React.createElement('p', { style: { margin: 0 }},
