@@ -1993,9 +1993,9 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
       }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/notion-theme.css?v=${Date.now()}">
+    <link rel="stylesheet" href="/public/theme-2025.css?v=${Date.now()}">
   </head>
-  <body class="bg-notion-bg">
+  <body>
     <!-- Mobile Backdrop -->
     <div id="mobile-backdrop" class="mobile-backdrop" onclick="closeSidebar()"></div>
 
@@ -2104,9 +2104,13 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- Load default weekly calendar -->
+    <script type="text/babel" src="/weekly-calendar.jsx" id="calendar-script"></script>
+
     <script>
       // Full-page calendar view switching
       let currentFullPageView = 'week'; // Default to week view
+      let calendarScriptLoaded = true; // Track if initial script is loaded
 
       function switchFullPageCalendarView(view) {
         currentFullPageView = view;
@@ -2126,28 +2130,39 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           title.textContent = 'Monthly Calendar';
         }
 
-        // Clear and load the appropriate component
-        const container = document.getElementById('weekly-calendar-root');
-        container.innerHTML = '';
+        // Only reload if actually switching views
+        if ((view === 'week' && currentFullPageView !== 'week') || (view === 'month' && currentFullPageView !== 'month')) {
+          // Clear and load the appropriate component
+          const container = document.getElementById('weekly-calendar-root');
+          container.innerHTML = '';
 
-        // Load the script dynamically
-        const script = document.createElement('script');
-        script.type = 'text/babel';
-        script.src = view === 'week' ? '/weekly-calendar.jsx' : '/monthly-calendar.jsx';
-        document.body.appendChild(script);
+          // Remove old script
+          const oldScript = document.getElementById('calendar-script');
+          if (oldScript) {
+            oldScript.remove();
+          }
+
+          // Load the new script
+          const script = document.createElement('script');
+          script.type = 'text/babel';
+          script.src = view === 'week' ? '/weekly-calendar.jsx' : '/monthly-calendar.jsx';
+          script.id = 'calendar-script';
+          document.body.appendChild(script);
+        }
 
         // Save preference to localStorage
         localStorage.setItem('fullPageCalendarView', view);
       }
 
-      // Initialize with saved preference or default to week
+      // Initialize button states based on saved preference
       window.addEventListener('DOMContentLoaded', () => {
         const savedView = localStorage.getItem('fullPageCalendarView') || 'week';
+
+        // If user previously selected month view, switch to it
         if (savedView === 'month') {
-          switchFullPageCalendarView('month');
-        } else {
-          // Week view is already loading, just ensure button states are correct
-          switchFullPageCalendarView('week');
+          setTimeout(() => {
+            switchFullPageCalendarView('month');
+          }, 100);
         }
       });
 
