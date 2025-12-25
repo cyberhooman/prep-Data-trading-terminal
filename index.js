@@ -29,7 +29,7 @@ const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
 const cbSpeechScraper = require('./services/cbSpeechScraper');
 const emailService = require('./services/emailService');
-// Note: Trump schedule scraper removed to reduce GPU costs
+const trumpScheduleScraper = require('./services/trumpScheduleScraper');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -2825,32 +2825,46 @@ app.get('/api/ai/central-banks', (req, res) => {
  */
 app.get('/api/speeches', async (req, res) => {
   try {
-    const { bank, type } = req.query;
+    const { bank, type, includeTrump } = req.query;
     let content;
 
     if (bank) {
       // Fetch both speeches and press conferences for specific bank
-      const [speeches, pressConfs] = await Promise.all([
-        cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase(), financialJuiceScraper),
-        cbSpeechScraper.fetchPressConferencesFromBank(bank.toUpperCase(), financialJuiceScraper)
-      ]);
-      content = [...speeches, ...pressConfs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (bank.toUpperCase() === 'TRUMP') {
+        // Special handling for Trump-only requests
+        content = await cbSpeechScraper.fetchAllContent(financialJuiceScraper, trumpScheduleScraper);
+        content = content.filter(c => c.bankCode === 'TRUMP');
+      } else {
+        const [speeches, pressConfs] = await Promise.all([
+          cbSpeechScraper.fetchSpeechesFromBank(bank.toUpperCase(), financialJuiceScraper),
+          cbSpeechScraper.fetchPressConferencesFromBank(bank.toUpperCase(), financialJuiceScraper)
+        ]);
+        content = [...speeches, ...pressConfs].sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
     } else {
-      // Fetch all content (speeches + press conferences) from FJ
-      content = await cbSpeechScraper.fetchAllContent(financialJuiceScraper);
+      // Fetch all content (speeches + press conferences + Trump schedule) from FJ
+      content = await cbSpeechScraper.fetchAllContent(financialJuiceScraper, trumpScheduleScraper);
     }
 
     // Filter by type if specified
     if (type === 'speech') {
-      content = content.filter(c => c.type === 'speech');
+      content = content.filter(c => c.type === 'speech' || c.type === 'scheduled_speech');
     } else if (type === 'press_conference') {
       content = content.filter(c => c.type === 'press_conference');
+    } else if (type === 'trump') {
+      content = content.filter(c => c.bankCode === 'TRUMP');
+    }
+
+    // Optionally exclude Trump content (default: include)
+    if (includeTrump === 'false') {
+      content = content.filter(c => c.bankCode !== 'TRUMP');
     }
 
     res.json({
       success: true,
       count: content.length,
-      source: 'Market News',
+      source: 'Market News + White House',
+      sources: ['Market News', 'RollCall FactBase'],
       data: content
     });
   } catch (err) {

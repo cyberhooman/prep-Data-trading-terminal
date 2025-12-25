@@ -15,55 +15,62 @@ class CBSpeechScraper {
     this.cbContentHistory = new Map();
     this.historyFile = path.join(__dirname, '../data/cb-speech-history.json');
 
-    // Central bank info for detection
+    // Central bank info for detection - EXPANDED speaker lists
     this.centralBanks = {
       'FED': {
         name: 'Federal Reserve',
         currency: 'USD',
-        keywords: ['fed', 'fomc', 'federal reserve', 'powell', 'williams', 'waller', 'bowman', 'jefferson', 'cook', 'kugler', 'barr', 'miran'],
-        speakers: ['Powell', 'Williams', 'Waller', 'Bowman', 'Jefferson', 'Cook', 'Kugler', 'Barr', 'Miran']
+        keywords: ['fed', 'fomc', 'federal reserve', 'powell', 'williams', 'waller', 'bowman', 'jefferson', 'cook', 'kugler', 'barr', 'miran', 'goolsbee', 'harker', 'bostic', 'daly', 'kashkari', 'mester', 'collins', 'logan', 'barkin', 'hammack', 'schmid'],
+        speakers: ['Powell', 'Williams', 'Waller', 'Bowman', 'Jefferson', 'Cook', 'Kugler', 'Barr', 'Miran', 'Goolsbee', 'Harker', 'Bostic', 'Daly', 'Kashkari', 'Mester', 'Collins', 'Logan', 'Barkin', 'Hammack', 'Schmid']
       },
       'ECB': {
         name: 'European Central Bank',
         currency: 'EUR',
-        keywords: ['ecb', 'european central bank', 'lagarde', 'de guindos', 'lane', 'schnabel', 'elderson', 'cipollone'],
-        speakers: ['Lagarde', 'de Guindos', 'Lane', 'Schnabel', 'Elderson', 'Cipollone']
+        keywords: ['ecb', 'european central bank', 'lagarde', 'de guindos', 'lane', 'schnabel', 'elderson', 'cipollone', 'centeno', 'wunsch', 'kazaks', 'villeroy', 'nagel', 'holzmann', 'knot', 'simkus', 'muller', 'vujcic', 'rehn'],
+        speakers: ['Lagarde', 'de Guindos', 'Lane', 'Schnabel', 'Elderson', 'Cipollone', 'Centeno', 'Wunsch', 'Kazaks', 'Villeroy', 'Nagel', 'Holzmann', 'Knot', 'Simkus', 'Muller', 'Vujcic', 'Rehn']
       },
       'BOE': {
         name: 'Bank of England',
         currency: 'GBP',
-        keywords: ['boe', 'bank of england', 'bailey', 'broadbent', 'breeden', 'pill', 'greene', 'dhingra', 'mann', 'taylor', 'mpc'],
-        speakers: ['Bailey', 'Broadbent', 'Breeden', 'Pill', 'Greene', 'Dhingra', 'Mann', 'Taylor']
+        keywords: ['boe', 'bank of england', 'bailey', 'broadbent', 'breeden', 'pill', 'greene', 'dhingra', 'mann', 'taylor', 'mpc', 'ramsden', 'lombardelli'],
+        speakers: ['Bailey', 'Broadbent', 'Breeden', 'Pill', 'Greene', 'Dhingra', 'Mann', 'Taylor', 'Ramsden', 'Lombardelli']
       },
       'BOC': {
         name: 'Bank of Canada',
         currency: 'CAD',
-        keywords: ['boc', 'bank of canada', 'macklem', 'rogers', 'kozicki', 'gravelle'],
-        speakers: ['Macklem', 'Rogers', 'Kozicki', 'Gravelle']
+        keywords: ['boc', 'bank of canada', 'macklem', 'rogers', 'kozicki', 'gravelle', 'beaudry'],
+        speakers: ['Macklem', 'Rogers', 'Kozicki', 'Gravelle', 'Beaudry']
       },
       'RBA': {
         name: 'Reserve Bank of Australia',
         currency: 'AUD',
-        keywords: ['rba', 'reserve bank of australia', 'bullock', 'hauser', 'hunter', 'kent', 'jones'],
-        speakers: ['Bullock', 'Hauser', 'Hunter', 'Kent', 'Jones']
+        keywords: ['rba', 'reserve bank of australia', 'bullock', 'hauser', 'hunter', 'kent', 'jones', 'kohler'],
+        speakers: ['Bullock', 'Hauser', 'Hunter', 'Kent', 'Jones', 'Kohler']
       },
       'BOJ': {
         name: 'Bank of Japan',
         currency: 'JPY',
-        keywords: ['boj', 'bank of japan', 'ueda', 'uchida', 'adachi', 'nakamura'],
-        speakers: ['Ueda', 'Uchida', 'Adachi', 'Nakamura']
+        keywords: ['boj', 'bank of japan', 'ueda', 'uchida', 'adachi', 'nakamura', 'himino', 'tamura', 'nakagawa', 'noguchi', 'takata'],
+        speakers: ['Ueda', 'Uchida', 'Adachi', 'Nakamura', 'Himino', 'Tamura', 'Nakagawa', 'Noguchi', 'Takata']
       },
       'SNB': {
         name: 'Swiss National Bank',
         currency: 'CHF',
-        keywords: ['snb', 'swiss national bank', 'jordan', 'schlegel'],
-        speakers: ['Jordan', 'Schlegel']
+        keywords: ['snb', 'swiss national bank', 'jordan', 'schlegel', 'maechler', 'moser'],
+        speakers: ['Jordan', 'Schlegel', 'Maechler', 'Moser']
       },
       'RBNZ': {
         name: 'Reserve Bank of New Zealand',
         currency: 'NZD',
-        keywords: ['rbnz', 'reserve bank of new zealand', 'orr', 'hawkesby'],
-        speakers: ['Orr', 'Hawkesby']
+        keywords: ['rbnz', 'reserve bank of new zealand', 'orr', 'hawkesby', 'silk', 'conway'],
+        speakers: ['Orr', 'Hawkesby', 'Silk', 'Conway']
+      },
+      'TRUMP': {
+        name: 'White House / Trump',
+        currency: 'USD',
+        keywords: ['trump', 'white house', 'president trump', 'potus', 'bessent', 'treasury secretary', 'lutnick', 'tariff', 'tariffs'],
+        speakers: ['Trump', 'Bessent', 'Lutnick'],
+        isTrump: true
       }
     };
 
@@ -154,10 +161,21 @@ class CBSpeechScraper {
   }
 
   /**
-   * Determine if content is a speech or press conference
+   * Determine if content is a speech, press conference, or Trump statement
    */
-  detectContentType(text) {
+  detectContentType(text, bankCode = null) {
     const lower = text.toLowerCase();
+
+    // Trump content - distinguish between schedule items and statements
+    if (bankCode === 'TRUMP') {
+      if (/tariff|trade|policy|executive order|announce/i.test(lower)) {
+        return 'trump_policy';
+      }
+      if (/schedule|meeting|event|travel/i.test(lower)) {
+        return 'trump_schedule';
+      }
+      return 'trump_statement';
+    }
 
     // Press conference indicators
     if (/press conference|presser|q\s*&\s*a|rate decision|interest rate decision|policy decision|monetary policy decision/i.test(lower)) {
@@ -165,8 +183,13 @@ class CBSpeechScraper {
     }
 
     // Speech indicators
-    if (/speech|remarks|testimony|address|says|said|statement/i.test(lower)) {
+    if (/speech|remarks|testimony|address|says|said|statement|hearing|panel/i.test(lower)) {
       return 'speech';
+    }
+
+    // Scheduled future speeches
+    if (/scheduled|upcoming|to speak|will speak|due to/i.test(lower)) {
+      return 'scheduled_speech';
     }
 
     return 'speech'; // Default to speech
@@ -174,37 +197,54 @@ class CBSpeechScraper {
 
   /**
    * Check if news item is CB-related speech or press conference
+   * RELAXED filtering to capture more speeches
    */
   isCBContent(newsItem) {
     const text = `${newsItem.headline} ${newsItem.rawText || ''}`;
     const lower = text.toLowerCase();
 
-    // Must be related to a central bank
+    // Must be related to a central bank or Trump/White House
     const cbMatch = this.detectCentralBank(text);
     if (!cbMatch) return false;
 
-    // EXCLUDE promotional/livestream links and empty announcements
-    const isPromotionalLink = /\b(watch live|live stream|live now|upcoming|scheduled|livestream)\b/i.test(lower);
-    const isJustTimingInfo = /^\s*\w+['']s\s+\w+\s+speaks?\s*\([0-9:]+\s*(et|gmt|utc|est|edt)\s*\)/i.test(text.trim());
-    const isTooShort = text.trim().length < 30; // Very short items are usually just announcements
+    // EXCLUDE only actual promotional links (but ALLOW "upcoming" and "scheduled" - those ARE announcements)
+    const isPromotionalLink = /\b(watch live|live stream|live now|livestream|click here|subscribe)\b/i.test(lower);
+    const isJustTimingInfo = /^\s*\w+['']s\s+\w+\s+speaks?\s*\([0-9:]+\s*(et|gmt|utc|est|edt)\s*\)\s*$/i.test(text.trim());
+    const isTooShort = text.trim().length < 20; // Reduced threshold - some headlines are brief but valid
 
     if (isPromotionalLink || isJustTimingInfo || isTooShort) {
       return false;
     }
 
-    // Must explicitly be a speech, press conference, or direct statement from CB official
-    // More strict filter: requires explicit speech/presser keywords or direct quotes from named officials
-    const hasExplicitSpeechKeyword = /\b(speech|remarks|testimony|press conference|presser|minutes|statement)\b/i.test(lower);
-    const hasDirectQuote = /\b(says|said|comments?|interview)\b/i.test(lower) && this.detectSpeaker(text, cbMatch.bank);
-    // Also detect "Speaker: statement" format (e.g., "Fed's Miran: I haven't decided...")
-    const hasColonQuote = /\b(fed's|ecb's|boe's|boc's|rba's|boj's|snb's|rbnz's)\s+\w+:/i.test(lower) ||
+    // TRUMP/WHITE HOUSE special handling - tariff and trade announcements ARE market-moving
+    if (cbMatch.bank.isTrump) {
+      const hasTrumpContent = /\b(tariff|trade|economy|fed|rate|dollar|china|canada|mexico|eu|import|export|deal|policy|executive order|announce|said|says|will|plan|threat|warn)\b/i.test(lower);
+      return hasTrumpContent;
+    }
+
+    // EXPANDED speech detection patterns
+    const hasExplicitSpeechKeyword = /\b(speech|remarks|testimony|press conference|presser|minutes|statement|address|hearing|panel|forum|summit|conference|q&a|qa)\b/i.test(lower);
+
+    // Direct quotes from officials (says, said, comments, warns, expects, believes, sees)
+    const hasDirectQuote = /\b(says|said|comments?|interview|warns?|expects?|believes?|sees?|told|tells|thinks?|noting|noted|argues?|explained?|announced?|confirmed?)\b/i.test(lower) && this.detectSpeaker(text, cbMatch.bank) !== 'Central Bank Official';
+
+    // "Speaker: statement" format (e.g., "Fed's Miran: I haven't decided...")
+    const hasColonQuote = /\b(fed's|ecb's|boe's|boc's|rba's|boj's|snb's|rbnz's|trump's?|bessent's?)\s+\w+:/i.test(lower) ||
                           (cbMatch.bank.speakers.some(speaker => new RegExp(`\\b${speaker}\\s*:`, 'i').test(text)));
-    const hasRateDecision = /\b(rate decision|policy (decision|meeting)|monetary policy|interest rate)\b/i.test(lower);
 
-    // Exclude general news about banks/countries even if they mention CB
-    const isGeneralNews = /\b(stock|futures|equity|oil|import|export|trade|gdp|employment|cpi|inflation data|retail sales)\b/i.test(lower) && !hasExplicitSpeechKeyword;
+    // Rate decisions and policy content
+    const hasRateDecision = /\b(rate decision|policy (decision|meeting)|monetary policy|interest rate|hawkish|dovish|hike|cut|pause|hold)\b/i.test(lower);
 
-    return (hasExplicitSpeechKeyword || hasDirectQuote || hasColonQuote || hasRateDecision) && !isGeneralNews;
+    // Upcoming/scheduled speeches - these ARE valid announcements
+    const hasScheduledSpeech = /\b(scheduled|upcoming|to speak|will speak|set to|slated|due to speak|expected to)\b/i.test(lower);
+
+    // Official mentions "to discuss", "on economy", "at event"
+    const hasOfficialActivity = /\b(to discuss|on (the )?economy|at (the )?(event|conference|summit|meeting|hearing)|before (congress|parliament|committee)|discussing)\b/i.test(lower);
+
+    // Exclude general economic data news UNLESS it has explicit speech content
+    const isGeneralDataNews = /\b(beats|misses|comes in at|actual|forecast|previous|released|data shows|report shows)\b/i.test(lower) && !hasExplicitSpeechKeyword && !hasDirectQuote;
+
+    return (hasExplicitSpeechKeyword || hasDirectQuote || hasColonQuote || hasRateDecision || hasScheduledSpeech || hasOfficialActivity) && !isGeneralDataNews;
   }
 
   /**
@@ -229,7 +269,7 @@ class CBSpeechScraper {
 
       const { bankCode, bank } = cbMatch;
       const speaker = this.detectSpeaker(text, bank);
-      const contentType = this.detectContentType(text);
+      const contentType = this.detectContentType(text, bankCode);
 
       // Parse date from FJ timestamp
       let date = new Date().toISOString().split('T')[0];
@@ -353,9 +393,9 @@ class CBSpeechScraper {
   }
 
   /**
-   * Fetch all CB content (speeches + press conferences)
+   * Fetch all CB content (speeches + press conferences + Trump)
    */
-  async fetchAllContent(fjScraper) {
+  async fetchAllContent(fjScraper, trumpScraper = null) {
     // Clean old data first
     this.cleanOldData();
 
@@ -363,12 +403,48 @@ class CBSpeechScraper {
       // Get news from Financial Juice
       const fjNews = await fjScraper.getLatestNews();
 
-      // Extract CB-related content
+      // Extract CB-related content (including Trump mentions from news)
       const cbItems = this.extractCBContentFromFJ(fjNews);
 
       console.log(`Extracted ${cbItems.length} CB items from ${fjNews.length} news items`);
 
-      // Add to history
+      // Also fetch Trump schedule if scraper provided
+      if (trumpScraper) {
+        try {
+          const trumpSchedule = await trumpScraper.getSchedule();
+          console.log(`Fetched ${trumpSchedule.length} Trump schedule items`);
+
+          // Convert Trump schedule items to CB content format
+          for (const item of trumpSchedule) {
+            const cbItem = {
+              id: item.id,
+              title: item.title,
+              link: null,
+              description: item.location || '',
+              date: item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0],
+              timestamp: item.date,
+              speaker: 'Trump',
+              centralBank: 'White House / Trump',
+              bankCode: 'TRUMP',
+              currency: 'USD',
+              type: 'trump_schedule',
+              source: 'RollCall FactBase',
+              isCritical: true, // Trump schedule is always market-relevant
+              isActive: true,
+              firstSeenAt: item.firstSeenAt || Date.now()
+            };
+
+            // Add to history if not exists
+            if (!this.cbContentHistory.has(cbItem.id)) {
+              this.cbContentHistory.set(cbItem.id, cbItem);
+            }
+          }
+        } catch (trumpErr) {
+          console.error('Error fetching Trump schedule:', trumpErr.message);
+        }
+      }
+
+      // Add FJ items to history
       for (const item of cbItems) {
         if (!this.cbContentHistory.has(item.id)) {
           this.cbContentHistory.set(item.id, item);
