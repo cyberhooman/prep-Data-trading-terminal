@@ -486,12 +486,19 @@ class FinancialJuiceScraper {
           headline = headline.replace(/^\d{1,2}:\d{2}\s+\w+\s+\d{1,2}\s*/, '').trim();
 
           // Extract economic data if present
-          const actualMatch = text.match(/Actual[:\s]+([0-9.%\-+]+)/i);
-          const forecastMatch = text.match(/Forecast[:\s]+([0-9.%\-+]+)/i);
-          const previousMatch = text.match(/Previous[:\s]+([0-9.%\-+]+)/i);
+          // Enhanced regex to accurately capture K/M/B/% suffixes with proper sign handling
+          // Pattern matches: optional sign (+ or -), digits with decimals, and optional suffix (K/M/B or %)
+          // Uses alternation to handle: 1) K/M/B not followed by letters, 2) % suffix, 3) plain numbers
+          const actualMatch = text.match(/\bActual[:\s]+([\-+]?[0-9.]+[KMBkmb](?![a-zA-Z])|[\-+]?[0-9.]+%|[\-+]?[0-9.]+)/i);
+          const forecastMatch = text.match(/\bForecast[:\s]+([\-+]?[0-9.]+[KMBkmb](?![a-zA-Z])|[\-+]?[0-9.]+%|[\-+]?[0-9.]+)/i);
+          const previousMatch = text.match(/\bPrevious[:\s]+([\-+]?[0-9.]+[KMBkmb](?![a-zA-Z])|[\-+]?[0-9.]+%|[\-+]?[0-9.]+)/i);
 
           const economicData = {};
-          if (actualMatch) economicData.actual = actualMatch[1];
+          if (actualMatch) {
+            economicData.actual = actualMatch[1];
+            // Log for debugging data accuracy issues
+            console.log(`DEBUG: Extracted Actual="${actualMatch[1]}" from headline: "${headline.substring(0, 60)}..."`);
+          }
           if (forecastMatch) economicData.forecast = forecastMatch[1];
           if (previousMatch) economicData.previous = previousMatch[1];
 
