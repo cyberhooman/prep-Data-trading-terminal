@@ -231,7 +231,7 @@ function FinancialNewsFeed() {
           style: {
             background: 'rgba(37, 99, 235, 0.22)',
             border: '1px solid rgba(37, 99, 235, 0.4)',
-            color: '#c7d2fe',
+            color: '#6366f1',
             padding: '0.5rem 1rem',
             borderRadius: '8px',
             cursor: loading ? 'not-allowed' : 'pointer',
@@ -487,7 +487,7 @@ function FinancialNewsFeed() {
                       style: {
                         background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.22) 100%)',
                         border: '1px solid rgba(168, 85, 247, 0.4)',
-                        color: '#c7d2fe',
+                        color: '#6366f1',
                         padding: '0.5rem 1rem',
                         borderRadius: '8px',
                         cursor: 'pointer',
@@ -709,7 +709,7 @@ function FinancialNewsFeed() {
                         marginTop: '0.5rem',
                         background: 'rgba(168, 85, 247, 0.15)',
                         border: '1px solid rgba(168, 85, 247, 0.3)',
-                        color: '#c7d2fe',
+                        color: '#6366f1',
                         padding: '0.3rem 0.6rem',
                         borderRadius: '4px',
                         cursor: 'pointer',

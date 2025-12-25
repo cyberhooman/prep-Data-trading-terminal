@@ -3540,7 +3540,7 @@ app.get('/', async (req, res) => {
         .auth-button.login {
           background: rgba(79, 70, 229, 0.22);
           border: 1px solid rgba(99, 102, 241, 0.5);
-          color: #c7d2fe;
+          color: #6366f1;
         }
         .auth-button.login:hover {
           background: rgba(99, 102, 241, 0.32);
@@ -3575,7 +3575,7 @@ app.get('/', async (req, res) => {
         }
         .nav-link:hover {
           background: rgba(99, 102, 241, 0.15);
-          color: #c7d2fe;
+          color: #818cf8;
           border-color: rgba(99, 102, 241, 0.3);
         }
         .nav-link.active {
