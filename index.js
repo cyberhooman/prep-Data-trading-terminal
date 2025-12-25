@@ -1872,6 +1872,13 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
             </div>
           </div>
           <div class="top-bar-right">
+            <!-- Mobile-only Theme Toggle -->
+            <button class="top-bar-btn block sm:hidden" onclick="toggleTheme()" title="Toggle theme">
+              <svg id="mobile-theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
+            <!-- Mobile-only Logout -->
+            ${user ? '<a href="/auth/logout" class="top-bar-btn block sm:hidden" title="Logout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>' : ''}
+
             <div class="status-badge hidden sm:flex">
               <span class="status-dot"></span>
               <span>DATA LIVE</span>
@@ -2066,6 +2073,13 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
             </div>
           </div>
           <div class="top-bar-right">
+            <!-- Mobile-only Theme Toggle -->
+            <button class="top-bar-btn block sm:hidden" onclick="toggleTheme()" title="Toggle theme">
+              <svg id="mobile-theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
+            <!-- Mobile-only Logout -->
+            ${user ? '<a href="/auth/logout" class="top-bar-btn block sm:hidden" title="Logout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>' : ''}
+
             <!-- View Toggle Buttons -->
             <div class="hidden sm:flex items-center gap-2 mr-4">
               <button id="fullpage-view-week" onclick="switchFullPageCalendarView('week')" class="px-3 py-1.5 text-xs font-semibold rounded transition-all bg-teal-500/20 text-teal-400 border border-teal-500/30">
@@ -2345,6 +2359,13 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
             </div>
           </div>
           <div class="top-bar-right">
+            <!-- Mobile-only Theme Toggle -->
+            <button class="top-bar-btn block sm:hidden" onclick="toggleTheme()" title="Toggle theme">
+              <svg id="mobile-theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
+            <!-- Mobile-only Logout -->
+            ${user ? '<a href="/auth/logout" class="top-bar-btn block sm:hidden" title="Logout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>' : ''}
+
             <div class="status-badge hidden sm:flex">
               <span class="status-dot"></span>
               <span>DATA LIVE</span>
@@ -3645,6 +3666,13 @@ app.get('/', async (req, res) => {
               </div>
             </div>
             <div class="top-bar-right">
+              <!-- Mobile-only Theme Toggle -->
+              <button class="top-bar-btn block sm:hidden" onclick="toggleTheme()" title="Toggle theme">
+                <svg id="mobile-theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              </button>
+              <!-- Mobile-only Logout -->
+              ${userProfile ? '<a href="/auth/logout" class="top-bar-btn block sm:hidden" title="Logout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>' : ''}
+
               <div class="status-badge hidden sm:flex">
                 <span class="status-dot"></span>
                 <span>DATA LIVE</span>
@@ -3776,22 +3804,48 @@ app.get('/', async (req, res) => {
         function toggleTheme() {
           const html = document.documentElement;
           const themeText = document.getElementById('theme-text');
+          const themeIcon = document.getElementById('theme-icon');
+          const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+
           if (html.classList.contains('dark')) {
             html.classList.remove('dark');
             if (themeText) themeText.textContent = 'Dark Mode';
             localStorage.setItem('theme', 'light');
+            // Update icons to show sun (light mode active)
+            const sunIcon = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            if (themeIcon) themeIcon.innerHTML = sunIcon;
+            if (mobileThemeIcon) mobileThemeIcon.innerHTML = sunIcon;
           } else {
             html.classList.add('dark');
             if (themeText) themeText.textContent = 'Light Mode';
             localStorage.setItem('theme', 'dark');
+            // Update icons to show moon (dark mode active)
+            const moonIcon = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+            if (themeIcon) themeIcon.innerHTML = moonIcon;
+            if (mobileThemeIcon) mobileThemeIcon.innerHTML = moonIcon;
           }
         }
 
         // Apply saved theme on load
         (function() {
           const savedTheme = localStorage.getItem('theme');
+          const themeText = document.getElementById('theme-text');
+          const themeIcon = document.getElementById('theme-icon');
+          const mobileThemeIcon = document.getElementById('mobile-theme-icon');
+
           if (savedTheme === 'light') {
             document.documentElement.classList.remove('dark');
+            if (themeText) themeText.textContent = 'Dark Mode';
+            // Set sun icon for light mode
+            const sunIcon = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+            if (themeIcon) themeIcon.innerHTML = sunIcon;
+            if (mobileThemeIcon) mobileThemeIcon.innerHTML = sunIcon;
+          } else {
+            if (themeText) themeText.textContent = 'Light Mode';
+            // Set moon icon for dark mode
+            const moonIcon = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+            if (themeIcon) themeIcon.innerHTML = moonIcon;
+            if (mobileThemeIcon) mobileThemeIcon.innerHTML = moonIcon;
           }
         })();
 
