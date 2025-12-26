@@ -5190,6 +5190,11 @@ app.get('/', async (req, res) => {
               <svg id="theme-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
               <span id="theme-text">Light Mode</span>
             </div>
+            <div id="squawk-btn" class="sidebar-footer-item" onclick="toggleSquawk()" style="cursor:pointer;">
+              <svg id="squawk-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              <span id="squawk-text">Squawk</span>
+              <span id="squawk-indicator" style="display:none;margin-left:auto;width:6px;height:6px;background:#ef4444;border-radius:50%;box-shadow:0 0 8px rgba(239,68,68,0.8);animation:pulse 1.5s infinite;"></span>
+            </div>
             ${userProfile ? '<a href="/auth/logout" class="sidebar-footer-item logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></a>' : ''}
           </div>
         </aside>
@@ -5316,7 +5321,7 @@ app.get('/', async (req, res) => {
                 </div>
 
                 <!-- Scratchpad Block -->
-                <div class="h-64 lg:h-32 lg:flex-[3] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
+                <div class="h-64 lg:h-48 lg:flex-[4] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
                   <div class="flex items-center gap-2 mb-2 shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-yellow-500"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/></svg>
                     <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Scratchpad</h3>
@@ -5324,20 +5329,6 @@ app.get('/', async (req, res) => {
                   </div>
 
                   <div id="notes-root" class="flex-1 flex flex-col min-h-0"></div>
-                </div>
-
-                <!-- Live Squawk Block -->
-                <div class="h-48 lg:h-40 lg:flex-[3] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300 relative overflow-hidden">
-                  <div class="absolute -top-10 -right-10 w-24 h-24 bg-red-500/10 blur-[40px] rounded-full pointer-events-none"></div>
-                  <div class="flex items-center gap-2 mb-2 shrink-0 relative z-10">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-400"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                    <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Live Squawk</h3>
-                    <div class="flex items-center gap-1.5 ml-auto">
-                      <span class="text-[9px] font-mono text-red-400 opacity-80">LIVE</span>
-                      <span class="w-1.5 h-1.5 bg-red-400 rounded-full shadow-[0_0_8px_rgba(248,113,113,0.8)] animate-pulse"></span>
-                    </div>
-                  </div>
-                  <div id="financialjuice-voice-widget-container" class="flex-1 min-h-0 relative z-10 overflow-hidden rounded-lg"></div>
                 </div>
               </div>
             </div>
@@ -5968,27 +5959,67 @@ app.get('/', async (req, res) => {
         // MacroAI component removed - AI analysis now integrated into Critical Market News
       </script>
 
+      <!-- Hidden Squawk Container -->
+      <div id="squawk-popup" style="display:none;position:fixed;bottom:60px;left:16px;width:280px;height:200px;background:var(--notion-overlay,#1e1e1e);border:1px solid var(--notion-border,#333);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:9999;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:between;padding:8px 12px;border-bottom:1px solid var(--notion-border,#333);background:rgba(0,0,0,0.2);">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            <span style="font-size:12px;font-weight:600;color:#fff;">Live Squawk</span>
+            <span style="width:6px;height:6px;background:#ef4444;border-radius:50%;box-shadow:0 0 8px rgba(239,68,68,0.8);animation:pulse 1.5s infinite;"></span>
+          </div>
+          <button onclick="toggleSquawk()" style="background:none;border:none;color:#888;cursor:pointer;padding:4px;margin-left:auto;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div id="financialjuice-voice-widget-container" style="height:calc(100% - 40px);"></div>
+      </div>
+
       <script>
-        // FinancialJuice Live Squawk Widget
-        (function() {
-          var jo = document.createElement("script");
-          jo.type = "text/javascript";
-          jo.id = "FJ-Widgets";
-          var r = Math.floor(Math.random() * (9999 - 0 + 1) + 0);
-          jo.src = "https://feed.financialjuice.com/widgets/widgets.js?r=" + r;
-          jo.onload = function() {
-            var options = {};
-            options.container = "financialjuice-voice-widget-container";
-            options.mode = "standard";
-            options.width = "100%";
-            options.height = "100%";
-            options.backColor = "transparent";
-            options.fontColor = "";
-            options.widgetType = "Voice";
-            new window.FJWidgets.createWidget(options);
-          };
-          document.getElementsByTagName("head")[0].appendChild(jo);
-        })();
+        // Squawk Toggle
+        var squawkActive = false;
+        var squawkLoaded = false;
+
+        function toggleSquawk() {
+          squawkActive = !squawkActive;
+          var popup = document.getElementById('squawk-popup');
+          var indicator = document.getElementById('squawk-indicator');
+          var text = document.getElementById('squawk-text');
+          var icon = document.getElementById('squawk-icon');
+
+          if (squawkActive) {
+            popup.style.display = 'block';
+            if (indicator) indicator.style.display = 'block';
+            if (text) text.style.color = '#ef4444';
+            if (icon) icon.style.stroke = '#ef4444';
+
+            // Load widget only once
+            if (!squawkLoaded) {
+              squawkLoaded = true;
+              var jo = document.createElement("script");
+              jo.type = "text/javascript";
+              jo.id = "FJ-Widgets";
+              var r = Math.floor(Math.random() * 10000);
+              jo.src = "https://feed.financialjuice.com/widgets/widgets.js?r=" + r;
+              jo.onload = function() {
+                var options = {};
+                options.container = "financialjuice-voice-widget-container";
+                options.mode = "standard";
+                options.width = "100%";
+                options.height = "100%";
+                options.backColor = "transparent";
+                options.fontColor = "";
+                options.widgetType = "Voice";
+                new window.FJWidgets.createWidget(options);
+              };
+              document.getElementsByTagName("head")[0].appendChild(jo);
+            }
+          } else {
+            popup.style.display = 'none';
+            if (indicator) indicator.style.display = 'none';
+            if (text) text.style.color = '';
+            if (icon) icon.style.stroke = '';
+          }
+        }
       </script>
 
       <script>
