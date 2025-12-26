@@ -3931,7 +3931,7 @@ app.get('/critical-news', ensureAuthenticated, async (req, res) => {
 
 // Squawk popup window - standalone page
 app.get('/squawk', (req, res) => {
-  const html = \`<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
@@ -4016,7 +4016,7 @@ app.get('/squawk', (req, res) => {
     })();
   </script>
 </body>
-</html>\`;
+</html>`;
   res.send(html);
 });
 
