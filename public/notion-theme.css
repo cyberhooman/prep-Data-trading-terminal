@@ -1407,6 +1407,158 @@ html, body {
   }
 }
 
+/* ============================================
+   iPAD & TABLET SPECIFIC FIXES (notion-theme)
+   ============================================ */
+
+/* iPad Landscape (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Sidebar is hidden, adjust main content */
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* Dashboard content padding for tablet */
+  .dashboard-content {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  /* Dashboard grid - 2 column layout for tablet */
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  /* Block sizing for tablet */
+  .countdown-block,
+  .events-block,
+  .prep-block,
+  .notes-block {
+    grid-column: span 1;
+  }
+
+  .news-block {
+    grid-column: span 2;
+  }
+
+  /* Top bar adjustments */
+  .top-bar {
+    padding: 0 1rem;
+    height: 52px;
+  }
+
+  .top-bar-right {
+    gap: 0.5rem;
+  }
+
+  /* Block content adjustments */
+  .block-content {
+    padding: 0.875rem;
+  }
+
+  .block-header {
+    padding: 0.875rem 1rem;
+  }
+
+  /* Events block height fix */
+  .events-block .block-content {
+    max-height: 280px;
+  }
+
+  /* Notes list height fix */
+  .notes-list {
+    max-height: 180px;
+  }
+
+  /* Countdown styling for tablet */
+  .countdown-time {
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+
+  /* Improve touch targets */
+  .sidebar-nav-item,
+  .sidebar-footer-item {
+    padding: 0.625rem 0.875rem;
+    min-height: 44px;
+  }
+
+  /* Event item touch improvements */
+  .event-item {
+    padding: 0.875rem;
+  }
+
+  /* Note item touch improvements */
+  .note-item {
+    padding: 0.625rem;
+  }
+}
+
+/* iPad Portrait (600px - 768px) */
+@media (min-width: 600px) and (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+  }
+
+  .countdown-block,
+  .events-block {
+    grid-column: span 1;
+  }
+
+  .prep-block,
+  .notes-block,
+  .news-block {
+    grid-column: span 2;
+  }
+
+  .dashboard-content {
+    padding: 0.875rem;
+  }
+
+  /* Reduce block padding on smaller tablets */
+  .block-content {
+    padding: 0.75rem;
+  }
+
+  .countdown-time {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+  }
+}
+
+/* General tablet fixes */
+@media (max-width: 1024px) {
+  /* Prevent iOS zoom on input focus */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Ensure proper scrolling on iOS */
+  .dashboard-content,
+  .events-block .block-content,
+  .news-block .block-content,
+  .notes-list {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fix horizontal overflow */
+  .app-container {
+    overflow-x: hidden;
+  }
+
+  /* Better status badge on tablet */
+  .status-badge {
+    padding: 0.375rem 0.625rem;
+    font-size: 11px;
+  }
+
+  /* Make breadcrumb more compact on tablet */
+  .top-bar-breadcrumb {
+    font-size: 0.8rem;
+  }
+}
+
 /* ===== RESPONSIVE GRID ADJUSTMENTS ===== */
 @media (max-width: 1280px) {
   .countdown-block,

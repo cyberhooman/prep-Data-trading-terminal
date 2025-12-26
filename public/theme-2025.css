@@ -311,6 +311,9 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* iPad/iOS fixes */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -1844,6 +1847,208 @@ html:not(.dark) .calendar-event-item:hover {
   /* Better button sizing */
   button {
     min-height: 40px;
+  }
+}
+
+/* ============================================
+   iPAD SPECIFIC FIXES (768px - 1024px)
+   ============================================ */
+
+/* iPad Landscape and Large Tablets (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Fix body padding for tablet */
+  body {
+    padding: 1rem;
+  }
+
+  /* Fix header for iPad */
+  .main-header {
+    margin: -1rem -1rem 1.5rem;
+    padding: 0 1rem;
+  }
+
+  .header-content {
+    padding: 1rem 0;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .header-brand {
+    gap: 0.75rem;
+  }
+
+  .logo-box {
+    width: 44px;
+    height: 44px;
+  }
+
+  .logo-letter {
+    font-size: 1.5rem;
+  }
+
+  .brand-name {
+    font-size: 1.35rem;
+  }
+
+  /* Fix user section for iPad */
+  .header-user {
+    gap: 0.75rem;
+  }
+
+  .user-profile {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
+  }
+
+  .user-email {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* Fix bento container for iPad - 2 columns instead of stacking */
+  .bento-container {
+    grid-template-areas:
+      "countdown events"
+      "todo notes";
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    min-height: auto;
+  }
+
+  .bento-box {
+    padding: 1.25rem;
+    border-radius: 16px;
+  }
+
+  /* Fix weekly calendar for iPad - show 4 columns */
+  .weekly-calendar {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+
+  .calendar-day {
+    min-height: 280px;
+    max-height: 450px;
+    padding: 0.875rem;
+  }
+
+  .calendar-event-item {
+    padding: 0.625rem;
+    font-size: 0.85rem;
+  }
+
+  /* Fix countdown display for iPad */
+  .next-countdown {
+    font-size: clamp(1.75rem, 5vw, 3rem);
+    padding: 0.875rem 1.25rem;
+  }
+
+  /* Improve touch targets */
+  button, .btn {
+    min-height: 42px;
+    padding: 0.5rem 0.875rem;
+  }
+
+  /* Fix news feed height */
+  #financial-news-root {
+    max-height: 500px;
+  }
+
+  /* Fix dashboard content spacing */
+  main {
+    max-width: 100%;
+    padding: 0 0.5rem;
+  }
+
+  section {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Fix bento grid */
+  .bento-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+}
+
+/* iPad Portrait (768px) specific fixes */
+@media (max-width: 768px) and (min-width: 600px) {
+  /* Better 2-column layout for iPad portrait */
+  .bento-container {
+    grid-template-areas:
+      "countdown events"
+      "todo todo"
+      "notes notes";
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* Calendar shows 3 columns on iPad portrait */
+  .weekly-calendar {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.625rem;
+  }
+
+  .calendar-day {
+    min-height: 260px;
+    padding: 0.75rem;
+  }
+}
+
+/* Fix for all tablets - ensure proper scrolling */
+@media (max-width: 1024px) {
+  /* Prevent horizontal overflow */
+  body {
+    overflow-x: hidden;
+  }
+
+  /* Fix main content area */
+  main {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Ensure proper touch scrolling */
+  .events-scroll,
+  .calendar-day,
+  #financial-news-root {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Fix header on tablets when sidebar is collapsed */
+  .header-content {
+    justify-content: space-between;
+  }
+
+  /* Ensure buttons are touch-friendly on tablets */
+  .top-bar-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Fix news items for touch */
+  .news-actions {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Better form elements on tablet */
+  input, textarea, select {
+    font-size: 16px; /* Prevents iOS zoom on focus */
   }
 }
 

@@ -23,7 +23,28 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 const compression = require('compression');
 const session = require('express-session');
-const { passport, ensureAuthenticated, findUserByEmail, createUser, createPasswordResetToken, validateResetToken, resetPassword } = require('./auth');
+const {
+  passport,
+  ensureAuthenticated,
+  ensureTrialValid,
+  attachTrialStatus,
+  ensureAdmin,
+  isAdmin,
+  findUserByEmail,
+  createUser,
+  getTrialStatus,
+  migrateExistingUsers,
+  updateSubscription,
+  activateSubscription,
+  cancelSubscription,
+  getAllUsers,
+  createPasswordResetToken,
+  validateResetToken,
+  resetPassword,
+  TRIAL_DAYS,
+  SUBSCRIPTION_PLANS,
+  ADMIN_EMAILS
+} = require('./auth');
 const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
@@ -540,6 +561,9 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Attach trial status to all authenticated requests (for UI display)
+app.use(attachTrialStatus);
+
 // Authentication Routes
 app.get('/login', (req, res) => {
   if (req.isAuthenticated()) {
@@ -552,7 +576,7 @@ app.get('/login', (req, res) => {
   <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
       <title>Login - Alphalabs Trading</title>
       <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
       <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1221,7 +1245,7 @@ app.get('/signup', (req, res) => {
   <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
       <title>Sign Up - Alphalabs Trading</title>
       <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
       <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1583,6 +1607,905 @@ app.get('/signup', (req, res) => {
   res.send(html);
 });
 
+// Upgrade Page (Trial Expired)
+app.get('/upgrade', (req, res) => {
+  const user = req.user;
+  const userEmail = user ? user.email : '';
+  const userName = user ? (user.displayName || user.email.split('@')[0]) : '';
+
+  const html = `<!DOCTYPE html>
+  <html lang="en" class="dark">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+      <title>Upgrade Your Plan - Alphalabs Trading</title>
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --primary: #6366f1;
+          --primary-light: #818cf8;
+          --success: #10b981;
+          --warning: #f59e0b;
+          --dark-bg: #0a0a0f;
+          --card-bg: rgba(17, 17, 27, 0.95);
+          --border: rgba(99, 102, 241, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'DM Sans', 'Inter', sans-serif;
+          min-height: 100vh;
+          background: var(--dark-bg);
+          background-image:
+            radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+            radial-gradient(ellipse at bottom, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+          color: #fff;
+          overflow-x: hidden;
+        }
+
+        .container {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+
+        .upgrade-card {
+          max-width: 600px;
+          width: 100%;
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 24px;
+          padding: 3rem;
+          text-align: center;
+          box-shadow:
+            0 0 60px rgba(99, 102, 241, 0.1),
+            0 25px 50px rgba(0, 0, 0, 0.3);
+          animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-icon {
+          width: 80px;
+          height: 80px;
+          margin: 0 auto 1.5rem;
+          background: linear-gradient(135deg, var(--primary), var(--primary-light));
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 2.5rem;
+          box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+        }
+
+        .expired-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 100px;
+          color: #f87171;
+          font-size: 0.85rem;
+          font-weight: 600;
+          margin-bottom: 1.5rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+          font-weight: 700;
+          margin-bottom: 0.75rem;
+          background: linear-gradient(135deg, #fff, rgba(255,255,255,0.7));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 1.1rem;
+          margin-bottom: 2rem;
+          line-height: 1.6;
+        }
+
+        .user-info {
+          background: rgba(99, 102, 241, 0.1);
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          border-radius: 12px;
+          padding: 1rem;
+          margin-bottom: 2rem;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .features-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 2rem;
+          text-align: left;
+        }
+
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          background: rgba(255, 255, 255, 0.03);
+          border-radius: 10px;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .feature-icon {
+          color: var(--success);
+          font-size: 1.1rem;
+        }
+
+        .pricing-section {
+          background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(16, 185, 129, 0.1));
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          border-radius: 16px;
+          padding: 1.5rem;
+          margin-bottom: 2rem;
+        }
+
+        .price {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: #fff;
+        }
+
+        .price-period {
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.5);
+          font-weight: 400;
+        }
+
+        .price-subtitle {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.9rem;
+          margin-top: 0.5rem;
+        }
+
+        .cta-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.75rem;
+          width: 100%;
+          padding: 1rem 2rem;
+          background: linear-gradient(135deg, var(--primary), var(--primary-light));
+          color: #fff;
+          border: none;
+          border-radius: 12px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+          margin-bottom: 1rem;
+          box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .cta-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 30px rgba(99, 102, 241, 0.5);
+        }
+
+        .secondary-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1.5rem;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-decoration: none;
+        }
+
+        .secondary-button:hover {
+          background: rgba(255, 255, 255, 0.05);
+          color: #fff;
+        }
+
+        .footer-note {
+          margin-top: 2rem;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        @media (max-width: 600px) {
+          .upgrade-card {
+            padding: 2rem;
+          }
+
+          .features-grid {
+            grid-template-columns: 1fr;
+          }
+
+          h1 {
+            font-size: 1.5rem;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="upgrade-card">
+          <div class="logo-icon">A</div>
+
+          <div class="expired-badge">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Trial Expired
+          </div>
+
+          <h1>Upgrade to Continue</h1>
+          <p class="subtitle">Your 7-day free trial has ended. Upgrade now to keep accessing all premium trading features.</p>
+
+          ${userName ? '<div class="user-info">Logged in as <strong>' + userName + '</strong> (' + userEmail + ')</div>' : ''}
+
+          <div class="features-grid">
+            <div class="feature-item">
+              <span class="feature-icon">&#10003;</span>
+              Real-time Market News
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">&#10003;</span>
+              AI Market Analysis
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">&#10003;</span>
+              Economic Calendar
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">&#10003;</span>
+              Currency Strength
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">&#10003;</span>
+              CB Speech Analysis
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">&#10003;</span>
+              Trading Journal
+            </div>
+          </div>
+
+          <div class="pricing-section">
+            <div class="price">$29<span class="price-period">/month</span></div>
+            <div class="price-subtitle">Full access to all premium features</div>
+          </div>
+
+          <a href="mailto:aaidilfadly12@gmail.com?subject=Alphalabs%20Pro%20Upgrade%20Request&body=Hi%2C%0A%0AI%20would%20like%20to%20upgrade%20my%20Alphalabs%20account%20to%20Pro.%0A%0AEmail%3A%20${encodeURIComponent(userEmail)}%0AName%3A%20${encodeURIComponent(userName)}%0A%0AThank%20you!" class="cta-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            Contact to Upgrade
+          </a>
+
+          <a href="/logout" class="secondary-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign Out
+          </a>
+
+          <p class="footer-note">Questions? Contact us at aaidilfadly12@gmail.com</p>
+        </div>
+      </div>
+    </body>
+  </html>`;
+
+  res.send(html);
+});
+
+// ============================================
+// ADMIN PANEL - Subscription Management
+// ============================================
+
+// Admin API: Get all users
+app.get('/api/admin/users', ensureAdmin, async (req, res) => {
+  try {
+    const users = await getAllUsers();
+    res.json({ success: true, users });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// Admin API: Activate subscription
+app.post('/api/admin/subscription/activate', ensureAdmin, async (req, res) => {
+  try {
+    const { email, planType } = req.body;
+
+    if (!email || !planType) {
+      return res.status(400).json({ error: 'Email and planType are required' });
+    }
+
+    const result = await activateSubscription(email, planType);
+
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    res.json({ success: true, message: `Activated ${planType} subscription for ${email}` });
+  } catch (err) {
+    console.error('Error activating subscription:', err);
+    res.status(500).json({ error: 'Failed to activate subscription' });
+  }
+});
+
+// Admin API: Cancel subscription
+app.post('/api/admin/subscription/cancel', ensureAdmin, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const result = await cancelSubscription(email);
+
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    res.json({ success: true, message: `Cancelled subscription for ${email}` });
+  } catch (err) {
+    console.error('Error cancelling subscription:', err);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
+  }
+});
+
+// Admin Dashboard Page
+app.get('/admin', ensureAdmin, async (req, res) => {
+  const html = `<!DOCTYPE html>
+  <html lang="en" class="dark">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+      <title>Admin - Subscription Management</title>
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --primary: #6366f1;
+          --primary-light: #818cf8;
+          --success: #10b981;
+          --warning: #f59e0b;
+          --danger: #ef4444;
+          --dark-bg: #0a0a0f;
+          --card-bg: rgba(17, 17, 27, 0.95);
+          --border: rgba(99, 102, 241, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'DM Sans', 'Inter', sans-serif;
+          min-height: 100vh;
+          background: var(--dark-bg);
+          background-image:
+            radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1) 0%, transparent 50%);
+          color: #fff;
+          padding: 2rem;
+        }
+
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+
+        h1 {
+          font-size: 1.75rem;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .admin-badge {
+          background: linear-gradient(135deg, var(--primary), var(--primary-light));
+          padding: 0.25rem 0.75rem;
+          border-radius: 100px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .back-link {
+          color: rgba(255, 255, 255, 0.6);
+          text-decoration: none;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          transition: color 0.2s;
+        }
+
+        .back-link:hover { color: #fff; }
+
+        .search-box {
+          margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+          width: 100%;
+          max-width: 400px;
+          padding: 0.75rem 1rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          color: #fff;
+          font-size: 0.95rem;
+          outline: none;
+          transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+          border-color: var(--primary);
+        }
+
+        .search-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .users-table {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          overflow: hidden;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        th, td {
+          padding: 1rem;
+          text-align: left;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        th {
+          background: rgba(99, 102, 241, 0.1);
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        tr:hover td {
+          background: rgba(255, 255, 255, 0.02);
+        }
+
+        .user-email {
+          font-weight: 500;
+        }
+
+        .badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.25rem 0.625rem;
+          border-radius: 100px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .badge-trial {
+          background: rgba(99, 102, 241, 0.15);
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          color: #818cf8;
+        }
+
+        .badge-active {
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          color: #34d399;
+        }
+
+        .badge-expired {
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #f87171;
+        }
+
+        .badge-plan {
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          color: #fbbf24;
+        }
+
+        .actions {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+
+        .btn {
+          padding: 0.5rem 0.875rem;
+          border: none;
+          border-radius: 6px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .btn-1m {
+          background: rgba(99, 102, 241, 0.2);
+          color: #818cf8;
+          border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-3m {
+          background: rgba(16, 185, 129, 0.2);
+          color: #34d399;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-1y {
+          background: rgba(245, 158, 11, 0.2);
+          color: #fbbf24;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-cancel {
+          background: rgba(239, 68, 68, 0.2);
+          color: #f87171;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.1);
+        }
+
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .toast {
+          position: fixed;
+          bottom: 2rem;
+          right: 2rem;
+          padding: 1rem 1.5rem;
+          border-radius: 12px;
+          font-weight: 500;
+          animation: slideIn 0.3s ease;
+          z-index: 1000;
+          display: none;
+        }
+
+        .toast.success {
+          background: rgba(16, 185, 129, 0.9);
+          color: #fff;
+        }
+
+        .toast.error {
+          background: rgba(239, 68, 68, 0.9);
+          color: #fff;
+        }
+
+        .toast.show { display: block; }
+
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+
+        .stats {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .stat-card {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 1.25rem;
+        }
+
+        .stat-value {
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--primary-light);
+        }
+
+        .stat-label {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.6);
+          margin-top: 0.25rem;
+        }
+
+        .days-remaining {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.85rem;
+        }
+
+        .loading {
+          text-align: center;
+          padding: 3rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 768px) {
+          body { padding: 1rem; }
+
+          .header { flex-direction: column; align-items: flex-start; }
+
+          table { font-size: 0.85rem; }
+
+          th, td { padding: 0.75rem 0.5rem; }
+
+          .actions { flex-direction: column; }
+
+          .btn { width: 100%; text-align: center; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>
+            <span class="admin-badge">ADMIN</span>
+            Subscription Management
+          </h1>
+          <a href="/" class="back-link">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Dashboard
+          </a>
+        </div>
+
+        <div class="stats" id="stats">
+          <div class="stat-card">
+            <div class="stat-value" id="total-users">-</div>
+            <div class="stat-label">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="active-subs">-</div>
+            <div class="stat-label">Active Subscriptions</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="trial-users">-</div>
+            <div class="stat-label">In Trial</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="expired-users">-</div>
+            <div class="stat-label">Expired</div>
+          </div>
+        </div>
+
+        <div class="search-box">
+          <input type="text" class="search-input" id="search" placeholder="Search by email or name..." />
+        </div>
+
+        <div class="users-table">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Status</th>
+                <th>Plan</th>
+                <th>Days Left</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-list">
+              <tr><td colspan="5" class="loading">Loading users...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+
+      <script>
+        let allUsers = [];
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+          const toast = document.getElementById('toast');
+          toast.textContent = message;
+          toast.className = 'toast ' + type + ' show';
+          setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+          if (!dateStr) return '-';
+          return new Date(dateStr).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric'
+          });
+        }
+
+        // Get status badge
+        function getStatusBadge(user) {
+          const status = user.trialStatus;
+          if (status.isPaid && status.isValid) {
+            return '<span class="badge badge-active">Active</span>';
+          } else if (status.isTrial && status.isValid) {
+            return '<span class="badge badge-trial">Trial</span>';
+          } else {
+            return '<span class="badge badge-expired">Expired</span>';
+          }
+        }
+
+        // Get plan badge
+        function getPlanBadge(user) {
+          if (!user.subscriptionPlan) return '-';
+          const plans = { '1_month': '1 Month', '3_months': '3 Months', '1_year': '1 Year' };
+          return '<span class="badge badge-plan">' + (plans[user.subscriptionPlan] || user.subscriptionPlan) + '</span>';
+        }
+
+        // Render users table
+        function renderUsers(users) {
+          const tbody = document.getElementById('users-list');
+
+          if (users.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="loading">No users found</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = users.map(user => {
+            const status = user.trialStatus;
+            const daysLeft = status.daysRemaining !== null ? status.daysRemaining + ' days' : '-';
+
+            return \`
+              <tr data-email="\${user.email}">
+                <td>
+                  <div class="user-email">\${user.displayName || user.email.split('@')[0]}</div>
+                  <div class="days-remaining">\${user.email}</div>
+                </td>
+                <td>\${getStatusBadge(user)}</td>
+                <td>\${getPlanBadge(user)}</td>
+                <td class="days-remaining">\${daysLeft}</td>
+                <td class="actions">
+                  <button class="btn btn-1m" onclick="activatePlan('\${user.email}', '1_month')">1 Month</button>
+                  <button class="btn btn-3m" onclick="activatePlan('\${user.email}', '3_months')">3 Months</button>
+                  <button class="btn btn-1y" onclick="activatePlan('\${user.email}', '1_year')">1 Year</button>
+                  <button class="btn btn-cancel" onclick="cancelPlan('\${user.email}')">Cancel</button>
+                </td>
+              </tr>
+            \`;
+          }).join('');
+        }
+
+        // Update stats
+        function updateStats(users) {
+          document.getElementById('total-users').textContent = users.length;
+          document.getElementById('active-subs').textContent = users.filter(u => u.trialStatus.isPaid && u.trialStatus.isValid).length;
+          document.getElementById('trial-users').textContent = users.filter(u => u.trialStatus.isTrial && u.trialStatus.isValid).length;
+          document.getElementById('expired-users').textContent = users.filter(u => u.trialStatus.isExpired).length;
+        }
+
+        // Load users
+        async function loadUsers() {
+          try {
+            const response = await fetch('/api/admin/users');
+            const data = await response.json();
+
+            if (data.success) {
+              allUsers = data.users;
+              renderUsers(allUsers);
+              updateStats(allUsers);
+            }
+          } catch (err) {
+            console.error('Failed to load users:', err);
+            showToast('Failed to load users', 'error');
+          }
+        }
+
+        // Activate subscription
+        async function activatePlan(email, planType) {
+          if (!confirm('Activate ' + planType.replace('_', ' ') + ' subscription for ' + email + '?')) return;
+
+          try {
+            const response = await fetch('/api/admin/subscription/activate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, planType })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              showToast(data.message, 'success');
+              loadUsers();
+            } else {
+              showToast(data.error || 'Failed to activate', 'error');
+            }
+          } catch (err) {
+            showToast('Failed to activate subscription', 'error');
+          }
+        }
+
+        // Cancel subscription
+        async function cancelPlan(email) {
+          if (!confirm('Cancel subscription for ' + email + '?')) return;
+
+          try {
+            const response = await fetch('/api/admin/subscription/cancel', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              showToast(data.message, 'success');
+              loadUsers();
+            } else {
+              showToast(data.error || 'Failed to cancel', 'error');
+            }
+          } catch (err) {
+            showToast('Failed to cancel subscription', 'error');
+          }
+        }
+
+        // Search functionality
+        document.getElementById('search').addEventListener('input', (e) => {
+          const query = e.target.value.toLowerCase();
+          const filtered = allUsers.filter(u =>
+            u.email.toLowerCase().includes(query) ||
+            (u.displayName && u.displayName.toLowerCase().includes(query))
+          );
+          renderUsers(filtered);
+        });
+
+        // Initial load
+        loadUsers();
+      </script>
+    </body>
+  </html>`;
+
+  res.send(html);
+});
+
 // Forgot Password Page
 app.get('/forgot-password', (req, res) => {
   const errorMsg = req.query.error || '';
@@ -1592,7 +2515,7 @@ app.get('/forgot-password', (req, res) => {
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <title>Forgot Password - Alphalabs Trading</title>
   <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
   <style>
@@ -1682,7 +2605,7 @@ app.get('/reset-password', (req, res) => {
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
   <title>Reset Password - Alphalabs Trading</title>
   <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
   <style>
@@ -1764,7 +2687,7 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <title>CB Speeches & Analysis - Alphalabs</title>
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1965,7 +2888,7 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <title>Weekly Calendar - Alphalabs Data Trading</title>
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -2251,7 +3174,7 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
     <title>Currency Strength - Alphalabs</title>
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -2966,8 +3889,12 @@ app.post('/api/speeches/search', async (req, res) => {
 
 // Protect all routes except login, auth, static files, and API routes
 app.use((req, res, next) => {
-  // Allow access to login, auth, static files, and API endpoints
+  // Allow access to login, signup, auth, static files, API endpoints, and upgrade page
   if (req.path === '/login' ||
+      req.path === '/signup' ||
+      req.path === '/upgrade' ||
+      req.path === '/forgot-password' ||
+      req.path === '/reset-password' ||
       req.path.startsWith('/auth/') ||
       req.path.startsWith('/public/') ||
       req.path.startsWith('/api/')) {
@@ -2977,6 +3904,16 @@ app.use((req, res, next) => {
   // Check if user is authenticated
   if (!req.isAuthenticated()) {
     return res.redirect('/login');
+  }
+
+  // Check if trial is valid (for authenticated users)
+  const trialStatus = getTrialStatus(req.user);
+  req.trialStatus = trialStatus;
+  res.locals.trialStatus = trialStatus;
+
+  if (!trialStatus.isValid) {
+    // Trial expired - redirect to upgrade page
+    return res.redirect('/upgrade');
   }
 
   next();
@@ -3409,7 +4346,7 @@ app.get('/', async (req, res) => {
   const userPrimaryEmail =
     userProfile && Array.isArray(userProfile.emails) && userProfile.emails.length > 0
       ? userProfile.emails[0]?.value || ''
-      : '';
+      : (userProfile?.email || '');
   const userAvatar =
     userProfile && Array.isArray(userProfile.photos) && userProfile.photos.length > 0
       ? userProfile.photos[0]?.value || ''
@@ -3418,9 +4355,24 @@ app.get('/', async (req, res) => {
     ? userProfile.displayName || userPrimaryEmail || 'Trader'
     : '';
 
+  // Get trial status for display
+  const trialStatus = req.trialStatus || (userProfile ? getTrialStatus(userProfile) : null);
+  const trialBadgeHtml = trialStatus && trialStatus.isTrial && trialStatus.daysRemaining !== null
+    ? `<div class="trial-badge ${trialStatus.daysRemaining <= 2 ? 'warning' : ''}" title="${trialStatus.daysRemaining} days remaining in your free trial">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        ${trialStatus.daysRemaining} day${trialStatus.daysRemaining !== 1 ? 's' : ''} left
+       </div>`
+    : (trialStatus && trialStatus.subscriptionStatus === 'active'
+        ? '<div class="trial-badge pro" title="Pro subscription active"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Pro</div>'
+        : '');
+
   const authControlsHtml = userProfile
     ? `
           <div class="auth-controls">
+            ${trialBadgeHtml}
             ${userAvatar ? `<img src="${escapeHtml(userAvatar)}" alt="User avatar" class="auth-avatar" />` : ''}
             <div class="auth-user">
               <strong>${escapeHtml(userDisplayName)}</strong>
@@ -3439,7 +4391,7 @@ app.get('/', async (req, res) => {
   <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
       <title>Alphalabs Data Trading | Live Currency Strength & Economic Events</title>
       <meta name="description" content="Real-time currency strength tracking and high-impact forex economic event countdowns. Track USD, EUR, GBP, JPY and other major currencies with live data updates.">
       <meta name="keywords" content="currency strength, forex trading, economic calendar, forex events, trading dashboard, currency pairs, forex analysis">
@@ -3540,6 +4492,50 @@ app.get('/', async (req, res) => {
           display: block;
           font-size: 0.75rem;
           color: rgba(226, 232, 240, 0.6);
+        }
+        /* Trial badge styles */
+        .trial-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.35rem 0.75rem;
+          background: rgba(99, 102, 241, 0.15);
+          border: 1px solid rgba(99, 102, 241, 0.3);
+          border-radius: 100px;
+          color: #818cf8;
+          font-size: 0.75rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .trial-badge.warning {
+          background: rgba(245, 158, 11, 0.15);
+          border-color: rgba(245, 158, 11, 0.4);
+          color: #fbbf24;
+          animation: pulse 2s infinite;
+        }
+        .trial-badge.pro {
+          background: rgba(16, 185, 129, 0.15);
+          border-color: rgba(16, 185, 129, 0.3);
+          color: #34d399;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
+        }
+        @media (max-width: 768px) {
+          .trial-badge {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+          }
+        }
+        @media (max-width: 480px) {
+          .trial-badge {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.65rem;
+          }
+          .trial-badge svg {
+            display: none;
+          }
         }
         .auth-button {
           display: inline-flex;
@@ -4357,9 +5353,26 @@ app.get('/', async (req, res) => {
               const data = await response.json();
 
               if (data.success) {
-                const criticalNews = data.data.filter(item => item.isCritical);
-                setNews(criticalNews);
-                criticalNewsData = criticalNews; // Share data globally
+                // Filter to show critical news, items with economic data, sentiment, or tags
+                const criticalNews = data.data.filter(item =>
+                  item.isCritical ||
+                  item.sentiment ||
+                  item.economicData ||
+                  item.isActive ||
+                  (item.tags && item.tags.length > 0)
+                );
+
+                // Sort by importance: critical first, then economic data, then by timestamp
+                criticalNews.sort((a, b) => {
+                  if (a.isCritical && !b.isCritical) return -1;
+                  if (!a.isCritical && b.isCritical) return 1;
+                  if (a.economicData && !b.economicData) return -1;
+                  if (!a.economicData && b.economicData) return 1;
+                  return (b.firstSeenAt || 0) - (a.firstSeenAt || 0);
+                });
+
+                setNews(criticalNews.slice(0, 50));
+                criticalNewsData = criticalNews.slice(0, 50); // Share data globally
                 setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
 
                 if (criticalNews.length === 0 && data.source === 'failed') {
@@ -4448,7 +5461,7 @@ app.get('/next', async (req, res) => {
     <html lang="en" class="dark">
       <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
         <title>No Upcoming Event</title>
         <style>
           body {
@@ -4490,7 +5503,7 @@ app.get('/next', async (req, res) => {
   <html lang="en" class="dark">
     <head>
       <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
       <title>${escapeHtml(nextEvent.title)} â€“ Alphalabs Data Trading</title>
       <style>
         * { box-sizing: border-box; }
@@ -4685,9 +5698,20 @@ app.get('/next', async (req, res) => {
   res.send(html);
   });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Alphalabs data trading server running on http://0.0.0.0:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Migrate existing users to trial system
+  try {
+    const migrated = await migrateExistingUsers();
+    if (migrated > 0) {
+      console.log(`Trial system: Migrated ${migrated} existing user(s)`);
+    }
+    console.log(`Trial system: ${TRIAL_DAYS}-day free trial active`);
+  } catch (err) {
+    console.error('Failed to migrate users to trial system:', err);
+  }
 
   // Periodic backup of todos every 30 seconds to prevent data loss
   setInterval(() => {

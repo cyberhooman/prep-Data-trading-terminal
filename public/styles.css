@@ -93,6 +93,58 @@ tbody tr:hover {
   .bento-grid { grid-template-columns: 1fr; }
 }
 
+/* iPad Landscape (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  body {
+    padding: 1rem;
+  }
+
+  .bento-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  section {
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .next-countdown {
+    font-size: clamp(2rem, 5vw, 3rem);
+  }
+}
+
+/* iPad Portrait (600px - 768px) */
+@media (min-width: 600px) and (max-width: 768px) {
+  .bento-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  section {
+    padding: 1rem;
+  }
+}
+
+/* General tablet fixes */
+@media (max-width: 1024px) {
+  html, body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  /* Touch-friendly scrolling */
+  .events-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 .col-left, .col-right {
   display: grid;
   gap: 2rem;

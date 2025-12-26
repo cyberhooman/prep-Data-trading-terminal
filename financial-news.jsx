@@ -20,9 +20,27 @@ function FinancialNewsFeed() {
       const data = await response.json();
 
       if (data.success) {
-        // Filter to show critical news items AND items with sentiment indicators (market commentary)
-        const criticalNews = data.data.filter(item => item.isCritical || item.sentiment);
-        setNews(criticalNews);
+        // Filter to show critical news items, items with sentiment, OR items with economic data
+        // Priority order: critical > economic data > sentiment > active items
+        const criticalNews = data.data.filter(item =>
+          item.isCritical ||
+          item.sentiment ||
+          item.economicData ||
+          item.isActive ||
+          (item.tags && item.tags.length > 0)
+        );
+
+        // Sort by importance: critical first, then economic data, then by timestamp
+        criticalNews.sort((a, b) => {
+          if (a.isCritical && !b.isCritical) return -1;
+          if (!a.isCritical && b.isCritical) return 1;
+          if (a.economicData && !b.economicData) return -1;
+          if (!a.economicData && b.economicData) return 1;
+          // Sort by firstSeenAt (most recent first)
+          return (b.firstSeenAt || 0) - (a.firstSeenAt || 0);
+        });
+
+        setNews(criticalNews.slice(0, 50)); // Limit to 50 items for performance
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
         if (criticalNews.length === 0 && data.source === 'failed') {
           setError('News source temporarily unavailable');
