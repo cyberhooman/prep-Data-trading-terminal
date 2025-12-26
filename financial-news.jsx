@@ -552,7 +552,7 @@ function FinancialNewsFeed() {
                     React.createElement('span', {
                       style: {
                         fontSize: '0.65rem',
-                        color: 'rgba(226, 232, 240, 0.6)',
+                        color: 'var(--muted)',
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         letterSpacing: '0.3px',
@@ -568,7 +568,7 @@ function FinancialNewsFeed() {
                         style: { flexShrink: 0 }
                       },
                         React.createElement('path', { d: 'M256 52L468 444H44L256 52Z', fill: '#0B3C46' }),
-                        React.createElement('path', { d: 'M256 132L394 384H186L256 246L326 384H118L256 132Z', fill: 'rgba(226, 232, 240, 0.6)' }),
+                        React.createElement('path', { d: 'M256 132L394 384H186L256 246L326 384H118L256 132Z', fill: 'var(--muted)' }),
                         React.createElement('path', { d: 'M256 220L312 324H200L256 220Z', fill: '#0B3C46' })
                       ),
                       'Policy Shift & Surprise Detection'
@@ -599,7 +599,7 @@ function FinancialNewsFeed() {
                     React.createElement('div', {
                       style: {
                         fontSize: '0.65rem',
-                        color: 'rgba(226, 232, 240, 0.6)',
+                        color: 'var(--muted)',
                         fontWeight: 600,
                         marginBottom: '0.35rem',
                         textTransform: 'uppercase',
@@ -636,7 +636,7 @@ function FinancialNewsFeed() {
                             style: {
                               fontSize: '0.7rem',
                               fontWeight: 600,
-                              color: 'rgba(226, 232, 240, 0.9)'
+                              color: 'var(--text)'
                             }
                           }, asset),
                           React.createElement('span', {
@@ -663,7 +663,7 @@ function FinancialNewsFeed() {
                       margin: 0,
                       fontSize: '0.8rem',
                       lineHeight: 1.45,
-                      color: 'rgba(226, 232, 240, 0.9)',
+                      color: 'var(--text)',
                       marginBottom: '0.5rem'
                     }
                   }, analyses[index].reasoning),
@@ -677,7 +677,7 @@ function FinancialNewsFeed() {
                     React.createElement('div', {
                       style: {
                         fontSize: '0.65rem',
-                        color: 'rgba(226, 232, 240, 0.6)',
+                        color: 'var(--muted)',
                         fontWeight: 600,
                         marginBottom: '0.35rem',
                         textTransform: 'uppercase',
@@ -689,7 +689,7 @@ function FinancialNewsFeed() {
                         margin: 0,
                         paddingLeft: '1rem',
                         fontSize: '0.75rem',
-                        color: 'rgba(226, 232, 240, 0.8)',
+                        color: 'var(--text)',
                         lineHeight: 1.4
                       }
                     },
