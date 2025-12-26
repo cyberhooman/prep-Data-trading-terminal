@@ -13,7 +13,7 @@ const database = require('./services/database');
 require('dotenv').config();
 
 // Trial configuration
-const TRIAL_DAYS = 7; // 7-day free trial
+const TRIAL_DAYS = 15; // 15-day free trial
 
 // Subscription plans (in days)
 const SUBSCRIPTION_PLANS = {
