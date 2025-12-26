@@ -1,5 +1,9 @@
 const { useState, useEffect, useMemo, useRef } = React;
 
+/**
+ * TodoCard - Trading Notes Component
+ * Styled to match Alphalabs Notion-inspired dark theme
+ */
 function TodoCard() {
   const [items, setItems] = useState([]);
   const [dateInfo, setDateInfo] = useState({ date: "", time: "" });
@@ -185,93 +189,286 @@ function TodoCard() {
     }
   };
 
+  // Styles matching Notion theme
+  const styles = {
+    container: {
+      width: '100%',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      backgroundColor: 'var(--sidebar)',
+      border: '1px solid var(--border)',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+    },
+    header: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '12px 16px',
+      backgroundColor: 'var(--block)',
+      borderBottom: '1px solid var(--border)'
+    },
+    headerLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    dateText: {
+      fontSize: '13px',
+      fontWeight: '600',
+      color: 'var(--text)'
+    },
+    timeChip: {
+      backgroundColor: 'rgba(99, 102, 241, 0.15)',
+      color: '#818cf8',
+      fontSize: '12px',
+      fontWeight: '500',
+      padding: '4px 10px',
+      borderRadius: '6px',
+      fontFamily: "'JetBrains Mono', monospace"
+    },
+    addButton: {
+      color: '#818cf8',
+      fontSize: '13px',
+      fontWeight: '600',
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '6px 12px',
+      borderRadius: '6px',
+      transition: 'all 0.2s'
+    },
+    content: {
+      padding: '20px',
+      backgroundColor: 'var(--sidebar)'
+    },
+    title: {
+      fontSize: '16px',
+      fontWeight: '700',
+      color: 'var(--text)',
+      marginBottom: '16px',
+      fontFamily: "'Space Grotesk', sans-serif"
+    },
+    alertBox: {
+      padding: '12px 14px',
+      borderRadius: '8px',
+      marginBottom: '16px',
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '10px'
+    },
+    infoAlert: {
+      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      border: '1px solid rgba(99, 102, 241, 0.25)'
+    },
+    warningAlert: {
+      backgroundColor: 'rgba(245, 158, 11, 0.1)',
+      border: '1px solid rgba(245, 158, 11, 0.25)'
+    },
+    alertIcon: {
+      width: '18px',
+      height: '18px',
+      flexShrink: 0,
+      marginTop: '2px'
+    },
+    alertTitle: {
+      fontSize: '13px',
+      fontWeight: '600',
+      marginBottom: '4px'
+    },
+    alertText: {
+      fontSize: '12px',
+      lineHeight: '1.5'
+    },
+    form: {
+      padding: '16px',
+      backgroundColor: 'var(--block)',
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      marginBottom: '16px'
+    },
+    formGrid2: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '12px',
+      marginBottom: '12px'
+    },
+    formGrid3: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gap: '12px',
+      marginBottom: '16px'
+    },
+    label: {
+      display: 'block',
+      fontSize: '11px',
+      fontWeight: '500',
+      color: 'var(--muted)',
+      marginBottom: '6px',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px'
+    },
+    input: {
+      width: '100%',
+      padding: '10px 12px',
+      backgroundColor: 'var(--bg)',
+      border: '1px solid var(--border)',
+      borderRadius: '6px',
+      fontSize: '13px',
+      color: 'var(--text)',
+      outline: 'none',
+      transition: 'border-color 0.2s, box-shadow 0.2s'
+    },
+    select: {
+      width: '100%',
+      padding: '10px 12px',
+      backgroundColor: 'var(--bg)',
+      border: '1px solid var(--border)',
+      borderRadius: '6px',
+      fontSize: '13px',
+      color: 'var(--text)',
+      outline: 'none',
+      cursor: 'pointer'
+    },
+    submitBtn: {
+      width: '100%',
+      padding: '12px',
+      backgroundColor: '#6366f1',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: 'all 0.2s'
+    },
+    noteItem: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '14px 16px',
+      backgroundColor: 'var(--block)',
+      border: '1px solid var(--border)',
+      borderRadius: '8px',
+      marginBottom: '8px',
+      transition: 'all 0.2s'
+    },
+    noteText: {
+      fontSize: '13px',
+      color: 'var(--text)',
+      fontWeight: '500',
+      fontFamily: "'JetBrains Mono', monospace"
+    },
+    iconBtn: {
+      background: 'none',
+      border: 'none',
+      padding: '6px',
+      cursor: 'pointer',
+      borderRadius: '4px',
+      transition: 'all 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '40px 20px',
+      color: 'var(--muted)'
+    },
+    footer: {
+      fontSize: '12px',
+      color: 'var(--muted)',
+      marginTop: '16px',
+      fontWeight: '500'
+    }
+  };
+
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={styles.container}>
+        <div style={{ ...styles.content, textAlign: 'center', padding: '40px' }}>
+          <div style={{ color: 'var(--muted)' }}>Loading...</div>
+        </div>
+      </div>
+    );
   }
 
-  const Header = (
-    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-b from-gray-200 to-gray-300 dark:from-slate-800 dark:to-slate-700">
-      <div className="flex items-center space-x-3">
-        <span className="text-sm font-semibold text-gray-800 dark:text-slate-100">{dateInfo.date}</span>
-        <span className="bg-black/10 dark:bg-white/10 text-gray-800 dark:text-slate-100 text-xs font-medium px-2 py-1 rounded-md">
-          {dateInfo.time}
-        </span>
-      </div>
-      <button
-        onClick={() => setShowAddForm(!showAddForm)}
-        className="text-indigo-600 dark:text-slate-100 font-semibold text-sm hover:text-indigo-800 dark:hover:text-slate-300 transition"
-      >
-        {showAddForm ? 'Cancel' : '+ Add Note'}
-      </button>
-    </div>
-  );
-
   return (
-    <div className="w-full rounded-2xl shadow-lg border border-gray-200 dark:border-slate-700 overflow-hidden bg-white dark:bg-slate-900/70 text-gray-900 dark:text-slate-100">
-      {Header}
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={styles.headerLeft}>
+          <span style={styles.dateText}>{dateInfo.date}</span>
+          <span style={styles.timeChip}>{dateInfo.time}</span>
+        </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          style={styles.addButton}
+          onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(99, 102, 241, 0.1)'}
+          onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+        >
+          {showAddForm ? 'Cancel' : '+ Add Note'}
+        </button>
+      </div>
 
-      <div className="relative p-5 bg-[radial-gradient(circle,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[radial-gradient(circle,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:10px_10px]">
-        <h3 className="text-lg font-bold text-gray-900 dark:text-slate-100 mb-4">
-          Data Trading Preparation
-        </h3>
+      {/* Content */}
+      <div style={styles.content}>
+        <h3 style={styles.title}>Data Trading Preparation</h3>
 
         {/* Currency Trend Warning */}
         {currencyTrend && (
-          <div className="mb-4 p-3 bg-indigo-100 dark:bg-indigo-500/10 border border-indigo-300 dark:border-indigo-500/30 rounded-lg">
-            <div className="flex items-start gap-2">
-              <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm text-indigo-800 dark:text-indigo-200 font-bold mb-1">⚠️ Don't fight the trend</p>
-                <div className="text-xs text-gray-700 dark:text-slate-300 space-y-1">
-                  <div>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Strongest:</span> {currencyTrend.strongest.currency} ({currencyTrend.strongest.title})
-                    <span className="ml-2 text-emerald-600 dark:text-emerald-300">↑ {currencyTrend.strongest.momentum}%</span>
-                  </div>
-                  <div>
-                    <span className="text-red-600 dark:text-red-400 font-semibold">Weakest:</span> {currencyTrend.weakest.currency} ({currencyTrend.weakest.title})
-                    <span className="ml-2 text-red-600 dark:text-red-300">↓ {currencyTrend.weakest.momentum}%</span>
-                  </div>
+          <div style={{ ...styles.alertBox, ...styles.infoAlert }}>
+            <svg style={{ ...styles.alertIcon, color: '#818cf8' }} viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <div style={{ flex: 1 }}>
+              <p style={{ ...styles.alertTitle, color: '#a5b4fc' }}>⚠️ Don't fight the trend</p>
+              <div style={{ ...styles.alertText, color: 'var(--muted)' }}>
+                <div style={{ marginBottom: '4px' }}>
+                  <span style={{ color: '#34d399', fontWeight: '600' }}>Strongest:</span>{' '}
+                  <span style={{ color: 'var(--text)' }}>{currencyTrend.strongest.currency} ({currencyTrend.strongest.title})</span>
+                  <span style={{ color: '#34d399', marginLeft: '8px' }}>↑ {currencyTrend.strongest.momentum}%</span>
+                </div>
+                <div>
+                  <span style={{ color: '#f87171', fontWeight: '600' }}>Weakest:</span>{' '}
+                  <span style={{ color: 'var(--text)' }}>{currencyTrend.weakest.currency} ({currencyTrend.weakest.title})</span>
+                  <span style={{ color: '#f87171', marginLeft: '8px' }}>↓ {currencyTrend.weakest.momentum}%</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Permanent Trading Rule */}
-        <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 rounded-lg">
-          <div className="flex items-start gap-2">
-            <svg className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
-              Only take an advantage when <span className="text-emerald-600 dark:text-emerald-400 font-bold">GREEN</span> across the board or <span className="text-red-600 dark:text-red-400 font-bold">RED</span> across the board
-            </p>
-          </div>
+        {/* Trading Rule Alert */}
+        <div style={{ ...styles.alertBox, ...styles.warningAlert }}>
+          <svg style={{ ...styles.alertIcon, color: '#fbbf24' }} viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          </svg>
+          <p style={{ ...styles.alertText, color: '#fcd34d' }}>
+            Only take an advantage when <span style={{ color: '#34d399', fontWeight: '700' }}>GREEN</span> across the board or <span style={{ color: '#f87171', fontWeight: '700' }}>RED</span> across the board
+          </p>
         </div>
 
         {/* Add Note Form */}
         {showAddForm && (
-          <form onSubmit={handleFormSubmit} className="mb-4 p-4 bg-gray-100 dark:bg-slate-800/50 border border-gray-300 dark:border-slate-600 rounded-lg space-y-3">
-            <div className="grid grid-cols-2 gap-3">
+          <form onSubmit={handleFormSubmit} style={styles.form}>
+            <div style={styles.formGrid2}>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Currency Pair</label>
+                <label style={styles.label}>Currency Pair</label>
                 <input
                   type="text"
                   value={formData.pair}
                   onChange={(e) => setFormData({...formData, pair: e.target.value.toUpperCase()})}
-                  placeholder="e.g., GBPCAD, USDCAD"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="e.g., GBPCAD"
+                  style={styles.input}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Data Condition</label>
+                <label style={styles.label}>Data Condition</label>
                 <select
                   value={formData.condition}
                   onChange={(e) => setFormData({...formData, condition: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100"
+                  style={styles.select}
                 >
                   <option value="stronger">📈 Data Stronger</option>
                   <option value="weaker">📉 Data Weaker</option>
@@ -279,37 +476,37 @@ function TodoCard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div style={styles.formGrid3}>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Range Low</label>
+                <label style={styles.label}>Range Low</label>
                 <input
                   type="text"
                   value={formData.rangeLow}
                   onChange={(e) => setFormData({...formData, rangeLow: e.target.value})}
-                  placeholder="e.g., 1.7500"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="1.7500"
+                  style={styles.input}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Range High</label>
+                <label style={styles.label}>Range High</label>
                 <input
                   type="text"
                   value={formData.rangeHigh}
                   onChange={(e) => setFormData({...formData, rangeHigh: e.target.value})}
-                  placeholder="e.g., 1.7800"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="1.7800"
+                  style={styles.input}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Lot Size</label>
+                <label style={styles.label}>Lot Size</label>
                 <input
                   type="text"
                   value={formData.lotSize}
                   onChange={(e) => setFormData({...formData, lotSize: e.target.value})}
-                  placeholder="e.g., 0.5, 1.0"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="0.5"
+                  style={styles.input}
                   required
                 />
               </div>
@@ -317,7 +514,9 @@ function TodoCard() {
 
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-indigo-500 text-white rounded-md text-sm font-semibold hover:bg-indigo-600"
+              style={styles.submitBtn}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#4f46e5'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#6366f1'}
             >
               Add Trading Note
             </button>
@@ -326,35 +525,36 @@ function TodoCard() {
 
         {/* Edit Form */}
         {editingId && (
-          <form onSubmit={handleEditSubmit} className="mb-4 p-4 bg-emerald-50 dark:bg-slate-800/50 border border-emerald-300 dark:border-emerald-500/50 rounded-lg space-y-3">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Edit Trading Note</h4>
+          <form onSubmit={handleEditSubmit} style={{ ...styles.form, border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#34d399' }}>Edit Trading Note</h4>
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
+                style={{ ...styles.iconBtn, color: 'var(--muted)' }}
               >
                 ✕
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div style={styles.formGrid2}>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Currency Pair</label>
+                <label style={styles.label}>Currency Pair</label>
                 <input
                   type="text"
                   value={editFormData.pair}
                   onChange={(e) => setEditFormData({...editFormData, pair: e.target.value.toUpperCase()})}
-                  placeholder="e.g., GBPCAD, USDCAD"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="e.g., GBPCAD"
+                  style={styles.input}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Data Condition</label>
+                <label style={styles.label}>Data Condition</label>
                 <select
                   value={editFormData.condition}
                   onChange={(e) => setEditFormData({...editFormData, condition: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100"
+                  style={styles.select}
                 >
                   <option value="stronger">📈 Data Stronger</option>
                   <option value="weaker">📉 Data Weaker</option>
@@ -362,53 +562,57 @@ function TodoCard() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div style={styles.formGrid3}>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Range Low</label>
+                <label style={styles.label}>Range Low</label>
                 <input
                   type="text"
                   value={editFormData.rangeLow}
                   onChange={(e) => setEditFormData({...editFormData, rangeLow: e.target.value})}
-                  placeholder="e.g., 1.7500"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="1.7500"
+                  style={styles.input}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Range High</label>
+                <label style={styles.label}>Range High</label>
                 <input
                   type="text"
                   value={editFormData.rangeHigh}
                   onChange={(e) => setEditFormData({...editFormData, rangeHigh: e.target.value})}
-                  placeholder="e.g., 1.7800"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="1.7800"
+                  style={styles.input}
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 dark:text-slate-300 mb-1">Lot Size</label>
+                <label style={styles.label}>Lot Size</label>
                 <input
                   type="text"
                   value={editFormData.lotSize}
                   onChange={(e) => setEditFormData({...editFormData, lotSize: e.target.value})}
-                  placeholder="e.g., 0.5, 1.0"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 rounded text-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-400"
+                  placeholder="0.5"
+                  style={styles.input}
                   required
                 />
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div style={{ display: 'flex', gap: '12px' }}>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-md text-sm font-semibold hover:bg-emerald-600"
+                style={{ ...styles.submitBtn, backgroundColor: '#10b981', flex: 1 }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#10b981'}
               >
                 Update Note
               </button>
               <button
                 type="button"
                 onClick={cancelEdit}
-                className="px-4 py-2 bg-gray-300 dark:bg-slate-600 text-gray-700 dark:text-white rounded-md text-sm font-semibold hover:bg-gray-400 dark:hover:bg-slate-500"
+                style={{ ...styles.submitBtn, backgroundColor: 'var(--hover)', color: 'var(--text)' }}
+                onMouseOver={(e) => e.target.style.backgroundColor = 'var(--border)'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'var(--hover)'}
               >
                 Cancel
               </button>
@@ -418,67 +622,53 @@ function TodoCard() {
 
         {/* Trading Notes List */}
         {items.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-slate-400">
-            <p className="text-sm">No trading notes yet. Click "+ Add Note" to start.</p>
+          <div style={styles.emptyState}>
+            <svg style={{ width: '48px', height: '48px', margin: '0 auto 12px', opacity: 0.3 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p style={{ fontSize: '13px' }}>No trading notes yet</p>
+            <p style={{ fontSize: '12px', opacity: 0.7, marginTop: '4px' }}>Click "+ Add Note" to start</p>
           </div>
         ) : (
-          <ul className="space-y-2">
+          <div>
             {items.map((item) => (
-              <li
+              <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-gray-100 dark:bg-slate-800/70 border border-gray-200 dark:border-slate-700 hover:border-gray-300 dark:hover:border-slate-600 transition"
+                style={styles.noteItem}
+                onMouseOver={(e) => e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)'}
+                onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
               >
-                <div className="flex-1">
-                  <p className="text-sm text-gray-900 dark:text-slate-100 font-medium">
-                    {item.text}
-                  </p>
-                </div>
-                <div className="flex gap-2">
+                <p style={styles.noteText}>{item.text}</p>
+                <div style={{ display: 'flex', gap: '4px' }}>
                   <button
                     onClick={() => startEdit(item)}
-                    className="px-2 py-1 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-100 transition-colors text-xs"
-                    title="Edit note"
+                    style={{ ...styles.iconBtn, color: 'var(--muted)' }}
+                    onMouseOver={(e) => e.target.style.color = '#818cf8'}
+                    onMouseOut={(e) => e.target.style.color = 'var(--muted)'}
+                    title="Edit"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </button>
                   <button
                     onClick={() => deleteItem(item.id)}
-                    className="px-2 py-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors text-xs"
-                    title="Delete note"
+                    style={{ ...styles.iconBtn, color: 'var(--muted)' }}
+                    onMouseOver={(e) => e.target.style.color = '#f87171'}
+                    onMouseOut={(e) => e.target.style.color = 'var(--muted)'}
+                    title="Delete"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                   </button>
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
 
-        <p className="mt-4 text-sm text-gray-600 dark:text-slate-300 font-medium">Prepare your trades wisely!</p>
+        <p style={styles.footer}>Prepare your trades wisely!</p>
       </div>
     </div>
   );
