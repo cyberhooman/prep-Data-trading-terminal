@@ -10,7 +10,7 @@ class FinancialJuiceScraper {
     this.baseUrl = 'https://www.financialjuice.com';
     this.newsCache = [];
     this.lastFetch = null;
-    this.cacheTimeout = 5 * 60 * 1000; // 5 minutes cache (reduced from 2 min to lower CPU usage)
+    this.cacheTimeout = 2 * 60 * 1000; // 2 minutes cache
     this.browser = null;
     this.isLoggedIn = false;
     this.newsHistory = new Map(); // Store news with first seen timestamp
