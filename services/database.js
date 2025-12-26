@@ -13,6 +13,7 @@ class Database {
     this.pool = null;
     this.newsHistoryFile = path.join(__dirname, '..', 'data', 'news-history.json');
     this.rateProbabilitiesFile = path.join(__dirname, '..', 'data', 'rate-probabilities.json');
+    this.usersFile = path.join(__dirname, '..', 'users.json');
 
     if (this.isProduction) {
       this.initPostgres();
@@ -424,6 +425,419 @@ class Database {
     if (this.pool) {
       await this.pool.end();
       console.log('Database connection closed');
+    }
+  }
+
+  // ============================================================================
+  // USER MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Create users table if it doesn't exist
+   */
+  async createUsersTable() {
+    if (!this.isProduction || !this.pool) {
+      return; // Skip in development mode
+    }
+
+    const createTableQuery = `
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255),
+        display_name VARCHAR(255),
+        picture TEXT,
+        google_id VARCHAR(255),
+        auth_provider VARCHAR(50) DEFAULT 'local',
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        trial_start_date TIMESTAMPTZ,
+        trial_end_date TIMESTAMPTZ,
+        subscription_status VARCHAR(50) DEFAULT 'trial',
+        subscription_plan VARCHAR(50),
+        subscription_start_date TIMESTAMPTZ,
+        subscription_end_date TIMESTAMPTZ,
+        plan VARCHAR(50) DEFAULT 'free',
+        reset_token VARCHAR(255),
+        reset_token_expires BIGINT,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id);
+    `;
+
+    try {
+      await this.pool.query(createTableQuery);
+      console.log('Users table created/verified successfully');
+    } catch (error) {
+      console.error('Error creating users table:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all users
+   */
+  async getAllUsers() {
+    if (this.isProduction && this.pool) {
+      return await this.getAllUsersFromPostgres();
+    } else {
+      return await this.getAllUsersFromFile();
+    }
+  }
+
+  async getAllUsersFromPostgres() {
+    try {
+      const result = await this.pool.query(
+        `SELECT id, email, display_name, picture, google_id, auth_provider,
+                created_at, trial_start_date, trial_end_date, subscription_status,
+                subscription_plan, subscription_start_date, subscription_end_date, plan
+         FROM users ORDER BY created_at DESC`
+      );
+
+      return result.rows.map(row => ({
+        id: row.id,
+        email: row.email,
+        displayName: row.display_name,
+        picture: row.picture,
+        googleId: row.google_id,
+        authProvider: row.auth_provider,
+        createdAt: row.created_at?.toISOString(),
+        trialStartDate: row.trial_start_date?.toISOString(),
+        trialEndDate: row.trial_end_date?.toISOString(),
+        subscriptionStatus: row.subscription_status,
+        subscriptionPlan: row.subscription_plan,
+        subscriptionStartDate: row.subscription_start_date?.toISOString(),
+        subscriptionEndDate: row.subscription_end_date?.toISOString(),
+        plan: row.plan
+      }));
+    } catch (error) {
+      console.error('Error getting users from PostgreSQL:', error);
+      return [];
+    }
+  }
+
+  async getAllUsersFromFile() {
+    try {
+      if (fs.existsSync(this.usersFile)) {
+        const data = await fsPromises.readFile(this.usersFile, 'utf8');
+        return JSON.parse(data);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error reading users file:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Find user by email
+   */
+  async findUserByEmail(email) {
+    if (this.isProduction && this.pool) {
+      return await this.findUserByEmailFromPostgres(email);
+    } else {
+      return await this.findUserByEmailFromFile(email);
+    }
+  }
+
+  async findUserByEmailFromPostgres(email) {
+    try {
+      const result = await this.pool.query(
+        `SELECT * FROM users WHERE email = $1`,
+        [email]
+      );
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const row = result.rows[0];
+      return {
+        id: row.id,
+        email: row.email,
+        password: row.password,
+        displayName: row.display_name,
+        picture: row.picture,
+        googleId: row.google_id,
+        authProvider: row.auth_provider,
+        createdAt: row.created_at?.toISOString(),
+        trialStartDate: row.trial_start_date?.toISOString(),
+        trialEndDate: row.trial_end_date?.toISOString(),
+        subscriptionStatus: row.subscription_status,
+        subscriptionPlan: row.subscription_plan,
+        subscriptionStartDate: row.subscription_start_date?.toISOString(),
+        subscriptionEndDate: row.subscription_end_date?.toISOString(),
+        plan: row.plan,
+        resetToken: row.reset_token,
+        resetTokenExpires: row.reset_token_expires
+      };
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  }
+
+  async findUserByEmailFromFile(email) {
+    try {
+      const users = await this.getAllUsersFromFile();
+      return users.find(u => u.email === email) || null;
+    } catch (error) {
+      console.error('Error finding user in file:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new user
+   */
+  async createUser(userData) {
+    if (this.isProduction && this.pool) {
+      return await this.createUserInPostgres(userData);
+    } else {
+      return await this.createUserInFile(userData);
+    }
+  }
+
+  async createUserInPostgres(userData) {
+    try {
+      const result = await this.pool.query(
+        `INSERT INTO users (id, email, password, display_name, picture, google_id, auth_provider,
+                           created_at, trial_start_date, trial_end_date, subscription_status, plan)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING *`,
+        [
+          userData.id,
+          userData.email,
+          userData.password || null,
+          userData.displayName,
+          userData.picture || null,
+          userData.googleId || null,
+          userData.authProvider || 'local',
+          userData.createdAt,
+          userData.trialStartDate,
+          userData.trialEndDate,
+          userData.subscriptionStatus || 'trial',
+          userData.plan || 'free'
+        ]
+      );
+
+      const row = result.rows[0];
+      console.log(`[DB] Created user in PostgreSQL: ${userData.email}`);
+      return {
+        id: row.id,
+        email: row.email,
+        displayName: row.display_name,
+        picture: row.picture,
+        googleId: row.google_id,
+        authProvider: row.auth_provider,
+        createdAt: row.created_at?.toISOString(),
+        trialStartDate: row.trial_start_date?.toISOString(),
+        trialEndDate: row.trial_end_date?.toISOString(),
+        subscriptionStatus: row.subscription_status,
+        plan: row.plan
+      };
+    } catch (error) {
+      console.error('Error creating user in PostgreSQL:', error);
+      throw error;
+    }
+  }
+
+  async createUserInFile(userData) {
+    try {
+      const users = await this.getAllUsersFromFile();
+      users.push(userData);
+      await fsPromises.writeFile(this.usersFile, JSON.stringify(users, null, 2));
+      console.log(`[DB] Created user in file: ${userData.email}`);
+      return userData;
+    } catch (error) {
+      console.error('Error creating user in file:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a user
+   */
+  async updateUser(email, updates) {
+    if (this.isProduction && this.pool) {
+      return await this.updateUserInPostgres(email, updates);
+    } else {
+      return await this.updateUserInFile(email, updates);
+    }
+  }
+
+  async updateUserInPostgres(email, updates) {
+    try {
+      // Build dynamic update query
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
+
+      const fieldMap = {
+        password: 'password',
+        displayName: 'display_name',
+        picture: 'picture',
+        googleId: 'google_id',
+        authProvider: 'auth_provider',
+        trialStartDate: 'trial_start_date',
+        trialEndDate: 'trial_end_date',
+        subscriptionStatus: 'subscription_status',
+        subscriptionPlan: 'subscription_plan',
+        subscriptionStartDate: 'subscription_start_date',
+        subscriptionEndDate: 'subscription_end_date',
+        plan: 'plan',
+        resetToken: 'reset_token',
+        resetTokenExpires: 'reset_token_expires'
+      };
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (fieldMap[key]) {
+          setClauses.push(`${fieldMap[key]} = $${paramIndex}`);
+          values.push(value);
+          paramIndex++;
+        }
+      }
+
+      if (setClauses.length === 0) {
+        return await this.findUserByEmail(email);
+      }
+
+      setClauses.push(`updated_at = CURRENT_TIMESTAMP`);
+      values.push(email);
+
+      const query = `UPDATE users SET ${setClauses.join(', ')} WHERE email = $${paramIndex} RETURNING *`;
+      const result = await this.pool.query(query, values);
+
+      if (result.rows.length === 0) {
+        return null;
+      }
+
+      const row = result.rows[0];
+      console.log(`[DB] Updated user in PostgreSQL: ${email}`);
+      return {
+        id: row.id,
+        email: row.email,
+        displayName: row.display_name,
+        picture: row.picture,
+        googleId: row.google_id,
+        authProvider: row.auth_provider,
+        createdAt: row.created_at?.toISOString(),
+        trialStartDate: row.trial_start_date?.toISOString(),
+        trialEndDate: row.trial_end_date?.toISOString(),
+        subscriptionStatus: row.subscription_status,
+        subscriptionPlan: row.subscription_plan,
+        subscriptionStartDate: row.subscription_start_date?.toISOString(),
+        subscriptionEndDate: row.subscription_end_date?.toISOString(),
+        plan: row.plan
+      };
+    } catch (error) {
+      console.error('Error updating user in PostgreSQL:', error);
+      return null;
+    }
+  }
+
+  async updateUserInFile(email, updates) {
+    try {
+      const users = await this.getAllUsersFromFile();
+      const userIndex = users.findIndex(u => u.email === email);
+
+      if (userIndex === -1) {
+        return null;
+      }
+
+      users[userIndex] = { ...users[userIndex], ...updates };
+      await fsPromises.writeFile(this.usersFile, JSON.stringify(users, null, 2));
+      console.log(`[DB] Updated user in file: ${email}`);
+      return users[userIndex];
+    } catch (error) {
+      console.error('Error updating user in file:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Find user by reset token
+   */
+  async findUserByResetToken(token) {
+    if (this.isProduction && this.pool) {
+      try {
+        const result = await this.pool.query(
+          `SELECT * FROM users WHERE reset_token = $1 AND reset_token_expires > $2`,
+          [token, Date.now()]
+        );
+
+        if (result.rows.length === 0) {
+          return null;
+        }
+
+        const row = result.rows[0];
+        return {
+          id: row.id,
+          email: row.email,
+          password: row.password,
+          displayName: row.display_name,
+          resetToken: row.reset_token,
+          resetTokenExpires: row.reset_token_expires
+        };
+      } catch (error) {
+        console.error('Error finding user by reset token:', error);
+        return null;
+      }
+    } else {
+      const users = await this.getAllUsersFromFile();
+      return users.find(u => u.resetToken === token && u.resetTokenExpires > Date.now()) || null;
+    }
+  }
+
+  /**
+   * Migrate users from file to PostgreSQL
+   */
+  async migrateUsersToPostgres() {
+    if (!this.isProduction || !this.pool) {
+      console.log('Not in production or no pool - skipping user migration');
+      return;
+    }
+
+    try {
+      // Check if we have users in the file
+      if (!fs.existsSync(this.usersFile)) {
+        console.log('No users.json file to migrate');
+        return;
+      }
+
+      const fileUsers = await this.getAllUsersFromFile();
+      if (fileUsers.length === 0) {
+        console.log('No users to migrate from file');
+        return;
+      }
+
+      let migrated = 0;
+      for (const user of fileUsers) {
+        // Check if user already exists in DB
+        const existing = await this.findUserByEmailFromPostgres(user.email);
+        if (!existing) {
+          await this.createUserInPostgres({
+            id: user.id || Date.now().toString(),
+            email: user.email,
+            password: user.password,
+            displayName: user.displayName,
+            picture: user.picture,
+            googleId: user.googleId,
+            authProvider: user.authProvider || 'local',
+            createdAt: user.createdAt || new Date().toISOString(),
+            trialStartDate: user.trialStartDate,
+            trialEndDate: user.trialEndDate,
+            subscriptionStatus: user.subscriptionStatus || 'trial',
+            plan: user.plan || 'free'
+          });
+          migrated++;
+        }
+      }
+
+      console.log(`[DB] Migrated ${migrated} users from file to PostgreSQL`);
+    } catch (error) {
+      console.error('Error migrating users to PostgreSQL:', error);
     }
   }
 }

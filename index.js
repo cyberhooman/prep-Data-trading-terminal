@@ -52,6 +52,7 @@ const cbSpeechScraper = require('./services/cbSpeechScraper');
 const finnhubNews = require('./services/finnhubNews');
 const emailService = require('./services/emailService');
 const trumpScheduleScraper = require('./services/trumpScheduleScraper');
+const database = require('./services/database');
 
 const PORT = process.env.PORT || 3000;
 const FA_ECON_CAL_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
@@ -6443,6 +6444,16 @@ loadJsxCache();
 const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Alphalabs data trading server running on http://0.0.0.0:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+
+  // Initialize database tables (production only)
+  try {
+    await database.createNewsHistoryTable();
+    await database.createRateProbabilityTable();
+    await database.createUsersTable();
+    console.log('Database tables initialized');
+  } catch (err) {
+    console.error('Failed to initialize database tables:', err);
+  }
 
   // Migrate existing users to trial system
   try {

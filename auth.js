@@ -2,17 +2,15 @@
  * Google OAuth Authentication Setup
  * ------------------------------------------------
  * Handles Google OAuth login for the trading dashboard
+ * Uses PostgreSQL in production, file storage in development
  */
 
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const LocalStrategy = require('passport-local').Strategy;
 const bcrypt = require('bcrypt');
-const fs = require('fs').promises;
-const path = require('path');
+const database = require('./services/database');
 require('dotenv').config();
-
-const USERS_FILE = path.join(__dirname, 'users.json');
 
 // Trial configuration
 const TRIAL_DAYS = 7; // 7-day free trial
@@ -27,27 +25,12 @@ const SUBSCRIPTION_PLANS = {
 // Admin emails (only these users can access admin panel)
 const ADMIN_EMAILS = ['aaidilfadly12@gmail.com'];
 
-// Helper functions for user management
-async function readUsers() {
-  try {
-    const data = await fs.readFile(USERS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    return [];
-  }
-}
-
-async function writeUsers(users) {
-  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
-}
-
+// Helper functions for user management (now using database module)
 async function findUserByEmail(email) {
-  const users = await readUsers();
-  return users.find(u => u.email === email);
+  return await database.findUserByEmail(email);
 }
 
 async function createUser(email, password, displayName) {
-  const users = await readUsers();
   const hashedPassword = await bcrypt.hash(password, 10);
   const now = new Date();
   const trialEndDate = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
@@ -57,16 +40,15 @@ async function createUser(email, password, displayName) {
     email,
     password: hashedPassword,
     displayName: displayName || email.split('@')[0],
+    authProvider: 'local',
     createdAt: now.toISOString(),
-    // Trial fields
     trialStartDate: now.toISOString(),
     trialEndDate: trialEndDate.toISOString(),
-    subscriptionStatus: 'trial', // trial, active, expired
-    plan: 'free' // free, pro (for future use)
+    subscriptionStatus: 'trial',
+    plan: 'free'
   };
-  users.push(newUser);
-  await writeUsers(users);
-  return newUser;
+
+  return await database.createUser(newUser);
 }
 
 /**
@@ -164,10 +146,14 @@ function getTrialStatus(user) {
 
 /**
  * Migrate existing users to trial system
- * Starts their 7-day trial from now
+ * Also migrates file users to PostgreSQL in production
  */
 async function migrateExistingUsers() {
-  const users = await readUsers();
+  // First, migrate any file users to PostgreSQL (production)
+  await database.migrateUsersToPostgres();
+
+  // Then migrate users without trial info
+  const users = await database.getAllUsers();
   let migrated = 0;
 
   const now = new Date();
@@ -175,16 +161,17 @@ async function migrateExistingUsers() {
 
   for (const user of users) {
     if (!user.trialStartDate) {
-      user.trialStartDate = now.toISOString();
-      user.trialEndDate = trialEndDate.toISOString();
-      user.subscriptionStatus = 'trial';
-      user.plan = 'free';
+      await database.updateUser(user.email, {
+        trialStartDate: now.toISOString(),
+        trialEndDate: trialEndDate.toISOString(),
+        subscriptionStatus: 'trial',
+        plan: 'free'
+      });
       migrated++;
     }
   }
 
   if (migrated > 0) {
-    await writeUsers(users);
     console.log(`Migrated ${migrated} existing user(s) to trial system`);
   }
 
@@ -198,22 +185,16 @@ async function migrateExistingUsers() {
  * @param {string} plan - Plan type (free, pro)
  */
 async function updateSubscription(email, status, plan = 'pro') {
-  const users = await readUsers();
-  const user = users.find(u => u.email === email);
-
-  if (!user) {
-    return null;
-  }
-
-  user.subscriptionStatus = status;
-  user.plan = plan;
+  const updates = {
+    subscriptionStatus: status,
+    plan: plan
+  };
 
   if (status === 'active') {
-    user.subscriptionActivatedAt = new Date().toISOString();
+    updates.subscriptionStartDate = new Date().toISOString();
   }
 
-  await writeUsers(users);
-  return user;
+  return await database.updateUser(email, updates);
 }
 
 /**
@@ -223,8 +204,7 @@ async function updateSubscription(email, status, plan = 'pro') {
  * @returns {Object|null} - Updated user or null if not found
  */
 async function activateSubscription(email, planType) {
-  const users = await readUsers();
-  const user = users.find(u => u.email === email);
+  const user = await database.findUserByEmail(email);
 
   if (!user) {
     return { error: 'User not found' };
@@ -238,14 +218,15 @@ async function activateSubscription(email, planType) {
   const now = new Date();
   const endDate = new Date(now.getTime() + planInfo.days * 24 * 60 * 60 * 1000);
 
-  user.subscriptionStatus = 'active';
-  user.subscriptionPlan = planType;
-  user.subscriptionStartDate = now.toISOString();
-  user.subscriptionEndDate = endDate.toISOString();
-  user.plan = 'pro';
+  const updatedUser = await database.updateUser(email, {
+    subscriptionStatus: 'active',
+    subscriptionPlan: planType,
+    subscriptionStartDate: now.toISOString(),
+    subscriptionEndDate: endDate.toISOString(),
+    plan: 'pro'
+  });
 
-  await writeUsers(users);
-  return { success: true, user };
+  return { success: true, user: updatedUser };
 }
 
 /**
@@ -254,20 +235,20 @@ async function activateSubscription(email, planType) {
  * @returns {Object|null} - Updated user or null if not found
  */
 async function cancelSubscription(email) {
-  const users = await readUsers();
-  const user = users.find(u => u.email === email);
+  const user = await database.findUserByEmail(email);
 
   if (!user) {
     return { error: 'User not found' };
   }
 
-  user.subscriptionStatus = 'expired';
-  user.plan = 'free';
-  delete user.subscriptionEndDate;
-  delete user.subscriptionPlan;
+  const updatedUser = await database.updateUser(email, {
+    subscriptionStatus: 'expired',
+    plan: 'free',
+    subscriptionEndDate: null,
+    subscriptionPlan: null
+  });
 
-  await writeUsers(users);
-  return { success: true, user };
+  return { success: true, user: updatedUser };
 }
 
 /**
@@ -275,15 +256,12 @@ async function cancelSubscription(email) {
  * @returns {Array} - All users with subscription info
  */
 async function getAllUsers() {
-  const users = await readUsers();
-  // Return users without passwords
-  return users.map(user => {
-    const { password, resetToken, resetTokenExpires, ...safeUser } = user;
-    return {
-      ...safeUser,
-      trialStatus: getTrialStatus(user)
-    };
-  });
+  const users = await database.getAllUsers();
+  // Return users with trial status calculated
+  return users.map(user => ({
+    ...user,
+    trialStatus: getTrialStatus(user)
+  }));
 }
 
 /**
@@ -298,8 +276,7 @@ function isAdmin(user) {
 }
 
 async function createPasswordResetToken(email) {
-  const users = await readUsers();
-  const user = users.find(u => u.email === email);
+  const user = await database.findUserByEmail(email);
 
   if (!user) {
     return null;
@@ -311,24 +288,22 @@ async function createPasswordResetToken(email) {
   const expires = Date.now() + (60 * 60 * 1000); // 1 hour from now
 
   // Store reset token with user
-  user.resetToken = token;
-  user.resetTokenExpires = expires;
+  await database.updateUser(email, {
+    resetToken: token,
+    resetTokenExpires: expires
+  });
 
-  await writeUsers(users);
   return token;
 }
 
 async function validateResetToken(token) {
-  const users = await readUsers();
-  const user = users.find(u => u.resetToken === token && u.resetTokenExpires > Date.now());
-  return user;
+  return await database.findUserByResetToken(token);
 }
 
 async function resetPassword(token, newPassword) {
-  const users = await readUsers();
-  const userIndex = users.findIndex(u => u.resetToken === token && u.resetTokenExpires > Date.now());
+  const user = await database.findUserByResetToken(token);
 
-  if (userIndex === -1) {
+  if (!user) {
     return false;
   }
 
@@ -336,11 +311,12 @@ async function resetPassword(token, newPassword) {
   const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   // Update password and remove reset token
-  users[userIndex].password = hashedPassword;
-  delete users[userIndex].resetToken;
-  delete users[userIndex].resetTokenExpires;
+  await database.updateUser(user.email, {
+    password: hashedPassword,
+    resetToken: null,
+    resetTokenExpires: null
+  });
 
-  await writeUsers(users);
   return true;
 }
 
@@ -394,15 +370,14 @@ async function(accessToken, refreshToken, profile, cb) {
     }
 
     // Check if user exists in our database
-    const users = await readUsers();
-    let user = users.find(u => u.email === email);
+    let user = await database.findUserByEmail(email);
 
     if (!user) {
       // Create new user for Google OAuth login
       const now = new Date();
       const trialEndDate = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
-      user = {
+      user = await database.createUser({
         id: profile.id || Date.now().toString(),
         email: email,
         displayName: profile.displayName || email.split('@')[0],
@@ -410,30 +385,25 @@ async function(accessToken, refreshToken, profile, cb) {
         googleId: profile.id,
         authProvider: 'google',
         createdAt: now.toISOString(),
-        // Trial fields
         trialStartDate: now.toISOString(),
         trialEndDate: trialEndDate.toISOString(),
         subscriptionStatus: 'trial',
         plan: 'free'
-      };
+      });
 
-      users.push(user);
-      await writeUsers(users);
       console.log(`[Auth] New Google user created: ${email}`);
     } else {
       // Update existing user with Google info if missing
-      let updated = false;
+      const updates = {};
       if (!user.googleId) {
-        user.googleId = profile.id;
-        user.authProvider = user.authProvider || 'google';
-        updated = true;
+        updates.googleId = profile.id;
+        updates.authProvider = user.authProvider || 'google';
       }
       if (!user.picture && profile.photos?.[0]?.value) {
-        user.picture = profile.photos[0].value;
-        updated = true;
+        updates.picture = profile.photos[0].value;
       }
-      if (updated) {
-        await writeUsers(users);
+      if (Object.keys(updates).length > 0) {
+        user = await database.updateUser(email, updates);
       }
       console.log(`[Auth] Existing user logged in via Google: ${email}`);
     }
