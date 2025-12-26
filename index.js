@@ -3864,6 +3864,97 @@ app.get('/critical-news', ensureAuthenticated, async (req, res) => {
   res.send(html);
 });
 
+// Squawk popup window - standalone page
+app.get('/squawk', (req, res) => {
+  const html = \`<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Squawk - AlphaLabs</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a1a;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #222;
+      border-bottom: 1px solid #333;
+    }
+    .header svg { color: #ef4444; }
+    .header h1 { font-size: 14px; font-weight: 600; }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #ef4444;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(239,68,68,0.8);
+      animation: pulse 1.5s infinite;
+      margin-left: auto;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .widget-container {
+      height: calc(100vh - 48px);
+      padding: 8px;
+    }
+    #financialjuice-voice-widget-container {
+      height: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
+    <h1>Live Squawk</h1>
+    <div class="live-dot"></div>
+  </div>
+  <div class="widget-container">
+    <div id="financialjuice-voice-widget-container"></div>
+  </div>
+  <script>
+    (function() {
+      var jo = document.createElement("script");
+      jo.type = "text/javascript";
+      jo.id = "FJ-Widgets";
+      var r = Math.floor(Math.random() * 10000);
+      jo.src = "https://feed.financialjuice.com/widgets/widgets.js?r=" + r;
+      jo.onload = function() {
+        var options = {};
+        options.container = "financialjuice-voice-widget-container";
+        options.mode = "standard";
+        options.width = "100%";
+        options.height = "100%";
+        options.backColor = "transparent";
+        options.fontColor = "#ffffff";
+        options.widgetType = "Voice";
+        new window.FJWidgets.createWidget(options);
+      };
+      document.getElementsByTagName("head")[0].appendChild(jo);
+    })();
+  </script>
+</body>
+</html>\`;
+  res.send(html);
+});
+
 app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
@@ -5959,65 +6050,39 @@ app.get('/', async (req, res) => {
         // MacroAI component removed - AI analysis now integrated into Critical Market News
       </script>
 
-      <!-- Hidden Squawk Container -->
-      <div id="squawk-popup" style="display:none;position:fixed;bottom:60px;left:16px;width:280px;height:200px;background:var(--notion-overlay,#1e1e1e);border:1px solid var(--notion-border,#333);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:9999;overflow:hidden;">
-        <div style="display:flex;align-items:center;justify-content:between;padding:8px 12px;border-bottom:1px solid var(--notion-border,#333);background:rgba(0,0,0,0.2);">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-            <span style="font-size:12px;font-weight:600;color:#fff;">Live Squawk</span>
-            <span style="width:6px;height:6px;background:#ef4444;border-radius:50%;box-shadow:0 0 8px rgba(239,68,68,0.8);animation:pulse 1.5s infinite;"></span>
-          </div>
-          <button onclick="toggleSquawk()" style="background:none;border:none;color:#888;cursor:pointer;padding:4px;margin-left:auto;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div id="financialjuice-voice-widget-container" style="height:calc(100% - 40px);"></div>
-      </div>
-
       <script>
-        // Squawk Toggle
-        var squawkActive = false;
-        var squawkLoaded = false;
+        // Squawk - Opens in separate window to persist across navigation
+        var squawkWindow = null;
 
         function toggleSquawk() {
-          squawkActive = !squawkActive;
-          var popup = document.getElementById('squawk-popup');
           var indicator = document.getElementById('squawk-indicator');
           var text = document.getElementById('squawk-text');
           var icon = document.getElementById('squawk-icon');
 
-          if (squawkActive) {
-            popup.style.display = 'block';
+          // Check if window exists and is open
+          if (squawkWindow && !squawkWindow.closed) {
+            squawkWindow.focus();
+            return;
+          }
+
+          // Open squawk in new popup window
+          squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
+
+          if (squawkWindow) {
             if (indicator) indicator.style.display = 'block';
             if (text) text.style.color = '#ef4444';
             if (icon) icon.style.stroke = '#ef4444';
 
-            // Load widget only once
-            if (!squawkLoaded) {
-              squawkLoaded = true;
-              var jo = document.createElement("script");
-              jo.type = "text/javascript";
-              jo.id = "FJ-Widgets";
-              var r = Math.floor(Math.random() * 10000);
-              jo.src = "https://feed.financialjuice.com/widgets/widgets.js?r=" + r;
-              jo.onload = function() {
-                var options = {};
-                options.container = "financialjuice-voice-widget-container";
-                options.mode = "standard";
-                options.width = "100%";
-                options.height = "100%";
-                options.backColor = "transparent";
-                options.fontColor = "";
-                options.widgetType = "Voice";
-                new window.FJWidgets.createWidget(options);
-              };
-              document.getElementsByTagName("head")[0].appendChild(jo);
-            }
-          } else {
-            popup.style.display = 'none';
-            if (indicator) indicator.style.display = 'none';
-            if (text) text.style.color = '';
-            if (icon) icon.style.stroke = '';
+            // Monitor if window is closed
+            var checkClosed = setInterval(function() {
+              if (squawkWindow.closed) {
+                clearInterval(checkClosed);
+                if (indicator) indicator.style.display = 'none';
+                if (text) text.style.color = '';
+                if (icon) icon.style.stroke = '';
+                squawkWindow = null;
+              }
+            }, 500);
           }
         }
       </script>
