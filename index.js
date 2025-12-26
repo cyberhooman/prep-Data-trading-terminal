@@ -3889,9 +3889,10 @@ app.post('/api/speeches/search', async (req, res) => {
 
 // Protect all routes except login, auth, static files, and API routes
 app.use((req, res, next) => {
-  // Allow access to login, signup, auth, static files, API endpoints, and upgrade page
+  // Allow access to login, signup, auth, static files, API endpoints, upgrade page, and logout
   if (req.path === '/login' ||
       req.path === '/signup' ||
+      req.path === '/logout' ||
       req.path === '/upgrade' ||
       req.path === '/forgot-password' ||
       req.path === '/reset-password' ||
