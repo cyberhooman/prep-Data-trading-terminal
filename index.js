@@ -2867,7 +2867,7 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
               <span>DATA LIVE</span>
             </div>
             <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
-            <button class="top-bar-btn">
+            <button class="top-bar-btn" onclick="showDataDisclaimer()" title="Data Coverage Info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span class="notification-dot"></span>
             </button>
@@ -2919,6 +2919,16 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
           if (themeText) themeText.textContent = 'Light Mode';
           localStorage.setItem('theme', 'dark');
         }
+      }
+      // Data Disclaimer Popup
+      function showDataDisclaimer() {
+        if (document.getElementById('disclaimer-popup')) return;
+        const popup = document.createElement('div');
+        popup.id = 'disclaimer-popup';
+        popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:300px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        popup.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;"><span style="color:var(--muted);font-size:13px;">We only cover high-impact events (NFP, CPI, GDP, Central Bank decisions)</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;">&times;</button></div>';
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 5000);
       }
       // Squawk - Opens in separate window
       var squawkWindow = null;
@@ -3098,7 +3108,7 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
               <span>DATA LIVE</span>
             </div>
             <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
-            <button class="top-bar-btn">
+            <button class="top-bar-btn" onclick="showDataDisclaimer()" title="Data Coverage Info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span class="notification-dot"></span>
             </button>
@@ -3206,6 +3216,16 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           if (themeText) themeText.textContent = 'Light Mode';
           localStorage.setItem('theme', 'dark');
         }
+      }
+      // Data Disclaimer Popup
+      function showDataDisclaimer() {
+        if (document.getElementById('disclaimer-popup')) return;
+        const popup = document.createElement('div');
+        popup.id = 'disclaimer-popup';
+        popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:300px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        popup.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;"><span style="color:var(--muted);font-size:13px;">We only cover high-impact events (NFP, CPI, GDP, Central Bank decisions)</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;">&times;</button></div>';
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 5000);
       }
       // Squawk - Opens in separate window
       var squawkWindow = null;
@@ -3396,7 +3416,7 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
               <span>DATA LIVE</span>
             </div>
             <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
-            <button class="top-bar-btn">
+            <button class="top-bar-btn" onclick="showDataDisclaimer()" title="Data Coverage Info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span class="notification-dot"></span>
             </button>
@@ -3444,6 +3464,16 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
           if (themeText) themeText.textContent = 'Light Mode';
           localStorage.setItem('theme', 'dark');
         }
+      }
+      // Data Disclaimer Popup
+      function showDataDisclaimer() {
+        if (document.getElementById('disclaimer-popup')) return;
+        const popup = document.createElement('div');
+        popup.id = 'disclaimer-popup';
+        popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:300px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        popup.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;"><span style="color:var(--muted);font-size:13px;">We only cover high-impact events (NFP, CPI, GDP, Central Bank decisions)</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;">&times;</button></div>';
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 5000);
       }
       // Squawk - Opens in separate window
       var squawkWindow = null;
@@ -3610,7 +3640,7 @@ app.get('/news-feed', ensureAuthenticated, async (req, res) => {
               <span>LIVE</span>
             </div>
             <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
-            <button class="top-bar-btn">
+            <button class="top-bar-btn" onclick="showDataDisclaimer()" title="Data Coverage Info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span class="notification-dot"></span>
             </button>
@@ -3662,6 +3692,16 @@ app.get('/news-feed', ensureAuthenticated, async (req, res) => {
           if (themeText) themeText.textContent = 'Light Mode';
           localStorage.setItem('theme', 'dark');
         }
+      }
+      // Data Disclaimer Popup
+      function showDataDisclaimer() {
+        if (document.getElementById('disclaimer-popup')) return;
+        const popup = document.createElement('div');
+        popup.id = 'disclaimer-popup';
+        popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:300px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        popup.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;"><span style="color:var(--muted);font-size:13px;">We only cover high-impact events (NFP, CPI, GDP, Central Bank decisions)</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;">&times;</button></div>';
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 5000);
       }
       // Squawk - Opens in separate window
       var squawkWindow = null;
@@ -3848,7 +3888,7 @@ app.get('/critical-news', ensureAuthenticated, async (req, res) => {
               <span style="color: #ef4444;">CRITICAL</span>
             </div>
             <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
-            <button class="top-bar-btn">
+            <button class="top-bar-btn" onclick="showDataDisclaimer()" title="Data Coverage Info">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
               <span class="notification-dot"></span>
             </button>
@@ -3900,6 +3940,16 @@ app.get('/critical-news', ensureAuthenticated, async (req, res) => {
           if (themeText) themeText.textContent = 'Light Mode';
           localStorage.setItem('theme', 'dark');
         }
+      }
+      // Data Disclaimer Popup
+      function showDataDisclaimer() {
+        if (document.getElementById('disclaimer-popup')) return;
+        const popup = document.createElement('div');
+        popup.id = 'disclaimer-popup';
+        popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:300px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+        popup.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;"><span style="color:var(--muted);font-size:13px;">We only cover high-impact events (NFP, CPI, GDP, Central Bank decisions)</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;">&times;</button></div>';
+        document.body.appendChild(popup);
+        setTimeout(() => popup.remove(), 5000);
       }
       // Squawk - Opens in separate window
       var squawkWindow = null;
@@ -4083,6 +4133,15 @@ app.post('/auth/register', async (req, res) => {
 });
 
 app.get('/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+    }
+    res.redirect('/login');
+  });
+});
+
+app.get('/auth/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
       console.error('Logout error:', err);
@@ -5416,7 +5475,7 @@ app.get('/', async (req, res) => {
                 <span>DATA LIVE</span>
               </div>
               <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
-              <button class="top-bar-btn">
+              <button class="top-bar-btn" onclick="showDataDisclaimer()" title="Data Coverage Info">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span class="notification-dot"></span>
               </button>
@@ -5562,6 +5621,17 @@ app.get('/', async (req, res) => {
             if (themeIcon) themeIcon.innerHTML = moonIcon;
             if (mobileThemeIcon) mobileThemeIcon.innerHTML = moonIcon;
           }
+        }
+
+        // Data Disclaimer Popup
+        function showDataDisclaimer() {
+          if (document.getElementById('disclaimer-popup')) return;
+          const popup = document.createElement('div');
+          popup.id = 'disclaimer-popup';
+          popup.style.cssText = 'position:fixed;top:60px;right:20px;background:var(--sidebar);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:300px;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+          popup.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;gap:12px;"><span style="color:var(--muted);font-size:13px;">We only cover high-impact events (NFP, CPI, GDP, Central Bank decisions)</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;line-height:1;">&times;</button></div>';
+          document.body.appendChild(popup);
+          setTimeout(() => popup.remove(), 5000);
         }
 
         // Apply saved theme on load
