@@ -4266,6 +4266,10 @@ app.get('/api/news-feed', async (req, res) => {
  */
 app.get('/api/news-feed/all', async (req, res) => {
   try {
+    // Debug: Log env var status
+    console.log('[DEBUG] FINNHUB_API_KEY in process.env:', process.env.FINNHUB_API_KEY ? 'SET (' + process.env.FINNHUB_API_KEY.substring(0,8) + '...)' : 'NOT SET');
+    console.log('[DEBUG] All env vars with FINN:', Object.keys(process.env).filter(k => k.includes('FINN')));
+
     const news = await finnhubNews.getAllNews();
 
     res.json({
