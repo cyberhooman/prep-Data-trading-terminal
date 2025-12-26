@@ -379,21 +379,71 @@ passport.use(new GoogleStrategy({
   clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'missing',
   callbackURL: `${process.env.APP_URL || 'http://localhost:3000'}/auth/google/callback`
 },
-function(accessToken, refreshToken, profile, cb) {
-  // Check if user email domain is allowed (if ALLOWED_DOMAINS is set)
-  const allowedDomains = process.env.ALLOWED_DOMAINS ? process.env.ALLOWED_DOMAINS.split(',').map(d => d.trim()) : [];
-
-  if (allowedDomains.length > 0) {
+async function(accessToken, refreshToken, profile, cb) {
+  try {
+    // Check if user email domain is allowed (if ALLOWED_DOMAINS is set)
+    const allowedDomains = process.env.ALLOWED_DOMAINS ? process.env.ALLOWED_DOMAINS.split(',').map(d => d.trim()) : [];
     const email = profile.emails[0].value;
-    const emailDomain = email.split('@')[1];
 
-    if (!allowedDomains.includes(emailDomain)) {
-      return cb(null, false, { message: 'Email domain not allowed' });
+    if (allowedDomains.length > 0) {
+      const emailDomain = email.split('@')[1];
+
+      if (!allowedDomains.includes(emailDomain)) {
+        return cb(null, false, { message: 'Email domain not allowed' });
+      }
     }
-  }
 
-  // Return user profile
-  return cb(null, profile);
+    // Check if user exists in our database
+    const users = await readUsers();
+    let user = users.find(u => u.email === email);
+
+    if (!user) {
+      // Create new user for Google OAuth login
+      const now = new Date();
+      const trialEndDate = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+
+      user = {
+        id: profile.id || Date.now().toString(),
+        email: email,
+        displayName: profile.displayName || email.split('@')[0],
+        picture: profile.photos?.[0]?.value || null,
+        googleId: profile.id,
+        authProvider: 'google',
+        createdAt: now.toISOString(),
+        // Trial fields
+        trialStartDate: now.toISOString(),
+        trialEndDate: trialEndDate.toISOString(),
+        subscriptionStatus: 'trial',
+        plan: 'free'
+      };
+
+      users.push(user);
+      await writeUsers(users);
+      console.log(`[Auth] New Google user created: ${email}`);
+    } else {
+      // Update existing user with Google info if missing
+      let updated = false;
+      if (!user.googleId) {
+        user.googleId = profile.id;
+        user.authProvider = user.authProvider || 'google';
+        updated = true;
+      }
+      if (!user.picture && profile.photos?.[0]?.value) {
+        user.picture = profile.photos[0].value;
+        updated = true;
+      }
+      if (updated) {
+        await writeUsers(users);
+      }
+      console.log(`[Auth] Existing user logged in via Google: ${email}`);
+    }
+
+    // Return user from our database (not raw Google profile)
+    return cb(null, user);
+  } catch (err) {
+    console.error('[Auth] Google OAuth error:', err);
+    return cb(err);
+  }
 }));
 
 // Serialize user for session
