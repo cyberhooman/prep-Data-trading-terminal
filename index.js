@@ -5046,17 +5046,43 @@ app.get('/', async (req, res) => {
 
   // Get trial status for display
   const trialStatus = req.trialStatus || (userProfile ? getTrialStatus(userProfile) : null);
-  const trialBadgeHtml = trialStatus && trialStatus.isTrial && trialStatus.daysRemaining !== null
-    ? `<div class="trial-badge ${trialStatus.daysRemaining <= 2 ? 'warning' : ''}" title="${trialStatus.daysRemaining} days remaining in your free trial">
+
+  // Build enhanced subscription badge with plan details
+  let trialBadgeHtml = '';
+  if (trialStatus) {
+    const planLabels = { '1_month': '1 Month', '3_months': '3 Months', '1_year': '1 Year' };
+    const endDate = trialStatus.subscriptionEndDate || (trialStatus.isTrial ? userProfile?.trialEndDate : null);
+    const formattedDate = endDate ? new Date(endDate).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric'
+    }) : null;
+    const daysText = trialStatus.daysRemaining !== null ? `${trialStatus.daysRemaining}d` : '∞';
+
+    if (trialStatus.isTrial && trialStatus.daysRemaining !== null) {
+      // Trial badge
+      const isWarning = trialStatus.daysRemaining <= 3;
+      const tooltip = formattedDate ? `Free trial ends ${formattedDate}` : `${trialStatus.daysRemaining} days remaining`;
+      trialBadgeHtml = `<div class="trial-badge ${isWarning ? 'warning' : ''}" title="${tooltip}">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
-        ${trialStatus.daysRemaining} day${trialStatus.daysRemaining !== 1 ? 's' : ''} left
-       </div>`
-    : (trialStatus && trialStatus.subscriptionStatus === 'active'
-        ? '<div class="trial-badge pro" title="Pro subscription active"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Pro</div>'
-        : '');
+        ${isWarning ? '⚠️ ' : ''}Trial · ${daysText}
+       </div>`;
+    } else if (trialStatus.subscriptionStatus === 'active') {
+      // Paid subscription badge
+      const planLabel = planLabels[trialStatus.subscriptionPlan] || 'Pro';
+      const tooltip = formattedDate
+        ? `${planLabel} plan · Expires ${formattedDate}`
+        : 'Lifetime subscription';
+      trialBadgeHtml = `<div class="trial-badge pro" title="${tooltip}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        Pro · ${daysText}
+       </div>`;
+    }
+  }
 
   const authControlsHtml = userProfile
     ? `
