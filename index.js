@@ -5316,7 +5316,7 @@ app.get('/', async (req, res) => {
                 </div>
 
                 <!-- Scratchpad Block -->
-                <div class="h-64 lg:h-48 lg:flex-[4] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
+                <div class="h-64 lg:h-32 lg:flex-[3] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300">
                   <div class="flex items-center gap-2 mb-2 shrink-0">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-yellow-500"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/></svg>
                     <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Scratchpad</h3>
@@ -5324,6 +5324,20 @@ app.get('/', async (req, res) => {
                   </div>
 
                   <div id="notes-root" class="flex-1 flex flex-col min-h-0"></div>
+                </div>
+
+                <!-- Live Squawk Block -->
+                <div class="h-48 lg:h-40 lg:flex-[3] min-h-0 bg-notion-overlay backdrop-blur-xl border border-notion-border rounded-2xl p-3 flex flex-col shadow-xl transition-colors duration-300 relative overflow-hidden">
+                  <div class="absolute -top-10 -right-10 w-24 h-24 bg-red-500/10 blur-[40px] rounded-full pointer-events-none"></div>
+                  <div class="flex items-center gap-2 mb-2 shrink-0 relative z-10">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-400"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    <h3 class="text-sm font-display font-semibold text-notion-text tracking-wide">Live Squawk</h3>
+                    <div class="flex items-center gap-1.5 ml-auto">
+                      <span class="text-[9px] font-mono text-red-400 opacity-80">LIVE</span>
+                      <span class="w-1.5 h-1.5 bg-red-400 rounded-full shadow-[0_0_8px_rgba(248,113,113,0.8)] animate-pulse"></span>
+                    </div>
+                  </div>
+                  <div id="financialjuice-voice-widget-container" class="flex-1 min-h-0 relative z-10 overflow-hidden rounded-lg"></div>
                 </div>
               </div>
             </div>
@@ -5953,6 +5967,30 @@ app.get('/', async (req, res) => {
 
         // MacroAI component removed - AI analysis now integrated into Critical Market News
       </script>
+
+      <script>
+        // FinancialJuice Live Squawk Widget
+        (function() {
+          var jo = document.createElement("script");
+          jo.type = "text/javascript";
+          jo.id = "FJ-Widgets";
+          var r = Math.floor(Math.random() * (9999 - 0 + 1) + 0);
+          jo.src = "https://feed.financialjuice.com/widgets/widgets.js?r=" + r;
+          jo.onload = function() {
+            var options = {};
+            options.container = "financialjuice-voice-widget-container";
+            options.mode = "standard";
+            options.width = "100%";
+            options.height = "100%";
+            options.backColor = "transparent";
+            options.fontColor = "";
+            options.widgetType = "Voice";
+            new window.FJWidgets.createWidget(options);
+          };
+          document.getElementsByTagName("head")[0].appendChild(jo);
+        })();
+      </script>
+
       <script>
         // Live reload WebSocket connection
         (function() {
