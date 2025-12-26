@@ -292,7 +292,7 @@ function TetrisLoader({
     },
       React.createElement('p', {
         style: {
-          color: '#333',
+          color: 'var(--text, #333)',
           fontWeight: '500',
           margin: '0',
           fontSize: '14px'
