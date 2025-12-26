@@ -22,6 +22,9 @@ Add these environment variables in Railway Settings > Variables:
 ### Twitter/X API (Optional)
 - `TWITTER_BEARER_TOKEN` - Twitter API Bearer Token for news scraping
 
+### Finnhub News API
+- `FINNHUB_API_KEY` - Your Finnhub API key for financial news feed (get free key at finnhub.io)
+
 ## Production Settings
 - `NODE_ENV` - Set to: `production`
 - `PORT` - Set to: `3000`

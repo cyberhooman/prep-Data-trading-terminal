@@ -29,6 +29,9 @@ async function fetchNews(category = 'general') {
     return getMockNews();
   }
 
+  console.log(`[Finnhub] API key present: ${apiKey ? 'YES (' + apiKey.substring(0, 8) + '...)' : 'NO'}`);
+  console.log(`[Finnhub] Fetching ${category} news...`);
+
   // Check cache
   const cached = newsCache[category];
   if (cached && Date.now() - cached.lastFetched < CACHE_DURATION) {
@@ -46,6 +49,8 @@ async function fetchNews(category = 'general') {
       res.on('end', () => {
         try {
           const articles = JSON.parse(data);
+
+          console.log(`[Finnhub] Response received, type: ${Array.isArray(articles) ? 'array' : typeof articles}, length: ${articles?.length || 0}`);
 
           if (Array.isArray(articles)) {
             // Transform to consistent format
@@ -69,7 +74,7 @@ async function fetchNews(category = 'general') {
 
             resolve(formattedNews);
           } else {
-            console.error('Finnhub API error:', articles);
+            console.error('[Finnhub] API error response:', JSON.stringify(articles));
             resolve(getMockNews());
           }
         } catch (err) {
