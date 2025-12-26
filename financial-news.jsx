@@ -62,8 +62,8 @@ function FinancialNewsFeed() {
 
   React.useEffect(() => {
     fetchNews();
-    // Refresh every 2 minutes
-    const interval = setInterval(fetchNews, 120000);
+    // Refresh every 5 minutes (reduced from 2 min to lower CPU usage)
+    const interval = setInterval(fetchNews, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 

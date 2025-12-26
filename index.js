@@ -49,6 +49,7 @@ const financialJuiceScraper = require('./services/financialJuiceScraper');
 const xNewsScraper = require('./services/xNewsScraper');
 const deepseekAI = require('./services/deepseekAI');
 const cbSpeechScraper = require('./services/cbSpeechScraper');
+const finnhubNews = require('./services/finnhubNews');
 const emailService = require('./services/emailService');
 const trumpScheduleScraper = require('./services/trumpScheduleScraper');
 
@@ -73,6 +74,52 @@ const currencyStrengthCache = {
   data: null,
   ttl: 5 * 60 * 1000, // 5 minutes cache
 };
+
+// JSX file cache - loaded once at startup, updated on file changes
+const jsxFileCache = new Map();
+const JSX_FILES = [
+  { route: '/todo-card.jsx', file: 'todo-card.jsx' },
+  { route: '/animated-title.jsx', file: 'animated-title.jsx' },
+  { route: '/quick-notes.jsx', file: 'quick-notes.jsx' },
+  { route: '/financial-news.jsx', file: 'financial-news.jsx' },
+  { route: '/news-feed.jsx', file: 'news-feed.jsx' },
+  { route: '/components/tetris-loader.jsx', file: 'components/tetris-loader.jsx' },
+  { route: '/components/week-calendar.jsx', file: 'components/week-calendar.jsx' },
+  { route: '/components/month-calendar.jsx', file: 'components/month-calendar.jsx' },
+  { route: '/cb-speech-analysis.jsx', file: 'cb-speech-analysis.jsx' },
+  { route: '/weekly-calendar.jsx', file: 'weekly-calendar.jsx' },
+  { route: '/monthly-calendar.jsx', file: 'monthly-calendar.jsx' },
+  { route: '/currency-strength.jsx', file: 'currency-strength.jsx' }
+];
+
+// Load all JSX files into cache at startup (async)
+function loadJsxCache() {
+  JSX_FILES.forEach(({ route, file }) => {
+    try {
+      const filePath = path.join(__dirname, file);
+      const content = fs.readFileSync(filePath, 'utf8');
+      jsxFileCache.set(route, content);
+    } catch (err) {
+      console.error(`Failed to cache ${file}:`, err.message);
+    }
+  });
+  console.log(`Cached ${jsxFileCache.size} JSX files in memory`);
+}
+
+// Reload a single file when it changes
+function reloadJsxFile(filePath) {
+  const relativePath = path.relative(__dirname, filePath).replace(/\\/g, '/');
+  const jsxFile = JSX_FILES.find(f => f.file === relativePath);
+  if (jsxFile) {
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      jsxFileCache.set(jsxFile.route, content);
+      console.log(`Reloaded ${jsxFile.route} into cache`);
+    } catch (err) {
+      console.error(`Failed to reload ${jsxFile.route}:`, err.message);
+    }
+  }
+}
 
 // Simple on-disk persistence for todos and manual events so data survives restarts.
 const DATA_DIR = path.join(__dirname, 'data');
@@ -2765,6 +2812,10 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Weekly Calendar</span>
           </a>
+          <a href="/news-feed" class="sidebar-nav-item ${req.path === '/news-feed' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>News Feed</span>
+          </a>
         </nav>
 
         <!-- Footer -->
@@ -2965,6 +3016,10 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           <a href="/weekly-calendar" class="sidebar-nav-item ${req.path === '/weekly-calendar' ? 'active' : ''}">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Weekly Calendar</span>
+          </a>
+          <a href="/news-feed" class="sidebar-nav-item ${req.path === '/news-feed' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>News Feed</span>
           </a>
         </nav>
 
@@ -3252,6 +3307,10 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>Weekly Calendar</span>
           </a>
+          <a href="/news-feed" class="sidebar-nav-item ${req.path === '/news-feed' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>News Feed</span>
+          </a>
         </nav>
 
         <!-- Footer -->
@@ -3319,6 +3378,211 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="text/babel" src="/currency-strength.jsx"></script>
     
+    <script>
+      // Sidebar functions
+      function openSidebar() {
+        document.getElementById('sidebar').classList.add('open');
+        document.getElementById('mobile-backdrop').classList.add('active');
+      }
+      function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('mobile-backdrop').classList.remove('active');
+      }
+      // Theme toggle
+      function toggleTheme() {
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (html.classList.contains('dark')) {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+          localStorage.setItem('theme', 'light');
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+          localStorage.setItem('theme', 'dark');
+        }
+      }
+      // Apply saved theme
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const html = document.documentElement;
+        const themeText = document.getElementById('theme-text');
+        if (savedTheme === 'light') {
+          html.classList.remove('dark');
+          if (themeText) themeText.textContent = 'Dark Mode';
+        } else {
+          html.classList.add('dark');
+          if (themeText) themeText.textContent = 'Light Mode';
+        }
+      })();
+    </script>
+  </body>
+</html>`;
+
+  res.send(html);
+});
+
+// News Feed Page
+app.get('/news-feed', ensureAuthenticated, async (req, res) => {
+  const user = req.user;
+
+  const html = `<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+    <title>News Feed - Alphalabs</title>
+    <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              notion: {
+                bg: 'var(--bg)',
+                sidebar: 'var(--sidebar)',
+                hover: 'var(--hover)',
+                border: 'var(--border)',
+                text: 'var(--text)',
+                muted: 'var(--muted)',
+                block: 'var(--block)',
+                overlay: 'var(--overlay)',
+                blue: '#4E7CFF',
+                red: '#FF5C5C',
+                green: '#4CAF50',
+                yellow: '#D9B310'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/notion-theme.css?v=\${Date.now()}">
+  </head>
+  <body class="bg-notion-bg">
+    <!-- Mobile Backdrop -->
+    <div id="mobile-backdrop" class="mobile-backdrop" onclick="closeSidebar()"></div>
+
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside id="sidebar" class="sidebar">
+        <!-- Brand -->
+        <div class="sidebar-brand">
+          <div class="sidebar-brand-inner">
+            <div class="sidebar-logo">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="sidebar-brand-text">
+              <span class="sidebar-brand-name">AlphaLabs</span>
+              <span class="sidebar-brand-tagline">Pro Terminal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+          <div class="sidebar-nav-label">Trading Data</div>
+          <a href="/" class="sidebar-nav-item \${req.path === '/' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="/currency-strength" class="sidebar-nav-item \${req.path === '/currency-strength' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></svg>
+            <span>Currency Strength</span>
+          </a>
+          <a href="/cb-speeches" class="sidebar-nav-item \${req.path === '/cb-speeches' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            <span>CB Speeches</span>
+          </a>
+          <a href="/weekly-calendar" class="sidebar-nav-item \${req.path === '/weekly-calendar' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Weekly Calendar</span>
+          </a>
+          <a href="/news-feed" class="sidebar-nav-item \${req.path === '/news-feed' ? 'active' : ''}">
+            <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span>News Feed</span>
+          </a>
+        </nav>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+          <div class="sidebar-footer-item" onclick="toggleTheme()">
+            <svg id="theme-icon" class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            <span id="theme-text">Light Mode</span>
+          </div>
+          \${user ? '<a href="/auth/logout" class="sidebar-footer-item logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span>Logout</span></a>' : ''}
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+          <div class="top-bar-left">
+            <button class="mobile-menu-btn" onclick="openSidebar()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div class="hidden lg:flex w-6 h-6 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-md text-white items-center justify-center shadow-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 22H22L12 2ZM12 7.5L17 17.5H7L12 7.5Z" fill="currentColor"/></svg>
+            </div>
+            <div class="top-bar-breadcrumb">
+              <span class="hidden lg:block hover:text-notion-text cursor-pointer">AlphaLabs</span>
+              <span class="hidden lg:block top-bar-breadcrumb-divider">/</span>
+              <span class="text-notion-text font-medium">News Feed</span>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <!-- Mobile-only Theme Toggle -->
+            <button class="top-bar-btn block sm:hidden" onclick="toggleTheme()" title="Toggle theme">
+              <svg id="mobile-theme-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
+            <!-- Mobile-only Logout -->
+            \${user ? '<a href="/auth/logout" class="top-bar-btn block sm:hidden" title="Logout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>' : ''}
+
+            <div class="status-badge hidden sm:flex">
+              <span class="status-dot"></span>
+              <span>LIVE</span>
+            </div>
+            <div class="hidden sm:block h-4 w-px bg-notion-border"></div>
+            <button class="top-bar-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span class="notification-dot"></span>
+            </button>
+            \${user ? '<div class="hidden sm:flex items-center gap-2"><img src="' + (user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(user.displayName || user.email) + '&background=6366f1&color=fff') + '" class="w-8 h-8 rounded-full border-2 border-indigo-500/30" alt=""/><span class="text-sm text-notion-text font-medium hidden md:block">' + (user.displayName || user.email.split('@')[0]) + '</span></div>' : ''}
+          </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="dashboard-content">
+          <div id="news-feed-root"></div>
+        </div>
+      </div><!-- end main-content -->
+    </div><!-- end app-container -->
+
+    <!-- Footer -->
+    <div class="fixed bottom-0 left-0 right-0 lg:left-64 py-2 px-4 text-center text-xs text-notion-muted bg-notion-bg/80 backdrop-blur-sm border-t border-notion-border">
+      News powered by Finnhub.io • Auto-refreshes every 5 minutes
+    </div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script type="text/babel" data-presets="env,react" src="/components/tetris-loader.jsx"></script>
+    <script type="text/babel" src="/news-feed.jsx"></script>
+    <script type="text/babel" data-presets="env,react">
+      const newsroot = ReactDOM.createRoot(document.getElementById('news-feed-root'));
+      newsroot.render(React.createElement(NewsFeed));
+    </script>
     <script>
       // Sidebar functions
       function openSidebar() {
@@ -3568,6 +3832,84 @@ app.post('/api/financial-news/refresh', async (req, res) => {
       success: false,
       error: 'Failed to refresh financial news',
       message: err.message
+    });
+  }
+});
+
+// ============================================================================
+// Finnhub News API Endpoints
+// ============================================================================
+
+/**
+ * GET /api/news-feed
+ * Fetch news from Finnhub API
+ * Query params: category (general, forex, crypto)
+ */
+app.get('/api/news-feed', async (req, res) => {
+  try {
+    const category = req.query.category || 'general';
+    const news = await finnhubNews.fetchNews(category);
+
+    res.json({
+      success: true,
+      category,
+      data: news,
+      count: news.length,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error fetching news feed:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch news',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/news-feed/all
+ * Fetch all news categories
+ */
+app.get('/api/news-feed/all', async (req, res) => {
+  try {
+    const news = await finnhubNews.getAllNews();
+
+    res.json({
+      success: true,
+      data: news,
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error fetching all news:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch news',
+      message: err.message
+    });
+  }
+});
+
+/**
+ * GET /api/news-feed/company/:symbol
+ * Fetch news for a specific company
+ */
+app.get('/api/news-feed/company/:symbol', async (req, res) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    const news = await finnhubNews.fetchCompanyNews(symbol);
+
+    res.json({
+      success: true,
+      symbol,
+      data: news,
+      count: news.length
+    });
+  } catch (err) {
+    console.error('Error fetching company news:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch company news'
     });
   }
 });
@@ -3920,70 +4262,18 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/todo-card.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'todo-card.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/animated-title.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'animated-title.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/quick-notes.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'quick-notes.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/financial-news.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'financial-news.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/components/tetris-loader.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'components', 'tetris-loader.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/components/week-calendar.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'components', 'week-calendar.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/components/month-calendar.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'components', 'month-calendar.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/cb-speech-analysis.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'cb-speech-analysis.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/weekly-calendar.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'weekly-calendar.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/monthly-calendar.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'monthly-calendar.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
-});
-
-app.get('/currency-strength.jsx', (req, res) => {
-  const filePath = path.join(__dirname, 'currency-strength.jsx');
-  res.setHeader('Content-Type', 'application/javascript');
-  res.send(fs.readFileSync(filePath, 'utf8'));
+// Serve all JSX files from memory cache (much faster than disk reads)
+JSX_FILES.forEach(({ route }) => {
+  app.get(route, (req, res) => {
+    const content = jsxFileCache.get(route);
+    if (content) {
+      res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Cache-Control', 'public, max-age=300'); // Browser cache 5 min
+      res.send(content);
+    } else {
+      res.status(404).send('File not found');
+    }
+  });
 });
 
 // Removed: Macro-AI Analysis component (analysis now integrated into Critical Market News)
@@ -5396,7 +5686,7 @@ app.get('/', async (req, res) => {
 
           React.useEffect(() => {
             fetchNews();
-            const interval = setInterval(fetchNews, 120000);
+            const interval = setInterval(fetchNews, 5 * 60 * 1000); // 5 min (reduced CPU)
             return () => clearInterval(interval);
           }, []);
 
@@ -5699,6 +5989,9 @@ app.get('/next', async (req, res) => {
   res.send(html);
   });
 
+// Load JSX files into memory cache before starting server
+loadJsxCache();
+
 const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Alphalabs data trading server running on http://0.0.0.0:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -5714,17 +6007,17 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
     console.error('Failed to migrate users to trial system:', err);
   }
 
-  // Periodic backup of todos every 30 seconds to prevent data loss
+  // Periodic backup of todos every 2 minutes (reduced from 30 sec to lower CPU usage)
   setInterval(() => {
     try {
       saveJson('todos.json', todoItems);
-      console.log(`[Auto-save] Todos backed up at ${new Date().toLocaleTimeString()}`);
+      // Silent save - only log errors
     } catch (err) {
       console.error('[Auto-save] Failed to backup todos:', err);
     }
-  }, 30000); // 30 seconds
+  }, 2 * 60 * 1000); // 2 minutes
 
-  console.log('Auto-save enabled: Todos will be backed up every 30 seconds');
+  console.log('Auto-save enabled: Todos will be backed up every 2 minutes');
 });
 
 // WebSocket server for live reload
@@ -5770,6 +6063,10 @@ watchedFiles.forEach((file) => {
     fs.watch(file, { persistent: true }, (eventType) => {
       if (eventType === 'change') {
         console.log(`File changed: ${path.basename(file)} - Reloading clients...`);
+        // Reload JSX file into cache if it's a JSX file
+        if (file.endsWith('.jsx')) {
+          reloadJsxFile(file);
+        }
         notifyReload();
       }
     });

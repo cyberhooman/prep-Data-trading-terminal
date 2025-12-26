@@ -503,7 +503,7 @@ Note: This analysis evaluates whether events surprise the market within the broa
   }
 
   /**
-   * Save analysis to cache
+   * Save analysis to cache with proper LRU eviction
    */
   saveToCache(key, data) {
     this.analysisCache.set(key, {
@@ -511,10 +511,16 @@ Note: This analysis evaluates whether events surprise the market within the broa
       timestamp: Date.now()
     });
 
-    // Clean up old cache entries (keep max 100 items)
-    if (this.analysisCache.size > 100) {
-      const firstKey = this.analysisCache.keys().next().value;
-      this.analysisCache.delete(firstKey);
+    // Clean up old cache entries (keep max 50 items, remove oldest 20% when exceeded)
+    const MAX_CACHE_SIZE = 50;
+    if (this.analysisCache.size > MAX_CACHE_SIZE) {
+      // Sort by timestamp and remove oldest 20%
+      const entries = Array.from(this.analysisCache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const toRemove = Math.ceil(this.analysisCache.size * 0.2);
+      for (let i = 0; i < toRemove && i < entries.length; i++) {
+        this.analysisCache.delete(entries[i][0]);
+      }
     }
   }
 

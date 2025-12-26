@@ -18,6 +18,7 @@ class DeepSeekAI {
     this.model = 'deepseek-chat';
     this.analysisCache = new Map();
     this.cacheTimeout = 30 * 60 * 1000; // 30 minutes cache
+    this.maxCacheSize = 50; // Maximum cache entries
 
     // G8 Central Banks and their currencies
     this.centralBanks = {
@@ -216,11 +217,8 @@ Consider current market context (${currentDate}), recent CB communications, and 
       analysis.date = date;
       analysis.analyzedAt = new Date().toISOString();
 
-      // Cache the result
-      this.analysisCache.set(cacheKey, {
-        timestamp: Date.now(),
-        data: analysis
-      });
+      // Cache the result with LRU eviction
+      this.addToCache(cacheKey, analysis);
 
       return analysis;
     } catch (error) {
@@ -303,6 +301,26 @@ Consider current market context (${currentDate}), recent CB communications, and 
     } catch (error) {
       console.error('Quick sentiment error:', error.message);
       throw error;
+    }
+  }
+
+  /**
+   * Add to cache with LRU eviction
+   */
+  addToCache(key, data) {
+    this.analysisCache.set(key, {
+      timestamp: Date.now(),
+      data: data
+    });
+
+    // Evict oldest entries when cache exceeds max size
+    if (this.analysisCache.size > this.maxCacheSize) {
+      const entries = Array.from(this.analysisCache.entries())
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+      const toRemove = Math.ceil(this.analysisCache.size * 0.2);
+      for (let i = 0; i < toRemove && i < entries.length; i++) {
+        this.analysisCache.delete(entries[i][0]);
+      }
     }
   }
 

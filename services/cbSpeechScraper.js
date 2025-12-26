@@ -5,6 +5,7 @@
  */
 
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 
 class CBSpeechScraper {
@@ -79,12 +80,12 @@ class CBSpeechScraper {
   }
 
   /**
-   * Load CB content history from file
+   * Load CB content history from file (async - non-blocking)
    */
-  loadHistory() {
+  async loadHistory() {
     try {
       if (fs.existsSync(this.historyFile)) {
-        const data = JSON.parse(fs.readFileSync(this.historyFile, 'utf8'));
+        const data = JSON.parse(await fsPromises.readFile(this.historyFile, 'utf8'));
         this.cbContentHistory = new Map(data.map(item => [item.id, item]));
         this.cleanOldData();
         console.log(`Loaded ${this.cbContentHistory.size} CB speech/press conf items from history`);
@@ -96,16 +97,16 @@ class CBSpeechScraper {
   }
 
   /**
-   * Save CB content history to file
+   * Save CB content history to file (async - non-blocking)
    */
-  saveHistory() {
+  async saveHistory() {
     try {
       const dir = path.dirname(this.historyFile);
       if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+        await fsPromises.mkdir(dir, { recursive: true });
       }
       const data = Array.from(this.cbContentHistory.values());
-      fs.writeFileSync(this.historyFile, JSON.stringify(data, null, 2));
+      await fsPromises.writeFile(this.historyFile, JSON.stringify(data, null, 2));
     } catch (err) {
       console.error('Error saving CB history:', err.message);
     }

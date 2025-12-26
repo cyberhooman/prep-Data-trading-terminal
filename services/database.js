@@ -4,6 +4,7 @@
 
 const { Pool } = require('pg');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 
 class Database {
@@ -167,12 +168,12 @@ class Database {
   }
 
   /**
-   * Load news history from JSON file (development mode)
+   * Load news history from JSON file (development mode, async)
    */
-  loadFromFile() {
+  async loadFromFile() {
     try {
       if (fs.existsSync(this.newsHistoryFile)) {
-        const data = fs.readFileSync(this.newsHistoryFile, 'utf8');
+        const data = await fsPromises.readFile(this.newsHistoryFile, 'utf8');
         const newsItems = JSON.parse(data);
         console.log(`Loaded ${newsItems.length} news items from file`);
         return newsItems;
@@ -191,7 +192,7 @@ class Database {
     if (this.isProduction && this.pool) {
       await this.saveToPostgres(newsItems);
     } else {
-      this.saveToFile(newsItems);
+      await this.saveToFile(newsItems);
     }
   }
 
@@ -247,16 +248,16 @@ class Database {
   }
 
   /**
-   * Save news history to JSON file (development mode)
+   * Save news history to JSON file (development mode, async)
    */
-  saveToFile(newsItems) {
+  async saveToFile(newsItems) {
     try {
       const dataDir = path.join(__dirname, '..', 'data');
       if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+        await fsPromises.mkdir(dataDir, { recursive: true });
       }
 
-      fs.writeFileSync(
+      await fsPromises.writeFile(
         this.newsHistoryFile,
         JSON.stringify(newsItems, null, 2),
         'utf8'
@@ -274,7 +275,7 @@ class Database {
     if (this.isProduction && this.pool) {
       return await this.loadRateProbabilitiesFromPostgres();
     } else {
-      return this.loadRateProbabilitiesFromFile();
+      return await this.loadRateProbabilitiesFromFile();
     }
   }
 
@@ -319,12 +320,12 @@ class Database {
   }
 
   /**
-   * Load rate probabilities from JSON file (development mode)
+   * Load rate probabilities from JSON file (development mode, async)
    */
-  loadRateProbabilitiesFromFile() {
+  async loadRateProbabilitiesFromFile() {
     try {
       if (fs.existsSync(this.rateProbabilitiesFile)) {
-        const data = fs.readFileSync(this.rateProbabilitiesFile, 'utf8');
+        const data = await fsPromises.readFile(this.rateProbabilitiesFile, 'utf8');
         const probabilities = JSON.parse(data);
         console.log(`Loaded ${Object.keys(probabilities).length} rate probabilities from file`);
         return probabilities;
@@ -343,7 +344,7 @@ class Database {
     if (this.isProduction && this.pool) {
       await this.saveRateProbabilitiesToPostgres(probabilities);
     } else {
-      this.saveRateProbabilitiesToFile(probabilities);
+      await this.saveRateProbabilitiesToFile(probabilities);
     }
   }
 
@@ -396,16 +397,16 @@ class Database {
   }
 
   /**
-   * Save rate probabilities to JSON file (development mode)
+   * Save rate probabilities to JSON file (development mode, async)
    */
-  saveRateProbabilitiesToFile(probabilities) {
+  async saveRateProbabilitiesToFile(probabilities) {
     try {
       const dataDir = path.join(__dirname, '..', 'data');
       if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+        await fsPromises.mkdir(dataDir, { recursive: true });
       }
 
-      fs.writeFileSync(
+      await fsPromises.writeFile(
         this.rateProbabilitiesFile,
         JSON.stringify(probabilities, null, 2),
         'utf8'

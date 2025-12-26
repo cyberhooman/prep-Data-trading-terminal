@@ -57,7 +57,7 @@ export default function FinancialNewsFeed() {
 
   useEffect(() => {
     fetchNews();
-    const interval = setInterval(fetchNews, 120000);
+    const interval = setInterval(fetchNews, 5 * 60 * 1000); // 5 min (reduced CPU)
     return () => clearInterval(interval);
   }, []);
 

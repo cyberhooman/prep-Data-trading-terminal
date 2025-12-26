@@ -7,6 +7,7 @@
  */
 
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
@@ -486,12 +487,12 @@ class RateProbabilityScraper {
   }
 
   /**
-   * Load history from file
+   * Load history from file (async - non-blocking)
    */
-  loadHistory() {
+  async loadHistory() {
     try {
       if (fs.existsSync(this.historyFile)) {
-        const data = JSON.parse(fs.readFileSync(this.historyFile, 'utf8'));
+        const data = JSON.parse(await fsPromises.readFile(this.historyFile, 'utf8'));
 
         if (data.snapshots) {
           this.weeklySnapshots = new Map(Object.entries(data.snapshots));
@@ -506,13 +507,13 @@ class RateProbabilityScraper {
   }
 
   /**
-   * Save history to file
+   * Save history to file (async - non-blocking)
    */
-  saveHistory() {
+  async saveHistory() {
     try {
       const dir = path.dirname(this.historyFile);
       if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+        await fsPromises.mkdir(dir, { recursive: true });
       }
 
       const data = {
@@ -520,7 +521,7 @@ class RateProbabilityScraper {
         lastSaved: new Date().toISOString()
       };
 
-      fs.writeFileSync(this.historyFile, JSON.stringify(data, null, 2));
+      await fsPromises.writeFile(this.historyFile, JSON.stringify(data, null, 2));
     } catch (err) {
       console.error('Error saving rate probability history:', err.message);
     }

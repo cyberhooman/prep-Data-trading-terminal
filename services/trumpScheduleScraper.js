@@ -7,6 +7,7 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const path = require('path');
 
 // Add stealth plugin to avoid bot detection
@@ -28,12 +29,12 @@ class TrumpScheduleScraper {
   }
 
   /**
-   * Load schedule history from file
+   * Load schedule history from file (async - non-blocking)
    */
-  loadHistory() {
+  async loadHistory() {
     try {
       if (fs.existsSync(this.historyFile)) {
-        const data = JSON.parse(fs.readFileSync(this.historyFile, 'utf8'));
+        const data = JSON.parse(await fsPromises.readFile(this.historyFile, 'utf8'));
         this.scheduleHistory = new Map(data.map(item => [item.id, item]));
         this.cleanOldData();
         console.log(`Loaded ${this.scheduleHistory.size} Trump schedule items from history`);
@@ -45,16 +46,16 @@ class TrumpScheduleScraper {
   }
 
   /**
-   * Save schedule history to file
+   * Save schedule history to file (async - non-blocking)
    */
-  saveHistory() {
+  async saveHistory() {
     try {
       const dir = path.dirname(this.historyFile);
       if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+        await fsPromises.mkdir(dir, { recursive: true });
       }
       const data = Array.from(this.scheduleHistory.values());
-      fs.writeFileSync(this.historyFile, JSON.stringify(data, null, 2), 'utf8');
+      await fsPromises.writeFile(this.historyFile, JSON.stringify(data, null, 2), 'utf8');
     } catch (err) {
       console.error('Error saving Trump schedule history:', err.message);
     }
