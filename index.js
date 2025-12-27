@@ -2620,82 +2620,322 @@ app.get('/forgot-password', (req, res) => {
   const successMsg = req.query.success || '';
 
   const html = `<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
-  <title>Forgot Password - Alphalabs Trading</title>
-  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
-    }
-    .container {
-      background: white;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      max-width: 400px;
-      width: 100%;
-    }
-    h1 { color: #333; margin-bottom: 0.5rem; font-size: 1.75rem; }
-    p { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
-    .form-group { margin-bottom: 1rem; }
-    label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
-    input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 1rem;
-    }
-    input:focus { outline: none; border-color: #667eea; }
-    .btn {
-      width: 100%;
-      padding: 0.75rem;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .btn:hover { transform: translateY(-2px); }
-    .error { background: #fee; color: #c33; padding: 0.75rem; border-radius: 5px; margin-bottom: 1rem; }
-    .success { background: #efe; color: #3c3; padding: 0.75rem; border-radius: 5px; margin-bottom: 1rem; }
-    .back-link { text-align: center; margin-top: 1rem; }
-    .back-link a { color: #667eea; text-decoration: none; }
-    .back-link a:hover { text-decoration: underline; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Forgot Password?</h1>
-    <p>Enter your email address and we'll generate a reset link for you.</p>
-    ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
-    ${successMsg ? `<div class="success">${successMsg}</div>` : ''}
-    <form action="/auth/forgot-password" method="POST">
-      <div class="form-group">
-        <label for="email">Email Address</label>
-        <input type="email" id="email" name="email" required>
+  <html lang="en" class="dark">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+      <title>Forgot Password - Alphalabs Trading</title>
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --neon-red: #ff0055;
+          --neon-green: #00ff88;
+          --dark-bg: #000000;
+          --scan-line: rgba(255, 0, 85, 0.03);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'JetBrains Mono', monospace;
+          min-height: 100vh;
+          overflow: hidden;
+          background: var(--dark-bg);
+          color: #fff;
+        }
+
+        #shader-bg {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+          opacity: 0.85;
+          background: radial-gradient(ellipse at center, #1a0033 0%, #000000 50%, #001a33 100%);
+          animation: bgShift 20s ease-in-out infinite;
+        }
+
+        @keyframes bgShift {
+          0%, 100% { background: radial-gradient(ellipse at 30% 50%, #1a0033 0%, #000000 40%, #001a33 100%); }
+          25% { background: radial-gradient(ellipse at 70% 30%, #0d1a33 0%, #000000 40%, #1a0033 100%); }
+          50% { background: radial-gradient(ellipse at 60% 70%, #001a33 0%, #000000 40%, #0d1a33 100%); }
+          75% { background: radial-gradient(ellipse at 40% 40%, #1a0033 0%, #000000 40%, #001a33 100%); }
+        }
+
+        #shader-bg::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: repeating-linear-gradient(0deg, var(--scan-line) 0px, transparent 1px, transparent 2px, var(--scan-line) 3px);
+          pointer-events: none;
+          animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes scanlines {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(10px); }
+        }
+
+        .content-wrapper {
+          position: relative;
+          z-index: 1;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          overflow-y: auto;
+        }
+
+        .login-container {
+          position: relative;
+          max-width: 450px;
+          width: 100%;
+          animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .terminal-border {
+          position: relative;
+          background: rgba(15, 15, 15, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          overflow: hidden;
+        }
+
+        .terminal-content {
+          padding: 48px 40px;
+          background: transparent;
+        }
+
+        .logo {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+
+        .subtitle {
+          font-size: 20px;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 8px;
+          text-align: center;
+        }
+
+        .subtitle-2 {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.4);
+          font-weight: 400;
+          margin-bottom: 32px;
+          text-align: center;
+        }
+
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .form-input {
+          padding: 14px 16px;
+          background: rgba(30, 30, 30, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          color: #fff;
+          font-size: 14px;
+          font-family: 'JetBrains Mono', monospace;
+          transition: all 0.2s ease;
+          outline: none;
+          width: 100%;
+        }
+
+        .form-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .form-input:focus {
+          background: rgba(40, 40, 40, 0.8);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-input:hover:not(:focus) {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .submit-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 14px 20px;
+          background: rgba(30, 30, 30, 0.6);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          margin-top: 8px;
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .submit-btn:hover {
+          background: rgba(40, 40, 40, 0.8);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .submit-btn:active {
+          transform: scale(0.98);
+        }
+
+        .toggle-mode {
+          text-align: center;
+          margin-top: 20px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .toggle-link {
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 500;
+          cursor: pointer;
+          transition: opacity 0.2s;
+          margin-left: 4px;
+        }
+
+        .toggle-link:hover {
+          opacity: 0.8;
+        }
+
+        .error-message {
+          padding: 12px 16px;
+          background: rgba(255, 0, 85, 0.1);
+          border: 1px solid rgba(255, 0, 85, 0.5);
+          border-left: 3px solid #ff0055;
+          color: #ff0055;
+          font-size: 12px;
+          line-height: 1.6;
+          display: none;
+          animation: slideDown 0.3s ease-out;
+          margin-bottom: 16px;
+        }
+
+        .error-message.show {
+          display: block;
+        }
+
+        .success-message {
+          padding: 12px 16px;
+          background: rgba(0, 255, 136, 0.1);
+          border: 1px solid rgba(0, 255, 136, 0.5);
+          border-left: 3px solid #00ff88;
+          color: #00ff88;
+          font-size: 12px;
+          line-height: 1.6;
+          display: none;
+          animation: slideDown 0.3s ease-out;
+          margin-bottom: 16px;
+        }
+
+        .success-message.show {
+          display: block;
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-message::before {
+          content: '[ERROR] ';
+          font-weight: 700;
+          letter-spacing: 1px;
+        }
+
+        .success-message::before {
+          content: '[SUCCESS] ';
+          font-weight: 700;
+          letter-spacing: 1px;
+        }
+
+        @media (max-width: 600px) {
+          .terminal-content {
+            padding: 20px 16px;
+          }
+          .subtitle-2 {
+            font-size: 12px;
+          }
+          .form-input {
+            padding: 10px 12px;
+            font-size: 13px;
+          }
+          .submit-btn {
+            padding: 12px 20px;
+            font-size: 12px;
+          }
+          .error-message, .success-message {
+            padding: 10px 12px;
+            font-size: 10px;
+            margin-bottom: 12px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div id="shader-bg"></div>
+      <div class="content-wrapper">
+        <div class="login-container">
+          <div class="terminal-border">
+            <div class="terminal-content">
+              <div class="logo">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M24 4L4 14L24 24L44 14L24 4Z" fill="white" opacity="0.9"/>
+                  <path d="M4 24L24 34L44 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+                  <path d="M4 34L24 44L44 34" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                </svg>
+              </div>
+              <div class="subtitle">Forgot Password?</div>
+              <div class="subtitle-2">Enter your email and we'll send you a reset link.</div>
+
+              <div class="error-message ${errorMsg ? 'show' : ''}">${errorMsg}</div>
+              <div class="success-message ${successMsg ? 'show' : ''}">${successMsg}</div>
+
+              <form action="/auth/forgot-password" method="POST" class="auth-form">
+                <input
+                  type="email"
+                  name="email"
+                  class="form-input"
+                  placeholder="Email address"
+                  required
+                  autocomplete="email"
+                />
+                <button type="submit" class="submit-btn">Send Reset Link</button>
+              </form>
+
+              <div class="toggle-mode">
+                Remember your password?<a href="/login" class="toggle-link">Sign in</a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <button type="submit" class="btn">Send Reset Link</button>
-    </form>
-    <div class="back-link">
-      <a href="/login">Back to Login</a>
-    </div>
-  </div>
-</body>
-</html>`;
+    </body>
+  </html>`;
 
   res.send(html);
 });
@@ -2710,79 +2950,309 @@ app.get('/reset-password', (req, res) => {
   }
 
   const html = `<!DOCTYPE html>
-<html lang="en" class="dark">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1">
-  <title>Reset Password - Alphalabs Trading</title>
-  <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 20px;
-    }
-    .container {
-      background: white;
-      padding: 2rem;
-      border-radius: 10px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-      max-width: 400px;
-      width: 100%;
-    }
-    h1 { color: #333; margin-bottom: 0.5rem; font-size: 1.75rem; }
-    p { color: #666; margin-bottom: 1.5rem; font-size: 0.9rem; }
-    .form-group { margin-bottom: 1rem; }
-    label { display: block; margin-bottom: 0.5rem; color: #333; font-weight: 500; }
-    input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      font-size: 1rem;
-    }
-    input:focus { outline: none; border-color: #667eea; }
-    .btn {
-      width: 100%;
-      padding: 0.75rem;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 5px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .btn:hover { transform: translateY(-2px); }
-    .error { background: #fee; color: #c33; padding: 0.75rem; border-radius: 5px; margin-bottom: 1rem; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Reset Your Password</h1>
-    <p>Enter your new password below.</p>
-    ${errorMsg ? `<div class="error">${errorMsg}</div>` : ''}
-    <form action="/auth/reset-password" method="POST">
-      <input type="hidden" name="token" value="${token}">
-      <div class="form-group">
-        <label for="password">New Password</label>
-        <input type="password" id="password" name="password" required minlength="8">
+  <html lang="en" class="dark">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1" />
+      <title>Reset Password - Alphalabs Trading</title>
+      <link rel="icon" type="image/svg+xml" href="/public/favicon.svg" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+      <style>
+        :root {
+          --neon-red: #ff0055;
+          --neon-green: #00ff88;
+          --dark-bg: #000000;
+          --scan-line: rgba(255, 0, 85, 0.03);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+          font-family: 'JetBrains Mono', monospace;
+          min-height: 100vh;
+          overflow: hidden;
+          background: var(--dark-bg);
+          color: #fff;
+        }
+
+        #shader-bg {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          z-index: 0;
+          opacity: 0.85;
+          background: radial-gradient(ellipse at center, #1a0033 0%, #000000 50%, #001a33 100%);
+          animation: bgShift 20s ease-in-out infinite;
+        }
+
+        @keyframes bgShift {
+          0%, 100% { background: radial-gradient(ellipse at 30% 50%, #1a0033 0%, #000000 40%, #001a33 100%); }
+          25% { background: radial-gradient(ellipse at 70% 30%, #0d1a33 0%, #000000 40%, #1a0033 100%); }
+          50% { background: radial-gradient(ellipse at 60% 70%, #001a33 0%, #000000 40%, #0d1a33 100%); }
+          75% { background: radial-gradient(ellipse at 40% 40%, #1a0033 0%, #000000 40%, #001a33 100%); }
+        }
+
+        #shader-bg::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: repeating-linear-gradient(0deg, var(--scan-line) 0px, transparent 1px, transparent 2px, var(--scan-line) 3px);
+          pointer-events: none;
+          animation: scanlines 8s linear infinite;
+        }
+
+        @keyframes scanlines {
+          0% { transform: translateY(0); }
+          100% { transform: translateY(10px); }
+        }
+
+        .content-wrapper {
+          position: relative;
+          z-index: 1;
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          overflow-y: auto;
+        }
+
+        .login-container {
+          position: relative;
+          max-width: 450px;
+          width: 100%;
+          animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .terminal-border {
+          position: relative;
+          background: rgba(15, 15, 15, 0.95);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          overflow: hidden;
+        }
+
+        .terminal-content {
+          padding: 48px 40px;
+          background: transparent;
+        }
+
+        .logo {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+
+        .subtitle {
+          font-size: 20px;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 8px;
+          text-align: center;
+        }
+
+        .subtitle-2 {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.4);
+          font-weight: 400;
+          margin-bottom: 32px;
+          text-align: center;
+        }
+
+        .auth-form {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .form-input {
+          padding: 14px 16px;
+          background: rgba(30, 30, 30, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          color: #fff;
+          font-size: 14px;
+          font-family: 'JetBrains Mono', monospace;
+          transition: all 0.2s ease;
+          outline: none;
+          width: 100%;
+        }
+
+        .form-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .form-input:focus {
+          background: rgba(40, 40, 40, 0.8);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-input:hover:not(:focus) {
+          border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .submit-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          padding: 14px 20px;
+          background: rgba(30, 30, 30, 0.6);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 6px;
+          font-size: 14px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          margin-top: 8px;
+          font-family: 'JetBrains Mono', monospace;
+        }
+
+        .submit-btn:hover {
+          background: rgba(40, 40, 40, 0.8);
+          border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .submit-btn:active {
+          transform: scale(0.98);
+        }
+
+        .toggle-mode {
+          text-align: center;
+          margin-top: 20px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .toggle-link {
+          color: #ffffff;
+          text-decoration: none;
+          font-weight: 500;
+          cursor: pointer;
+          transition: opacity 0.2s;
+          margin-left: 4px;
+        }
+
+        .toggle-link:hover {
+          opacity: 0.8;
+        }
+
+        .error-message {
+          padding: 12px 16px;
+          background: rgba(255, 0, 85, 0.1);
+          border: 1px solid rgba(255, 0, 85, 0.5);
+          border-left: 3px solid #ff0055;
+          color: #ff0055;
+          font-size: 12px;
+          line-height: 1.6;
+          display: none;
+          animation: slideDown 0.3s ease-out;
+          margin-bottom: 16px;
+        }
+
+        .error-message.show {
+          display: block;
+        }
+
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .error-message::before {
+          content: '[ERROR] ';
+          font-weight: 700;
+          letter-spacing: 1px;
+        }
+
+        @media (max-width: 600px) {
+          .terminal-content {
+            padding: 20px 16px;
+          }
+          .subtitle-2 {
+            font-size: 12px;
+          }
+          .form-input {
+            padding: 10px 12px;
+            font-size: 13px;
+          }
+          .submit-btn {
+            padding: 12px 20px;
+            font-size: 12px;
+          }
+          .error-message {
+            padding: 10px 12px;
+            font-size: 10px;
+            margin-bottom: 12px;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <div id="shader-bg"></div>
+      <div class="content-wrapper">
+        <div class="login-container">
+          <div class="terminal-border">
+            <div class="terminal-content">
+              <div class="logo">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M24 4L4 14L24 24L44 14L24 4Z" fill="white" opacity="0.9"/>
+                  <path d="M4 24L24 34L44 24" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+                  <path d="M4 34L24 44L44 34" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+                </svg>
+              </div>
+              <div class="subtitle">Reset Your Password</div>
+              <div class="subtitle-2">Enter your new password below.</div>
+
+              <div class="error-message ${errorMsg ? 'show' : ''}">${errorMsg}</div>
+
+              <form action="/auth/reset-password" method="POST" class="auth-form">
+                <input type="hidden" name="token" value="${token}">
+                <input
+                  type="password"
+                  name="password"
+                  class="form-input"
+                  placeholder="New password (min 8 characters)"
+                  required
+                  minlength="8"
+                  autocomplete="new-password"
+                />
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  class="form-input"
+                  placeholder="Confirm new password"
+                  required
+                  minlength="8"
+                  autocomplete="new-password"
+                />
+                <button type="submit" class="submit-btn">Reset Password</button>
+              </form>
+
+              <div class="toggle-mode">
+                Remember your password?<a href="/login" class="toggle-link">Sign in</a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="form-group">
-        <label for="confirmPassword">Confirm Password</label>
-        <input type="password" id="confirmPassword" name="confirmPassword" required minlength="8">
-      </div>
-      <button type="submit" class="btn">Reset Password</button>
-    </form>
-  </div>
-</body>
-</html>`;
+    </body>
+  </html>`;
 
   res.send(html);
 });
