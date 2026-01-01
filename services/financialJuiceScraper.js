@@ -16,6 +16,8 @@ class FinancialJuiceScraper {
     this.newsHistory = new Map(); // Store news with first seen timestamp
     this.retentionDays = 7; // Keep news for 1 week (7 days)
     this.database = database;
+    this.browserLaunchTime = null;
+    this.browserMaxLifetime = 30 * 60 * 1000; // Restart browser every 30 minutes to prevent memory leaks
 
     // Initialize database and load history
     this.init();
@@ -71,9 +73,33 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Initialize browser instance (reused across scrapes)
+   * Close and cleanup browser instance
+   */
+  async closeBrowser() {
+    if (this.browser) {
+      try {
+        await this.browser.close();
+        console.log('Browser instance closed');
+      } catch (error) {
+        console.error('Error closing browser:', error.message);
+      }
+      this.browser = null;
+      this.isLoggedIn = false;
+      this.browserLaunchTime = null;
+    }
+  }
+
+  /**
+   * Initialize browser instance (reused across scrapes, auto-restart every 30 mins)
    */
   async getBrowser() {
+    // Check if browser needs restart due to age
+    const now = Date.now();
+    if (this.browser && this.browserLaunchTime && (now - this.browserLaunchTime > this.browserMaxLifetime)) {
+      console.log('Browser lifetime exceeded, restarting to free memory...');
+      await this.closeBrowser();
+    }
+
     if (!this.browser) {
       const launchOptions = {
         headless: 'new',
@@ -82,7 +108,21 @@ class FinancialJuiceScraper {
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
-          '--disable-gpu'
+          '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--disable-sync',
+          '--disable-translate',
+          '--disable-notifications',
+          '--disable-web-security',
+          '--disable-features=site-per-process',
+          '--single-process',
+          '--no-zygote',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--js-flags="--max-old-space-size=256"' // Limit JS heap to 256MB
         ]
       };
 
@@ -111,6 +151,8 @@ class FinancialJuiceScraper {
       }
 
       this.browser = await puppeteer.launch(launchOptions);
+      this.browserLaunchTime = now;
+      console.log('New browser instance launched with memory optimizations');
     }
     return this.browser;
   }

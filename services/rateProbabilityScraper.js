@@ -22,6 +22,8 @@ class RateProbabilityScraper {
     this.weeklySnapshots = new Map();
     this.historyFile = path.join(__dirname, '../data/rate-probability-history.json');
     this.browser = null;
+    this.browserLaunchTime = null;
+    this.browserMaxLifetime = 30 * 60 * 1000; // Restart browser every 30 minutes to prevent memory leaks
 
     // Rate limiter
     this.rateLimiter = {
@@ -131,6 +133,13 @@ class RateProbabilityScraper {
    * Get or create Puppeteer browser instance
    */
   async getBrowser() {
+    // Check if browser needs restart due to age
+    const now = Date.now();
+    if (this.browser && this.browserLaunchTime && (now - this.browserLaunchTime > this.browserMaxLifetime)) {
+      console.log('[RateProbability] Browser lifetime exceeded, restarting to free memory...');
+      await this.closeBrowser();
+    }
+
     if (!this.browser || !this.browser.isConnected()) {
       this.browser = await puppeteer.launch({
         headless: true,
@@ -138,9 +147,25 @@ class RateProbabilityScraper {
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
-          '--disable-web-security'
+          '--disable-web-security',
+          '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--disable-sync',
+          '--disable-translate',
+          '--disable-notifications',
+          '--disable-features=site-per-process',
+          '--single-process',
+          '--no-zygote',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--js-flags="--max-old-space-size=256"' // Limit JS heap to 256MB
         ]
       });
+      this.browserLaunchTime = now;
+      console.log('[RateProbability] New browser instance launched with memory optimizations');
     }
     return this.browser;
   }
@@ -152,6 +177,7 @@ class RateProbabilityScraper {
     if (this.browser && this.browser.isConnected()) {
       await this.browser.close();
       this.browser = null;
+      this.browserLaunchTime = null;
     }
   }
 

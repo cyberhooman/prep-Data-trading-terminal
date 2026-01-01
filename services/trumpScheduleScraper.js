@@ -23,6 +23,8 @@ class TrumpScheduleScraper {
     this.historyFile = path.join(__dirname, '../data/trump-schedule-history.json');
     this.browser = null;
     this.lastFetch = null;
+    this.browserLaunchTime = null;
+    this.browserMaxLifetime = 30 * 60 * 1000; // Restart browser every 30 minutes to prevent memory leaks
 
     // Load history on startup
     this.loadHistory();
@@ -82,9 +84,16 @@ class TrumpScheduleScraper {
   }
 
   /**
-   * Initialize browser instance (reused across scrapes)
+   * Initialize browser instance (reused across scrapes, auto-restart every 30 mins)
    */
   async getBrowser() {
+    // Check if browser needs restart due to age
+    const now = Date.now();
+    if (this.browser && this.browserLaunchTime && (now - this.browserLaunchTime > this.browserMaxLifetime)) {
+      console.log('[TrumpSchedule] Browser lifetime exceeded, restarting to free memory...');
+      await this.closeBrowser();
+    }
+
     if (!this.browser) {
       const launchOptions = {
         headless: 'new',
@@ -93,7 +102,21 @@ class TrumpScheduleScraper {
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
           '--disable-accelerated-2d-canvas',
-          '--disable-gpu'
+          '--disable-gpu',
+          '--disable-software-rasterizer',
+          '--disable-extensions',
+          '--disable-background-networking',
+          '--disable-sync',
+          '--disable-translate',
+          '--disable-notifications',
+          '--disable-web-security',
+          '--disable-features=site-per-process',
+          '--single-process',
+          '--no-zygote',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--js-flags="--max-old-space-size=256"' // Limit JS heap to 256MB
         ]
       };
 
@@ -115,6 +138,8 @@ class TrumpScheduleScraper {
       }
 
       this.browser = await puppeteer.launch(launchOptions);
+      this.browserLaunchTime = now;
+      console.log('[TrumpSchedule] New browser instance launched with memory optimizations');
     }
     return this.browser;
   }
@@ -126,6 +151,7 @@ class TrumpScheduleScraper {
     if (this.browser) {
       await this.browser.close();
       this.browser = null;
+      this.browserLaunchTime = null;
     }
   }
 
