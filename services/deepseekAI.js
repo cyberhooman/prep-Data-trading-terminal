@@ -60,10 +60,9 @@ class DeepSeekAI {
       const requestBody = {
         model: this.model,
         messages: messages,
-        temperature: 0.2 // Very low for maximum analytical precision
+        temperature: 0.2, // Very low for maximum analytical precision
+        max_tokens: 400 // Keep responses concise
       };
-
-      // No max_tokens limit for ultra-detailed hyper-intelligent analysis
 
       const data = JSON.stringify(requestBody);
 
@@ -119,61 +118,32 @@ class DeepSeekAI {
       return cached.data;
     }
 
-    const systemPrompt = `You are a macro trading analyst specializing in central bank policy analysis. Your PRIMARY OBJECTIVES: 1) Determine if this speech was MORE HAWKISH or MORE DOVISH than expected, 2) Assess how this changes the next central bank move, 3) Identify the smart money theme and flow.
+    const systemPrompt = `You are a macro trading analyst. Analyze CB speeches for hawkish/dovish stance vs expectations.
 
-CRITICAL ANALYSIS FRAMEWORK:
-1. POLICY STANCE vs MARKET EXPECTATIONS:
-   - Was this MORE HAWKISH or MORE DOVISH than markets expected?
-   - How does this compare to recent communications and consensus view?
+OUTPUT FORMAT (STRICT - follow exactly):
+# [Speaker] - [Date]
 
-2. NEXT CB MOVE IMPLICATIONS:
-   - Impact on rate path, timing, and terminal rate expectations
-   - Changes to QT/QE outlook
+🟥/🟩/🟨 **[HAWKISH/DOVISH/NEUTRAL]**
 
-3. SMART MONEY POSITIONING:
-   - Institutional flow to ALIGN with (not fight)
-   - Cross-asset implications (bonds, FX, equities)
+**vs Expected:** [1 sentence - more/less hawkish than market priced]
+**Next CB Move:** [1 sentence - rate path implication]
+**Smart Money:** [1 sentence - institutional flow to follow]
 
-REQUIRED OUTPUT STRUCTURE (BE CONCISE):
-# CB Analysis: [Speaker] - [Date]
+**Market Impact:** [1-2 sentences on USD, bonds, equities]
 
-## Overall Stance
-🟥/🟩/🟨 [STANCE] - One paragraph summary addressing all three objectives.
-
-## Key Takeaways
-- **Hawkish/Dovish vs Expected**: [2-3 sentences with specific evidence]
-- **Next CB Move**: [2-3 sentences on rate path and timing implications]
-- **Smart Money Flow**: [2-3 sentences on positioning to align with]
-- **Macro Context**: [2-3 sentences on broader market narrative fit]
-
-## Market Implications
-[One concise paragraph on cross-asset impacts and institutional positioning]
-
-CRITICAL INSTRUCTIONS:
-- BE CONCISE - limit response to 200-300 words total
-- Focus on actionable insights, not verbose analysis
-- Use bullet points for clarity
-- Keep macro context but avoid excessive detail
-- Think like a trader reading on mobile - get to the point quickly
-
-IMPORTANT: Return ONLY the markdown formatted analysis. Do NOT wrap it in JSON or code blocks.`;
+RULES:
+- Maximum 100 words total
+- No fluff, no verbose explanations
+- Get to the point immediately
+- Think trader on mobile - ultra concise`;
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-    const userPrompt = `Analyze this ${centralBank} speech by ${speaker} from ${date}:
+    const userPrompt = `${centralBank} speech by ${speaker} (${date}):
 
-SPEECH TEXT:
----
 ${speechText}
----
 
-YOUR TASK (CONCISE, 200-300 words total):
-Address all three objectives:
-1. Was this MORE HAWKISH or MORE DOVISH than market expected?
-2. How does this change the next CB move (rate path, timing)?
-3. What is the smart money flow to ALIGN with?
-
-Consider current market context (${currentDate}), recent CB communications, and what genuinely surprised markets.`;
+Analyze in under 100 words. Follow the exact output format.`;
 
     try {
       const response = await this.makeRequest([

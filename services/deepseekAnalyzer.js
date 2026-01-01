@@ -25,7 +25,7 @@ class DeepSeekAnalyzer {
     this.apiUrl = 'https://api.deepseek.com/v1/chat/completions';
     this.model = 'deepseek-chat';
     this.temperature = 0.2; // Very low for maximum analytical precision
-    this.maxTokens = 1500; // Balanced limit for concise yet comprehensive analysis
+    this.maxTokens = 500; // Keep responses concise
     this.timeout = 60000; // 60 seconds timeout
 
     // Cache for analysis results (1 hour TTL)
@@ -98,8 +98,8 @@ class DeepSeekAnalyzer {
 
       // Choose system prompt based on news type
       const systemPrompt = newsType === 'policy'
-        ? 'You are a macro trading analyst specializing in central bank policy and market surprise detection. PRIMARY OBJECTIVES: 1) Determine if MORE HAWKISH or DOVISH than expected, 2) Assess impact on next central bank move, 3) Identify smart money flow to ALIGN with institutions. Analyze events against CURRENT MARKET EXPECTATIONS (not just forecasts). Provide clear, concise analysis focused on actionable insights. Be comprehensive but efficient - quality over quantity.'
-        : 'You are an equity and sector analyst specializing in market impact assessment. Analyze company news, earnings, M&A, contracts, and business developments. Focus on: 1) Sector impact and competitive dynamics, 2) Business fundamentals and growth implications, 3) Smart money positioning. Provide clear analysis of how this affects equity markets and related sectors.';
+        ? 'You are a macro trading analyst. Be ultra-concise. Answer: 1) Hawkish or dovish vs expected? 2) Next CB move impact? 3) Smart money flow? Maximum 80 words for reasoning. Each keyFactor must be 1 short sentence.'
+        : 'You are an equity analyst. Be ultra-concise. Answer: 1) Sector impact? 2) Business impact? 3) Smart money view? Maximum 80 words for reasoning. Each keyFactor must be 1 short sentence.';
 
       // Build request body
       const requestBody = {
@@ -173,104 +173,18 @@ class DeepSeekAnalyzer {
     const { headline, economicData, tags, timestamp } = newsItem;
     const { actual, forecast, previous } = economicData || {};
 
-    return `You are analyzing an economic/policy release to determine if it represents a genuine market surprise within the broader macro context.
+    return `EVENT: ${headline}
+Actual: ${actual || 'N/A'} | Forecast: ${forecast || 'N/A'} | Previous: ${previous || 'N/A'}
 
-CURRENT MARKET FOCUS & EXPECTATIONS:
-${marketContext}
-
-NEWS/DATA RELEASE:
-- Event: ${headline}
-- Actual: ${actual || 'N/A'}
-- Forecast: ${forecast || 'N/A'}
-- Previous: ${previous || 'N/A'}
-- Tags: ${tags ? tags.join(', ') : 'N/A'}
-- Time: ${timestamp || 'Recent'}
-
-YOUR TASK:
-Analyze this event within the FULL MACRO CONTEXT and determine if it represents a BULLISH SURPRISE, BEARISH SURPRISE, or NEUTRAL event for markets.
-
-YOUR THREE PRIMARY OBJECTIVES (MUST ADDRESS ALL THREE):
-1. Was this MORE HAWKISH or MORE DOVISH than expected? (Be specific and clear)
-2. How does this change the next central bank move? (Rate path, timing, terminal rate implications)
-3. What is the smart money theme and flow? Your goal is to ALIGN WITH smart money, not outsmart them. Identify institutional positioning and flow.
-
-CRITICAL ANALYSIS FRAMEWORK:
-
-1. CENTRAL BANK POLICY STANCE ANALYSIS (if applicable):
-   - Is this central bank becoming MORE HAWKISH (tightening, anti-inflation) or MORE DOVISH (easing, pro-growth)?
-   - How does this compare to CURRENT MARKET EXPECTATIONS (not just forecasts)?
-   - Is the hawkish/dovish shift MORE AGGRESSIVE or LESS AGGRESSIVE than markets anticipated?
-   - Examples:
-     * Rate hike of 50bps when market expected 25bps = MORE HAWKISH THAN EXPECTED = Bearish Surprise
-     * Rate hold when market priced in hike = MORE DOVISH THAN EXPECTED = Bullish Surprise
-     * Hawkish language but less aggressive than feared = LESS HAWKISH THAN EXPECTED = Bullish Surprise
-
-2. MARKET EXPECTATIONS VS REALITY:
-   - Don't just compare actual vs forecast - analyze if this SURPRISED THE MARKET
-   - Consider: What was market pricing in? What was consensus view? What were recent trends?
-   - A "good" number can be a bearish surprise if markets expected even better
-   - A "bad" number can be a bullish surprise if markets expected worse
-
-3. MACRO CONTEXT INTEGRATION:
-   - How does this fit into the current macro narrative (recession fears, inflation concerns, growth outlook)?
-   - Does this confirm or contradict the prevailing market view?
-   - Will this change central bank policy trajectory expectations?
-   - Does this shift the risk/reward for major asset classes?
-
-4. POLICY SHIFT IMPLICATIONS:
-   - Does this increase/decrease likelihood of rate hikes or cuts?
-   - Does this change the terminal rate expectations?
-   - Does this affect QT/QE expectations?
-   - Does this change timing of policy pivots?
-
-5. MARKET IMPACT ASSESSMENT:
-   - Is this data point currently a MAJOR MARKET DRIVER?
-   - Is the deviation large enough to move bond yields, FX, or equity markets?
-   - Would this genuinely surprise professional traders and investors?
-
-CLASSIFICATION LOGIC:
-- BULLISH SURPRISE: Event is more positive/dovish/supportive than market expected (risk-on)
-- BEARISH SURPRISE: Event is more negative/hawkish/restrictive than market expected (risk-off)
-- NEUTRAL: Largely in-line with expectations OR too minor to matter OR conflicting signals
-
-IMPORTANT PRINCIPLES:
-✓ Always analyze RELATIVE TO CURRENT MARKET EXPECTATIONS (not just vs forecast)
-✓ Consider if hawkish/dovish stance is MORE or LESS aggressive than expected
-✓ Evaluate the FULL MACRO CONTEXT, not just the data point in isolation
-✓ Focus on what SURPRISES the market, not just if news is objectively good/bad
-✓ Distinguish between "expected hawkish" (neutral) vs "surprisingly hawkish" (bearish surprise)
-
-OUTPUT FORMAT (JSON):
+RESPOND IN JSON (be ultra-concise):
 {
-  "verdict": "Bullish Surprise" OR "Bearish Surprise" OR "Neutral",
-  "assetImpact": {
-    "USD": "Bullish" OR "Bearish" OR "Neutral",
-    "Stocks": "Bullish" OR "Bearish" OR "Neutral",
-    "Bonds": "Bullish" OR "Bearish" OR "Neutral",
-    "Gold": "Bullish" OR "Bearish" OR "Neutral"
-  },
-  "reasoning": "Concise 2-3 paragraph analysis addressing the THREE PRIMARY OBJECTIVES: 1) Was this MORE HAWKISH or DOVISH than expected, 2) How this changes the next central bank move, 3) Smart money flow to align with. Include key market context and actionable insights. Be clear and focused.",
-  "keyFactors": [
-    "Hawkish/Dovish vs Expected: [Brief clear statement]",
-    "Next CB Move Impact: [Rate path/timing implications]",
-    "Smart Money Flow: [Institutional positioning theme]",
-    "Market Context: [What was priced in vs reality]",
-    "Key Implications: [Main takeaways for trading]"
-  ]
+  "verdict": "Bullish Surprise" | "Bearish Surprise" | "Neutral",
+  "assetImpact": { "USD": "...", "Stocks": "...", "Bonds": "...", "Gold": "..." },
+  "reasoning": "[MAX 80 words] 1) Hawkish/dovish vs expected? 2) Next CB move? 3) Smart money flow?",
+  "keyFactors": ["1 sentence each - max 5 factors"]
 }
 
-CRITICAL INSTRUCTIONS:
-- MANDATORY: Address all THREE PRIMARY OBJECTIVES clearly and concisely
-- MANDATORY: Provide assetImpact for USD, Stocks, Bonds, and Gold based on the analysis
-- Asset impact should reflect how each asset class would react to this news
-- Consider: Hawkish = USD/Bonds up, Stocks/Gold down; Dovish = opposite
-- Focus on actionable insights and key market context
-- Be analytical but efficient - avoid unnecessary verbosity
-- Each keyFactor should be 1-2 clear, focused sentences
-- Reasoning should be 2-3 paragraphs maximum
-- Goal: ALIGN WITH smart money flow, not outsmart it
-
-ALWAYS answer: 1) Hawkish or Dovish vs expected? 2) Next CB move impact? 3) Smart money flow to follow?`;
+Keep reasoning under 80 words. Each keyFactor = 1 short sentence.`;
   }
 
   /**
@@ -279,62 +193,18 @@ ALWAYS answer: 1) Hawkish or Dovish vs expected? 2) Next CB move impact? 3) Smar
   buildEquityAnalysisPrompt(newsItem, marketContext) {
     const { headline, tags, timestamp, rawText } = newsItem;
 
-    return `You are analyzing a business/equity news event to assess its market impact.
+    return `EVENT: ${headline}
+${rawText ? `Details: ${rawText.substring(0, 200)}` : ''}
 
-CURRENT MARKET ENVIRONMENT:
-${marketContext}
-
-NEWS EVENT:
-- Headline: ${headline}
-- Details: ${rawText || 'N/A'}
-- Tags: ${tags ? tags.join(', ') : 'N/A'}
-- Time: ${timestamp || 'Recent'}
-
-YOUR TASK:
-Analyze this event's impact on equity markets and related sectors. Determine if it's BULLISH, BEARISH, or NEUTRAL for markets.
-
-ANALYSIS FRAMEWORK:
-
-1. SECTOR & COMPETITIVE IMPACT:
-   - Which sectors/companies are directly affected?
-   - Is this positive or negative for competitive positioning?
-   - Does this shift market share or industry dynamics?
-
-2. BUSINESS FUNDAMENTALS:
-   - How does this affect revenue, earnings, margins?
-   - Does this accelerate or decelerate growth?
-   - What's the long-term strategic impact?
-
-3. SMART MONEY POSITIONING:
-   - How would institutional investors view this?
-   - Is this a sector rotation catalyst?
-   - What's the risk appetite implication?
-
-OUTPUT FORMAT (JSON):
+RESPOND IN JSON (be ultra-concise):
 {
-  "verdict": "Bullish" OR "Bearish" OR "Neutral",
-  "assetImpact": {
-    "USD": "Bullish" OR "Bearish" OR "Neutral",
-    "Stocks": "Bullish" OR "Bearish" OR "Neutral",
-    "Bonds": "Bullish" OR "Bearish" OR "Neutral",
-    "Gold": "Bullish" OR "Bearish" OR "Neutral"
-  },
-  "reasoning": "Concise 2-3 paragraph analysis covering: 1) Sector and competitive impact, 2) Business fundamentals implications, 3) Smart money positioning. Focus on actionable insights for equity traders.",
-  "keyFactors": [
-    "Sector Impact: [Which sectors benefit/hurt and why]",
-    "Business Impact: [Effect on fundamentals and growth]",
-    "Market Positioning: [How smart money views this]",
-    "Asset Class Effects: [Cross-market implications]",
-    "Key Takeaways: [Main trading implications]"
-  ]
+  "verdict": "Bullish" | "Bearish" | "Neutral",
+  "assetImpact": { "USD": "...", "Stocks": "...", "Bonds": "...", "Gold": "..." },
+  "reasoning": "[MAX 80 words] 1) Sector impact? 2) Business fundamentals? 3) Smart money view?",
+  "keyFactors": ["1 sentence each - max 5 factors"]
 }
 
-CRITICAL INSTRUCTIONS:
-- Do NOT use hawkish/dovish language (this is equity news, not monetary policy)
-- Focus on business fundamentals, not central bank policy
-- Analyze sector-specific implications
-- Consider growth, earnings, and competitive dynamics
-- Assess how institutional equity investors would react`;
+Keep reasoning under 80 words. Each keyFactor = 1 short sentence.`;
   }
 
   /**
