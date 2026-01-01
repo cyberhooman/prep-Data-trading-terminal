@@ -31,6 +31,10 @@ class FinancialJuiceScraper {
       // Create tables if in production mode
       await this.database.createNewsHistoryTable();
 
+      // Clean up any non-critical news that was stored before the filter fix
+      console.log('Cleaning up non-critical news items from history...');
+      await this.database.deleteNonCriticalNews();
+
       // Load history from database or file
       await this.loadHistory();
     } catch (error) {
@@ -431,7 +435,6 @@ class FinancialJuiceScraper {
         }
 
         let criticalCount = 0;
-        let activeCount = 0;
         let otherCount = 0;
 
         elements.forEach((element) => {
@@ -463,9 +466,15 @@ class FinancialJuiceScraper {
             return;
           }
 
-          // Check if this is a critical item (red border) or active (high-impact) item
+          // Check if this is a critical item (red border) - ONLY scrape these
+          // The 'active-critical' class indicates the red border around important news
           const isCritical = className.includes('active-critical');
-          const isActive = className.includes('active');
+
+          // Skip non-critical items - we only want red-bordered news
+          if (!isCritical) {
+            otherCount++;
+            return;
+          }
 
           // Check for bullish/bearish sentiment indicators (triangle icons)
           let sentiment = null;
@@ -489,12 +498,8 @@ class FinancialJuiceScraper {
             }
           }
 
-          if (isCritical) criticalCount++;
-          else if (isActive) activeCount++;
-          else otherCount++;
+          criticalCount++;
 
-          // Include items that are either critical (red border) OR active (high-impact)
-          // Also include regular news items for display (but mark them as not critical)
           // Skip promo/ad items
           if (text.includes('Join us and Go Real-time') || text.includes('GO PRO')) {
             return;
@@ -560,8 +565,7 @@ class FinancialJuiceScraper {
             hasChart: hasChart || hasBackgroundImage,
             link: link,
             rawText: text.trim(),
-            isCritical: isCritical,
-            isActive: isActive,
+            isCritical: true, // All items in this list are critical (red-bordered)
             sentiment: sentiment, // 'bullish', 'bearish', or null
             className: className
           });
@@ -572,8 +576,7 @@ class FinancialJuiceScraper {
           debug: {
             totalElements: elements.length,
             criticalCount,
-            activeCount,
-            otherCount,
+            skippedCount: otherCount,
             selectorUsed
           }
         };
@@ -583,7 +586,7 @@ class FinancialJuiceScraper {
       const newsItems = result.items;
       console.log(`DEBUG: Selector used: "${result.debug.selectorUsed}"`);
       console.log(`DEBUG: Found ${result.debug.totalElements} elements matching selectors`);
-      console.log(`DEBUG: Critical items: ${result.debug.criticalCount}, Active items: ${result.debug.activeCount}, Other: ${result.debug.otherCount}`);
+      console.log(`DEBUG: Critical items (red border): ${result.debug.criticalCount}, Skipped (non-critical): ${result.debug.skippedCount}`);
       console.log(`Found ${newsItems.length} high-impact news items before deduplication`);
 
       // Log first 3 critical headlines for debugging

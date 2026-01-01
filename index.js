@@ -2089,6 +2089,29 @@ app.post('/api/admin/subscription/cancel', ensureAdmin, async (req, res) => {
   }
 });
 
+// Admin API: Clean up non-critical news from database
+app.post('/api/admin/news/cleanup', ensureAdmin, async (req, res) => {
+  try {
+    const database = require('./services/database');
+
+    // Delete non-critical news from database
+    const deletedCount = await database.deleteNonCriticalNews();
+
+    // Clear scraper cache and reload
+    financialJuiceScraper.clearCache();
+    await financialJuiceScraper.loadHistory();
+
+    res.json({
+      success: true,
+      message: `Cleaned up ${deletedCount} non-critical news items`,
+      deletedCount
+    });
+  } catch (err) {
+    console.error('Error cleaning up news:', err);
+    res.status(500).json({ error: 'Failed to clean up news' });
+  }
+});
+
 // Admin Dashboard Page
 app.get('/admin', ensureAdmin, async (req, res) => {
   const html = `<!DOCTYPE html>

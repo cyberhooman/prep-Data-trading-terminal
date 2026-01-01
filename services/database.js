@@ -419,6 +419,47 @@ class Database {
   }
 
   /**
+   * Delete non-critical news items from history
+   * Used to clean up items that shouldn't have been stored
+   */
+  async deleteNonCriticalNews() {
+    if (this.isProduction && this.pool) {
+      try {
+        const result = await this.pool.query(
+          'DELETE FROM news_history WHERE is_critical = false OR is_critical IS NULL'
+        );
+        console.log(`Deleted ${result.rowCount} non-critical news items from PostgreSQL`);
+        return result.rowCount;
+      } catch (error) {
+        console.error('Error deleting non-critical news:', error);
+        return 0;
+      }
+    } else {
+      // For file-based storage, filter and rewrite
+      try {
+        if (fs.existsSync(this.newsHistoryFile)) {
+          const data = await fsPromises.readFile(this.newsHistoryFile, 'utf8');
+          const newsItems = JSON.parse(data);
+          const criticalOnly = newsItems.filter(item => item.isCritical === true);
+          const deletedCount = newsItems.length - criticalOnly.length;
+
+          await fsPromises.writeFile(
+            this.newsHistoryFile,
+            JSON.stringify(criticalOnly, null, 2),
+            'utf8'
+          );
+          console.log(`Deleted ${deletedCount} non-critical news items from file`);
+          return deletedCount;
+        }
+        return 0;
+      } catch (error) {
+        console.error('Error deleting non-critical news from file:', error);
+        return 0;
+      }
+    }
+  }
+
+  /**
    * Close database connection (production only)
    */
   async close() {
