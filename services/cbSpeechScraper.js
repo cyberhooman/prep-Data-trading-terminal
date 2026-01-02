@@ -401,8 +401,9 @@ class CBSpeechScraper {
     this.cleanOldData();
 
     try {
-      // Get news from Financial Juice
-      const fjNews = await fjScraper.getLatestNews();
+      // Get ALL news from Financial Juice (not just critical items)
+      // This ensures CB speeches are captured even if they don't have red borders
+      const fjNews = await fjScraper.scrapeAllNews();
 
       // Extract CB-related content (including Trump mentions from news)
       const cbItems = this.extractCBContentFromFJ(fjNews);

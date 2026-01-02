@@ -331,10 +331,25 @@ class FinancialJuiceScraper {
   }
 
   /**
+   * Scrape ALL news from FinancialJuice (for CB Speech extraction)
+   * Does NOT filter by critical status
+   */
+  async scrapeAllNews() {
+    return await this._scrapeNews({ filterCriticalOnly: false });
+  }
+
+  /**
    * Scrape high-impact news from FinancialJuice
-   * Includes both critical (red border) and active (high-impact) items
+   * Only includes critical (red border) items
    */
   async scrapeHighImpactNews() {
+    return await this._scrapeNews({ filterCriticalOnly: true });
+  }
+
+  /**
+   * Internal scraping method with configurable filtering
+   */
+  async _scrapeNews({ filterCriticalOnly = true }) {
     let page = null;
     try {
       // Check cache first
@@ -390,7 +405,7 @@ class FinancialJuiceScraper {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Extract news items from the page
-      const result = await page.evaluate(() => {
+      const result = await page.evaluate((filterCriticalOnly) => {
         const items = [];
 
         // Try multiple selectors, prioritizing the most specific
@@ -466,14 +481,21 @@ class FinancialJuiceScraper {
             return;
           }
 
-          // Check if this is a critical item (red border) - ONLY scrape these
+          // Check if this is a critical item (red border)
           // The 'active-critical' class indicates the red border around important news
           const isCritical = className.includes('active-critical');
 
-          // Skip non-critical items - we only want red-bordered news
-          if (!isCritical) {
+          // If filterCriticalOnly is true, skip non-critical items
+          if (filterCriticalOnly && !isCritical) {
             otherCount++;
             return;
+          }
+
+          // Track counts
+          if (isCritical) {
+            criticalCount++;
+          } else {
+            otherCount++;
           }
 
           // Check for bullish/bearish sentiment indicators (triangle icons)
@@ -497,8 +519,6 @@ class FinancialJuiceScraper {
               sentiment = 'bearish';
             }
           }
-
-          criticalCount++;
 
           // Skip promo/ad items
           if (text.includes('Join us and Go Real-time') || text.includes('GO PRO')) {
@@ -565,7 +585,7 @@ class FinancialJuiceScraper {
             hasChart: hasChart || hasBackgroundImage,
             link: link,
             rawText: text.trim(),
-            isCritical: true, // All items in this list are critical (red-bordered)
+            isCritical: isCritical,
             sentiment: sentiment, // 'bullish', 'bearish', or null
             className: className
           });
@@ -580,7 +600,7 @@ class FinancialJuiceScraper {
             selectorUsed
           }
         };
-      });
+      }, filterCriticalOnly);
 
       // Extract items and debug info
       const newsItems = result.items;
