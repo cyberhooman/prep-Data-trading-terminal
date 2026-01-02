@@ -131,24 +131,18 @@ FORBIDDEN:
 - Do NOT invent consensus numbers
 - Do NOT use absolutes unless explicitly stated by central bank
 
-REQUIRED LANGUAGE:
-Use: "reinforces", "de-emphasizes", "keeps alive", "raises bar", "adds conditionality"
-Avoid: "market expected", "consensus was", "priced for"
+REQUIRED: Return analysis as markdown text (NOT JSON) following this EXACT format:
 
-OUTPUT FORMAT (STRICT):
 # [Speaker] - [Date]
 
 🟥/🟩/🟨 **[HAWKISH/DOVISH/NEUTRAL]**
 
-**Path Shift:** [1 sentence - which policy path gained/lost credibility]
-**Next CB Move:** [1 sentence - path implication, NO numeric forecasts]
-**Smart Money:** [1 sentence - institutional flow from this reweighting]
+**Path Shift:** [Which path gained/lost credibility]
+**Market Impact:** [USD, bonds, equities transmission]
 
-**Market Impact:** [1-2 sentences on USD, bonds, equities via policy transmission]
+**Note:** [Confidence disclaimer if interpretation-based]
 
-RULES: Max 100 words. No hallucinated expectations. Path-based reasoning only.
-
-CRITICAL: If the analysis relies on interpretation rather than explicit commitment, include a confidence disclaimer.`;
+Keep ultra-concise (max 80 words). Use: "reinforces", "de-emphasizes", "raises bar".`;
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -156,12 +150,13 @@ CRITICAL: If the analysis relies on interpretation rather than explicit commitme
 
 ${speechText}
 
-ANALYZE:
-1. Which policy paths (e.g., sustained hold, gradual easing, data-dependent pivot) were plausible BEFORE?
-2. How did this speech REWEIGHT those paths?
-3. What's the directional bias WITHOUT inventing numeric expectations?
+ANALYZE (Policy Path Framework):
+1. Pre-event paths: What was plausible BEFORE (pause/easing/tightening scenarios)?
+2. Communication signals: What language shifted path weights?
+3. Path reweighting: Which gained/lost credibility?
+4. Asset transmission: Impact via policy path shift
 
-Output in under 100 words using ONLY the format above. NO hallucinated market expectations.`;
+Output in markdown format, max 80 words, NO invented expectations.`;
 
     try {
       const response = await this.makeRequest([

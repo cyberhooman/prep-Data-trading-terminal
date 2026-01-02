@@ -100,13 +100,14 @@ class DeepSeekAnalyzer {
       const systemPrompt = newsType === 'policy'
         ? `You are a macro policy analyst. You reason in POLICY PATHS, not forecasts.
 
-FORBIDDEN: Do NOT invent "market expected X" or consensus numbers unless explicitly given.
-REQUIRED: Use "reinforces", "de-emphasizes", "raises bar", "keeps alive" language.
+CORE RULES:
+- FORBIDDEN: Do NOT invent "market expected X" or consensus numbers
+- REQUIRED: Use "reinforces", "de-emphasizes", "raises bar" language
+- OUTPUT: Structured JSON with policy path framework
+- BREVITY: reasoning max 60 words, each keyFactor 1 sentence
+- TRANSPARENCY: Include confidence_note if interpretation-based
 
-Analyze: 1) Which policy path gained/lost weight? 2) Path transmission to CB decisions 3) Institutional flow from reweighting.
-Max 80 words. Each keyFactor = 1 sentence. NO hallucinated expectations.
-
-CRITICAL: If analysis relies on interpretation rather than explicit data, include a confidence disclaimer.`
+Return complete structured JSON as shown in user prompt.`
         : 'You are an equity analyst. Be ultra-concise. Answer: 1) Sector impact? 2) Business impact? 3) Smart money view? Maximum 80 words for reasoning. Each keyFactor must be 1 short sentence.';
 
       // Build request body
@@ -184,24 +185,30 @@ CRITICAL: If analysis relies on interpretation rather than explicit data, includ
     return `EVENT: ${headline}
 Data: Actual=${actual || 'N/A'} | Forecast=${forecast || 'N/A'} | Previous=${previous || 'N/A'}
 
-ANALYZE using POLICY PATH framework:
-Step 1: What policy paths (sustained hold / gradual easing / data-dependent pivot) existed BEFORE?
-Step 2: How does this data REWEIGHT those paths (reinforces/de-emphasizes/raises bar)?
-Step 3: Which path gained credibility? Which lost?
-Step 4: Asset transmission via policy path shift
-
-RESPOND IN JSON:
+ANALYZE using POLICY PATH framework. Return STRUCTURED JSON:
 {
+  "pre_event_paths": ["Baseline: ...", "Alternative: ...", "Tail: ..."],
+  "data_signals": ["Key observation 1", "Key observation 2"],
+  "path_reweighting": {
+    "gained": ["Path that gained credibility"],
+    "lost": ["Path that lost credibility"]
+  },
+  "surprise_type": "Path-shifting" | "Path-reinforcing" | "Path-constraining" | "In-line",
+  "directional_bias": "Hawkish" | "Mildly Hawkish" | "Neutral" | "Dovish" | "Mildly Dovish",
   "verdict": "Bullish Surprise" | "Bearish Surprise" | "Neutral",
-  "assetImpact": { "USD": "...", "Stocks": "...", "Bonds": "...", "Gold": "..." },
-  "reasoning": "[MAX 80 words] Focus on PATH REWEIGHTING, not invented expectations",
-  "keyFactors": ["1 sentence each - max 5 factors, NO hallucinated consensus"]
+  "assetImpact": {
+    "USD": "Bullish" | "Bearish" | "Neutral",
+    "Stocks": "Bullish" | "Bearish" | "Neutral",
+    "Bonds": "Bullish" | "Bearish" | "Neutral",
+    "Gold": "Bullish" | "Bearish" | "Neutral"
+  },
+  "reasoning": "[MAX 60 words] Path transmission logic",
+  "keyFactors": ["Factor 1", "Factor 2", "Factor 3"],
+  "confidence_note": "[Required if interpretation-based]"
 }
 
 FORBIDDEN: "market expected", "consensus was", numeric forecasts not in data.
-USE: "reinforces X path", "de-emphasizes Y", "raises bar for Z".
-
-CRITICAL: If the analysis relies on interpretation rather than explicit commitment, include a confidence disclaimer.`;
+REQUIRED: Use "reinforces", "de-emphasizes", "raises bar" language.`;
   }
 
   /**
