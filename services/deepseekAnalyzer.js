@@ -104,7 +104,9 @@ FORBIDDEN: Do NOT invent "market expected X" or consensus numbers unless explici
 REQUIRED: Use "reinforces", "de-emphasizes", "raises bar", "keeps alive" language.
 
 Analyze: 1) Which policy path gained/lost weight? 2) Path transmission to CB decisions 3) Institutional flow from reweighting.
-Max 80 words. Each keyFactor = 1 sentence. NO hallucinated expectations.`
+Max 80 words. Each keyFactor = 1 sentence. NO hallucinated expectations.
+
+CRITICAL: If analysis relies on interpretation rather than explicit data, include a confidence disclaimer.`
         : 'You are an equity analyst. Be ultra-concise. Answer: 1) Sector impact? 2) Business impact? 3) Smart money view? Maximum 80 words for reasoning. Each keyFactor must be 1 short sentence.';
 
       // Build request body
@@ -197,7 +199,9 @@ RESPOND IN JSON:
 }
 
 FORBIDDEN: "market expected", "consensus was", numeric forecasts not in data.
-USE: "reinforces X path", "de-emphasizes Y", "raises bar for Z".`;
+USE: "reinforces X path", "de-emphasizes Y", "raises bar for Z".
+
+CRITICAL: If the analysis relies on interpretation rather than explicit commitment, include a confidence disclaimer.`;
   }
 
   /**

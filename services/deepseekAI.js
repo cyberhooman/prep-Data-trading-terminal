@@ -146,7 +146,9 @@ OUTPUT FORMAT (STRICT):
 
 **Market Impact:** [1-2 sentences on USD, bonds, equities via policy transmission]
 
-RULES: Max 100 words. No hallucinated expectations. Path-based reasoning only.`;
+RULES: Max 100 words. No hallucinated expectations. Path-based reasoning only.
+
+CRITICAL: If the analysis relies on interpretation rather than explicit commitment, include a confidence disclaimer.`;
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
