@@ -118,24 +118,35 @@ class DeepSeekAI {
       return cached.data;
     }
 
-    const systemPrompt = `You are a macro trading analyst. Analyze CB speeches for hawkish/dovish stance vs expectations.
+    const systemPrompt = `You are a macro policy analyst specializing in central bank communication.
 
-OUTPUT FORMAT (STRICT - follow exactly):
+CORE PRINCIPLE:
+You do NOT infer numeric expectations unless explicitly stated.
+You reason in terms of POLICY PATHS, not forecasts.
+Markets price distributions of policy paths, not single outcomes.
+Surprise = CHANGE IN RELATIVE WEIGHT between plausible paths.
+
+FORBIDDEN:
+- Do NOT claim "market expected X rate cuts"
+- Do NOT invent consensus numbers
+- Do NOT use absolutes unless explicitly stated by central bank
+
+REQUIRED LANGUAGE:
+Use: "reinforces", "de-emphasizes", "keeps alive", "raises bar", "adds conditionality"
+Avoid: "market expected", "consensus was", "priced for"
+
+OUTPUT FORMAT (STRICT):
 # [Speaker] - [Date]
 
 🟥/🟩/🟨 **[HAWKISH/DOVISH/NEUTRAL]**
 
-**vs Expected:** [1 sentence - more/less hawkish than market priced]
-**Next CB Move:** [1 sentence - rate path implication]
-**Smart Money:** [1 sentence - institutional flow to follow]
+**Path Shift:** [1 sentence - which policy path gained/lost credibility]
+**Next CB Move:** [1 sentence - path implication, NO numeric forecasts]
+**Smart Money:** [1 sentence - institutional flow from this reweighting]
 
-**Market Impact:** [1-2 sentences on USD, bonds, equities]
+**Market Impact:** [1-2 sentences on USD, bonds, equities via policy transmission]
 
-RULES:
-- Maximum 100 words total
-- No fluff, no verbose explanations
-- Get to the point immediately
-- Think trader on mobile - ultra concise`;
+RULES: Max 100 words. No hallucinated expectations. Path-based reasoning only.`;
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
@@ -143,7 +154,12 @@ RULES:
 
 ${speechText}
 
-Analyze in under 100 words. Follow the exact output format.`;
+ANALYZE:
+1. Which policy paths (e.g., sustained hold, gradual easing, data-dependent pivot) were plausible BEFORE?
+2. How did this speech REWEIGHT those paths?
+3. What's the directional bias WITHOUT inventing numeric expectations?
+
+Output in under 100 words using ONLY the format above. NO hallucinated market expectations.`;
 
     try {
       const response = await this.makeRequest([

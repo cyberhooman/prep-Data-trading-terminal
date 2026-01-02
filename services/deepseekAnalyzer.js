@@ -98,7 +98,13 @@ class DeepSeekAnalyzer {
 
       // Choose system prompt based on news type
       const systemPrompt = newsType === 'policy'
-        ? 'You are a macro trading analyst. Be ultra-concise. Answer: 1) Hawkish or dovish vs expected? 2) Next CB move impact? 3) Smart money flow? Maximum 80 words for reasoning. Each keyFactor must be 1 short sentence.'
+        ? `You are a macro policy analyst. You reason in POLICY PATHS, not forecasts.
+
+FORBIDDEN: Do NOT invent "market expected X" or consensus numbers unless explicitly given.
+REQUIRED: Use "reinforces", "de-emphasizes", "raises bar", "keeps alive" language.
+
+Analyze: 1) Which policy path gained/lost weight? 2) Path transmission to CB decisions 3) Institutional flow from reweighting.
+Max 80 words. Each keyFactor = 1 sentence. NO hallucinated expectations.`
         : 'You are an equity analyst. Be ultra-concise. Answer: 1) Sector impact? 2) Business impact? 3) Smart money view? Maximum 80 words for reasoning. Each keyFactor must be 1 short sentence.';
 
       // Build request body
@@ -174,17 +180,24 @@ class DeepSeekAnalyzer {
     const { actual, forecast, previous } = economicData || {};
 
     return `EVENT: ${headline}
-Actual: ${actual || 'N/A'} | Forecast: ${forecast || 'N/A'} | Previous: ${previous || 'N/A'}
+Data: Actual=${actual || 'N/A'} | Forecast=${forecast || 'N/A'} | Previous=${previous || 'N/A'}
 
-RESPOND IN JSON (be ultra-concise):
+ANALYZE using POLICY PATH framework:
+Step 1: What policy paths (sustained hold / gradual easing / data-dependent pivot) existed BEFORE?
+Step 2: How does this data REWEIGHT those paths (reinforces/de-emphasizes/raises bar)?
+Step 3: Which path gained credibility? Which lost?
+Step 4: Asset transmission via policy path shift
+
+RESPOND IN JSON:
 {
   "verdict": "Bullish Surprise" | "Bearish Surprise" | "Neutral",
   "assetImpact": { "USD": "...", "Stocks": "...", "Bonds": "...", "Gold": "..." },
-  "reasoning": "[MAX 80 words] 1) Hawkish/dovish vs expected? 2) Next CB move? 3) Smart money flow?",
-  "keyFactors": ["1 sentence each - max 5 factors"]
+  "reasoning": "[MAX 80 words] Focus on PATH REWEIGHTING, not invented expectations",
+  "keyFactors": ["1 sentence each - max 5 factors, NO hallucinated consensus"]
 }
 
-Keep reasoning under 80 words. Each keyFactor = 1 short sentence.`;
+FORBIDDEN: "market expected", "consensus was", numeric forecasts not in data.
+USE: "reinforces X path", "de-emphasizes Y", "raises bar for Z".`;
   }
 
   /**
