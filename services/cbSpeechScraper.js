@@ -219,7 +219,10 @@ class CBSpeechScraper {
 
     // TRUMP/WHITE HOUSE special handling - tariff and trade announcements ARE market-moving
     if (cbMatch.bank.isTrump) {
-      const hasTrumpContent = /\b(tariff|trade|economy|fed|rate|dollar|china|canada|mexico|eu|import|export|deal|policy|executive order|announce|said|says|will|plan|threat|warn)\b/i.test(lower);
+      const hasTrumpContent = /\b(tariff|trade|economy|fed|rate|dollar|china|canada|mexico|eu|import|export|deal|policy|executive order|announce|said|says|will|plan|threat|warn|venezuela|maduro|military|oil)\b/i.test(lower);
+      if (!hasTrumpContent) {
+        console.log(`Filtered out Trump item (no market keywords): ${newsItem.headline.substring(0, 60)}...`);
+      }
       return hasTrumpContent;
     }
 
@@ -253,9 +256,13 @@ class CBSpeechScraper {
    */
   extractCBContentFromFJ(fjNews) {
     const cbItems = [];
+    let checkedCount = 0;
+    let passedFilter = 0;
 
     for (const newsItem of fjNews) {
+      checkedCount++;
       if (!this.isCBContent(newsItem)) continue;
+      passedFilter++;
 
       const text = `${newsItem.headline} ${newsItem.rawText || ''}`;
       const lowerText = text.toLowerCase();
@@ -304,6 +311,7 @@ class CBSpeechScraper {
       });
     }
 
+    console.log(`CB Speech Filter: Checked ${checkedCount} items, ${passedFilter} passed CB filter, ${cbItems.length} added to results`);
     return cbItems;
   }
 
