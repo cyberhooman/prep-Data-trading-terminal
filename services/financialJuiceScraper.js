@@ -8,8 +8,10 @@ puppeteer.use(StealthPlugin());
 class FinancialJuiceScraper {
   constructor() {
     this.baseUrl = 'https://www.financialjuice.com';
-    this.newsCache = [];
-    this.lastFetch = null;
+    this.newsCacheCritical = [];
+    this.newsCacheAll = [];
+    this.lastFetchCritical = null;
+    this.lastFetchAll = null;
     this.cacheTimeout = 2 * 60 * 1000; // 2 minutes cache
     this.browser = null;
     this.isLoggedIn = false;
@@ -352,10 +354,13 @@ class FinancialJuiceScraper {
   async _scrapeNews({ filterCriticalOnly = true }) {
     let page = null;
     try {
-      // Check cache first
-      if (this.lastFetch && Date.now() - this.lastFetch < this.cacheTimeout) {
-        console.log('Returning cached news data');
-        return this.newsCache;
+      // Check cache first - use separate cache for critical vs all news
+      const lastFetch = filterCriticalOnly ? this.lastFetchCritical : this.lastFetchAll;
+      const newsCache = filterCriticalOnly ? this.newsCacheCritical : this.newsCacheAll;
+
+      if (lastFetch && Date.now() - lastFetch < this.cacheTimeout) {
+        console.log(`Returning cached ${filterCriticalOnly ? 'critical' : 'all'} news data`);
+        return newsCache;
       }
 
       console.log('Fetching fresh market news...');
@@ -388,11 +393,9 @@ class FinancialJuiceScraper {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Wait for the news feed to appear
-      let feedLoaded = false;
       try {
         await page.waitForSelector('.media.feedWrap', { timeout: 10000 });
         console.log('News feed loaded successfully');
-        feedLoaded = true;
       } catch (error) {
         console.log('News feed not found, taking debug screenshot...');
         try {
@@ -400,9 +403,13 @@ class FinancialJuiceScraper {
         } catch (err) {}
       }
 
-      // Scroll down more to load additional items
-      await page.evaluate(() => window.scrollBy(0, 1000));
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Scroll down multiple times to load more items (especially Trump news)
+      console.log('Scrolling to load more news items...');
+      for (let i = 0; i < 5; i++) {
+        await page.evaluate(() => window.scrollBy(0, 800));
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      console.log('Finished scrolling, extracting news...');
 
       // Extract news items from the page
       const result = await page.evaluate((filterCriticalOnly) => {
@@ -679,9 +686,14 @@ class FinancialJuiceScraper {
       // Save history to file
       this.saveHistory();
 
-      // Update cache
-      this.newsCache = allItems;
-      this.lastFetch = Date.now();
+      // Update cache - use separate cache for critical vs all news
+      if (filterCriticalOnly) {
+        this.newsCacheCritical = allItems;
+        this.lastFetchCritical = Date.now();
+      } else {
+        this.newsCacheAll = allItems;
+        this.lastFetchAll = Date.now();
+      }
 
       return allItems;
     } catch (error) {
@@ -738,8 +750,10 @@ class FinancialJuiceScraper {
    * Clear cache and history
    */
   clearCache() {
-    this.newsCache = [];
-    this.lastFetch = null;
+    this.newsCacheCritical = [];
+    this.newsCacheAll = [];
+    this.lastFetchCritical = null;
+    this.lastFetchAll = null;
     this.newsHistory.clear();
     this.saveHistory(); // Save empty history to file
   }
