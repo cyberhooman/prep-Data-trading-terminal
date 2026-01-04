@@ -414,6 +414,7 @@ class FinancialJuiceScraper {
       // Extract news items from the page
       const result = await page.evaluate((filterCriticalOnly) => {
         const items = [];
+        const debugClasses = new Set(); // Track unique class combinations
 
         // Try multiple selectors, prioritizing the most specific
         const selectors = [
@@ -488,9 +489,49 @@ class FinancialJuiceScraper {
             return;
           }
 
-          // Check if this is a critical item (red border)
-          // The 'active-critical' class indicates the red border around important news
-          const isCritical = className.includes('active-critical');
+          // Check if this is a critical item (red border/background)
+          // FinancialJuice marks critical items with red backgrounds
+          // Check element style, computed style, and parent element style
+          const style = element.getAttribute('style') || '';
+          const parentStyle = element.parentElement ? (element.parentElement.getAttribute('style') || '') : '';
+
+          // Check computed background color
+          let computedBgColor = '';
+          try {
+            const computed = window.getComputedStyle(element);
+            computedBgColor = computed.backgroundColor || '';
+          } catch (e) {}
+
+          // Detect red backgrounds (various shades and formats)
+          const hasRedInStyle = style.includes('background') && (
+            style.includes('red') ||
+            style.includes('#8B0000') ||
+            style.includes('#B22222') ||
+            style.includes('#DC143C') ||
+            style.includes('rgb(139') ||
+            style.includes('rgb(178') ||
+            style.includes('rgb(220')
+          );
+
+          const hasRedInParent = parentStyle.includes('background') && (
+            parentStyle.includes('red') ||
+            parentStyle.includes('#8B0000') ||
+            parentStyle.includes('#B22222')
+          );
+
+          const hasRedComputed = computedBgColor && (
+            computedBgColor.includes('rgb(139') ||
+            computedBgColor.includes('rgb(178') ||
+            computedBgColor.includes('rgb(220')
+          );
+
+          const isCritical = className.includes('active-critical') || hasRedInStyle || hasRedInParent || hasRedComputed;
+
+          // Debug: collect class names and styles for first 20 items to understand structure
+          if (debugClasses.size < 20) {
+            const bgInfo = computedBgColor ? `BG:${computedBgColor}` : 'BG:none';
+            debugClasses.add(`Class:${className || 'none'}|Style:${style.substring(0, 40)}|${bgInfo}|Critical:${isCritical}`);
+          }
 
           // If filterCriticalOnly is true, skip non-critical items
           if (filterCriticalOnly && !isCritical) {
@@ -604,7 +645,8 @@ class FinancialJuiceScraper {
             totalElements: elements.length,
             criticalCount,
             skippedCount: otherCount,
-            selectorUsed
+            selectorUsed,
+            sampleClasses: Array.from(debugClasses)
           }
         };
       }, filterCriticalOnly);
@@ -614,6 +656,10 @@ class FinancialJuiceScraper {
       console.log(`DEBUG: Selector used: "${result.debug.selectorUsed}"`);
       console.log(`DEBUG: Found ${result.debug.totalElements} elements matching selectors`);
       console.log(`DEBUG: Critical items (red border): ${result.debug.criticalCount}, Skipped (non-critical): ${result.debug.skippedCount}`);
+      console.log(`DEBUG: Sample classes from first 20 items:`);
+      result.debug.sampleClasses.forEach((cls, i) => {
+        console.log(`  ${i + 1}. ${cls}`);
+      });
       console.log(`Found ${newsItems.length} high-impact news items before deduplication`);
 
       // Log first 3 critical headlines for debugging
