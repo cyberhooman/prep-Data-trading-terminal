@@ -84,6 +84,13 @@ class FinancialJuiceScraper {
   async closeBrowser() {
     if (this.browser) {
       try {
+        // Close all pages first to free memory
+        const pages = await this.browser.pages();
+        for (const p of pages) {
+          try {
+            await p.close();
+          } catch (e) {}
+        }
         await this.browser.close();
         console.log('Browser instance closed');
       } catch (error) {
@@ -353,31 +360,49 @@ class FinancialJuiceScraper {
    */
   async _scrapeNews({ filterCriticalOnly = true }) {
     let page = null;
+
     try {
       // Check cache first - use separate cache for critical vs all news
       const lastFetch = filterCriticalOnly ? this.lastFetchCritical : this.lastFetchAll;
       const newsCache = filterCriticalOnly ? this.newsCacheCritical : this.newsCacheAll;
 
       if (lastFetch && Date.now() - lastFetch < this.cacheTimeout) {
-        console.log(`Returning cached ${filterCriticalOnly ? 'critical' : 'all'} news data`);
+        console.log(`Returning cached ${filterCriticalOnly ? 'critical' : 'all'} news data (${newsCache.length} items)`);
         return newsCache;
       }
 
-      console.log('Fetching fresh market news...');
+      console.log(`Fetching fresh ${filterCriticalOnly ? 'critical' : 'all'} market news...`);
       const browser = await this.getBrowser();
+
+      // Clean up any orphan pages from previous failed runs
+      const existingPages = await browser.pages();
+      if (existingPages.length > 1) {
+        console.log(`Cleaning up ${existingPages.length - 1} orphan pages to free memory...`);
+        for (let i = 1; i < existingPages.length; i++) {
+          try {
+            await existingPages[i].close();
+          } catch (e) {}
+        }
+      }
+
       page = await browser.newPage();
 
       // Set viewport
       await page.setViewport({ width: 1920, height: 1080 });
 
-      // Navigate to the page
-      await page.goto(this.baseUrl, {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-      });
+      // Navigate to the page with relaxed wait conditions
+      try {
+        await page.goto(this.baseUrl, {
+          waitUntil: 'domcontentloaded',
+          timeout: 25000
+        });
+      } catch (navErr) {
+        console.log('Navigation timeout - continuing with partial load', navErr.message);
+        // Continue anyway - page may have loaded enough
+      }
 
-      // Wait for page to fully load
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Wait for page to stabilize
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       // Force-close any login/signup modals by removing them from DOM
       console.log('Removing any modal overlays...');
@@ -392,22 +417,32 @@ class FinancialJuiceScraper {
       await page.evaluate(() => window.scrollBy(0, 500));
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Wait for the news feed to appear
+      // Wait for the news feed to appear (with reasonable timeout for JS rendering)
       try {
-        await page.waitForSelector('.media.feedWrap', { timeout: 10000 });
+        await page.waitForSelector('.media.feedWrap', { timeout: 7000 });
         console.log('News feed loaded successfully');
       } catch (error) {
-        console.log('News feed not found, taking debug screenshot...');
-        try {
-          await page.screenshot({ path: 'scraper-debug-failed.png' });
-        } catch (err) {}
+        console.log('News feed selector not found after 7s, continuing with fallback selectors...');
+        // Continue - the feed may still load or be available via other selectors
       }
 
       // Scroll down multiple times to load more items (especially Trump news)
-      console.log('Scrolling to load more news items...');
-      for (let i = 0; i < 5; i++) {
-        await page.evaluate(() => window.scrollBy(0, 800));
-        await new Promise(resolve => setTimeout(resolve, 1500));
+      // Reduce iterations in low-memory mode to prevent OOM
+      const isLowMemory = process.env.LOW_MEMORY_MODE === 'true';
+      const scrollIterations = isLowMemory ? 3 : 6;
+      const scrollDelay = isLowMemory ? 1500 : 2000;
+
+      console.log(`Scrolling to load more news items (${scrollIterations} iterations, ${scrollDelay}ms delay)...`);
+      for (let i = 0; i < scrollIterations; i++) {
+        try {
+          await page.evaluate(() => {
+            window.scrollBy(0, 600);
+          });
+          await new Promise(resolve => setTimeout(resolve, scrollDelay));
+          console.log(`Scroll ${i + 1}/${scrollIterations} complete`);
+        } catch (scrollErr) {
+          console.log(`Scroll ${i + 1} error: ${scrollErr.message}, continuing...`);
+        }
       }
       console.log('Finished scrolling, extracting news...');
 
@@ -744,10 +779,24 @@ class FinancialJuiceScraper {
       return allItems;
     } catch (error) {
       console.error('Error scraping news:', error.message);
-      throw error;
+
+      // If scraping fails, return cached data as fallback
+      const fallbackCache = filterCriticalOnly ? this.newsCacheCritical : this.newsCacheAll;
+      if (fallbackCache && fallbackCache.length > 0) {
+        console.log(`Scraping failed, returning ${fallbackCache.length} cached items as fallback`);
+        return fallbackCache;
+      }
+
+      // If no cache available, return empty array instead of throwing
+      console.log('No cached data available, returning empty array');
+      return [];
     } finally {
       if (page) {
-        await page.close();
+        try {
+          await page.close();
+        } catch (closeErr) {
+          console.log('Error closing page:', closeErr.message);
+        }
       }
     }
   }
