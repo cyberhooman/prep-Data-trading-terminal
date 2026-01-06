@@ -20,27 +20,17 @@ function FinancialNewsFeed() {
       const data = await response.json();
 
       if (data.success) {
-        // Filter to show critical news items, items with sentiment, OR items with economic data
-        // Priority order: critical > economic data > sentiment > active items
-        const criticalNews = data.data.filter(item =>
-          item.isCritical ||
-          item.sentiment ||
-          item.economicData ||
-          item.isActive ||
-          (item.tags && item.tags.length > 0)
-        );
+        // Filter to show ONLY critical news (red-marked items from FinancialJuice)
+        // Keep ALL items from the past 7 days - no limit
+        const criticalNews = data.data.filter(item => item.isCritical);
 
-        // Sort by importance: critical first, then economic data, then by timestamp
+        // Sort by timestamp (most recent first)
         criticalNews.sort((a, b) => {
-          if (a.isCritical && !b.isCritical) return -1;
-          if (!a.isCritical && b.isCritical) return 1;
-          if (a.economicData && !b.economicData) return -1;
-          if (!a.economicData && b.economicData) return 1;
-          // Sort by firstSeenAt (most recent first)
           return (b.firstSeenAt || 0) - (a.firstSeenAt || 0);
         });
 
-        setNews(criticalNews.slice(0, 50)); // Limit to 50 items for performance
+        // Show ALL critical news from past 7 days - no 50 item limit
+        setNews(criticalNews);
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
         if (criticalNews.length === 0 && data.source === 'failed') {
           setError('News source temporarily unavailable');
@@ -266,7 +256,18 @@ function FinancialNewsFeed() {
             fontSize: '0.85rem',
             color: 'var(--muted)'
           }
-        }, `Updated: ${lastUpdate}`)
+        }, `Updated: ${lastUpdate}`),
+        news.length > 0 && React.createElement('span', {
+          style: {
+            fontSize: '0.85rem',
+            color: '#ef4444',
+            fontWeight: '600',
+            background: 'rgba(239, 68, 68, 0.1)',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '6px',
+            border: '1px solid rgba(239, 68, 68, 0.2)'
+          }
+        }, `${news.length} critical • 7 days history`)
       )
     ),
 
