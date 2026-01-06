@@ -12,7 +12,7 @@ class FinancialJuiceScraper {
     this.newsCacheAll = [];
     this.lastFetchCritical = null;
     this.lastFetchAll = null;
-    this.cacheTimeout = 2 * 60 * 1000; // 2 minutes cache
+    this.cacheTimeout = 1 * 60 * 1000; // 1 minute cache - shorter to catch breaking news faster
     this.browser = null;
     this.isLoggedIn = false;
     this.newsHistory = new Map(); // Store news with first seen timestamp
@@ -426,11 +426,11 @@ class FinancialJuiceScraper {
         // Continue - the feed may still load or be available via other selectors
       }
 
-      // Scroll down multiple times to load more items (especially Trump news)
-      // Reduce iterations in low-memory mode to prevent OOM
+      // Scroll down multiple times to load more items (especially critical breaking news)
+      // CRITICAL: Increase scroll iterations to ensure we don't miss late-breaking news
       const isLowMemory = process.env.LOW_MEMORY_MODE === 'true';
-      const scrollIterations = isLowMemory ? 3 : 6;
-      const scrollDelay = isLowMemory ? 1500 : 2000;
+      const scrollIterations = isLowMemory ? 5 : 10; // Increased from 3/6 to 5/10
+      const scrollDelay = isLowMemory ? 1200 : 1800; // Slightly faster scrolling
 
       console.log(`Scrolling to load more news items (${scrollIterations} iterations, ${scrollDelay}ms delay)...`);
       for (let i = 0; i < scrollIterations; i++) {
@@ -524,43 +524,63 @@ class FinancialJuiceScraper {
             return;
           }
 
-          // Check if this is a critical item (red border/background)
-          // FinancialJuice marks critical items with red backgrounds
-          // Check element style, computed style, and parent element style
+          // CRITICAL DETECTION LOGIC - Multiple redundant checks to never miss critical news
+          // FinancialJuice marks critical items with red backgrounds/borders
           const style = element.getAttribute('style') || '';
           const parentStyle = element.parentElement ? (element.parentElement.getAttribute('style') || '') : '';
 
-          // Check computed background color
+          // Check computed styles for element and parent
           let computedBgColor = '';
+          let computedBorderColor = '';
+          let parentComputedBg = '';
           try {
             const computed = window.getComputedStyle(element);
             computedBgColor = computed.backgroundColor || '';
+            computedBorderColor = computed.borderColor || '';
+
+            if (element.parentElement) {
+              const parentComputed = window.getComputedStyle(element.parentElement);
+              parentComputedBg = parentComputed.backgroundColor || '';
+            }
           } catch (e) {}
 
-          // Detect red backgrounds (various shades and formats)
-          const hasRedInStyle = style.includes('background') && (
-            style.includes('red') ||
-            style.includes('#8B0000') ||
-            style.includes('#B22222') ||
-            style.includes('#DC143C') ||
-            style.includes('rgb(139') ||
-            style.includes('rgb(178') ||
-            style.includes('rgb(220')
+          // Enhanced red detection - check ALL possible red shades and formats
+          const redPatterns = [
+            'red', '#8B0000', '#B22222', '#DC143C', '#FF0000', '#CD5C5C',
+            'rgb(139', 'rgb(178', 'rgb(220', 'rgb(255, 0, 0)', 'rgb(205',
+            'rgba(139', 'rgba(178', 'rgba(220', 'rgba(255, 0, 0)', 'rgba(205',
+            'darkred', 'firebrick', 'crimson'
+          ];
+
+          const hasRedInStyle = redPatterns.some(pattern =>
+            style.toLowerCase().includes(pattern.toLowerCase())
           );
 
-          const hasRedInParent = parentStyle.includes('background') && (
-            parentStyle.includes('red') ||
-            parentStyle.includes('#8B0000') ||
-            parentStyle.includes('#B22222')
+          const hasRedInParent = redPatterns.some(pattern =>
+            parentStyle.toLowerCase().includes(pattern.toLowerCase())
           );
 
-          const hasRedComputed = computedBgColor && (
-            computedBgColor.includes('rgb(139') ||
-            computedBgColor.includes('rgb(178') ||
-            computedBgColor.includes('rgb(220')
+          const hasRedComputed = redPatterns.some(pattern =>
+            computedBgColor.toLowerCase().includes(pattern.toLowerCase()) ||
+            computedBorderColor.toLowerCase().includes(pattern.toLowerCase())
           );
 
-          const isCritical = className.includes('active-critical') || hasRedInStyle || hasRedInParent || hasRedComputed;
+          const hasRedInParentComputed = redPatterns.some(pattern =>
+            parentComputedBg.toLowerCase().includes(pattern.toLowerCase())
+          );
+
+          // Check for critical class markers
+          const hasCriticalClass = className.includes('active-critical') ||
+                                  className.includes('critical') ||
+                                  className.includes('high-impact');
+
+          // FAILSAFE: Also check for "CRITICAL" badge in text
+          const hasCriticalBadge = text.includes('🔴 CRITICAL') ||
+                                   text.includes('CRITICAL') ||
+                                   element.querySelector('.critical-badge, .high-impact-badge');
+
+          const isCritical = hasCriticalClass || hasRedInStyle || hasRedInParent ||
+                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge;
 
           // Debug: collect class names and styles for first 20 items to understand structure
           if (debugClasses.size < 20) {
@@ -697,13 +717,19 @@ class FinancialJuiceScraper {
       });
       console.log(`Found ${newsItems.length} high-impact news items before deduplication`);
 
-      // Log first 3 critical headlines for debugging
+      // Log ALL critical headlines for debugging - CRITICAL to catch missed news
       const criticalItems = newsItems.filter(item => item.isCritical);
       if (criticalItems.length > 0) {
-        console.log(`DEBUG: First ${Math.min(3, criticalItems.length)} critical headlines:`);
-        criticalItems.slice(0, 3).forEach((item, i) => {
-          console.log(`  ${i + 1}. ${item.headline.substring(0, 80)}`);
+        console.log(`\n========== CRITICAL NEWS DETECTED: ${criticalItems.length} items ==========`);
+        criticalItems.forEach((item, i) => {
+          const timeStr = item.timestamp || 'no-time';
+          console.log(`  ${i + 1}. [${timeStr}] ${item.headline.substring(0, 100)}`);
         });
+        console.log(`=========================================================\n`);
+      } else {
+        console.warn(`⚠️  WARNING: NO CRITICAL NEWS FOUND - This may indicate a scraping issue!`);
+        console.warn(`   Total elements scanned: ${result.debug.totalElements}`);
+        console.warn(`   Selector used: ${result.debug.selectorUsed}`);
       }
 
       // Deduplicate based on headline and timestamp
@@ -725,6 +751,24 @@ class FinancialJuiceScraper {
         timestamp: this.parseTimestamp(item.timestamp),
         scrapedAt: new Date().toISOString()
       }));
+
+      // FAILSAFE: Check if we're getting recent critical news
+      const criticalProcessed = processedItems.filter(item => item.isCritical);
+      if (criticalProcessed.length > 0) {
+        const now = new Date();
+        const recentCritical = criticalProcessed.filter(item => {
+          if (!item.timestamp) return false;
+          const itemTime = new Date(item.timestamp);
+          const ageMinutes = (now - itemTime) / (1000 * 60);
+          return ageMinutes <= 60; // Critical news from last hour
+        });
+
+        if (recentCritical.length > 0) {
+          console.log(`✅ GOOD: Found ${recentCritical.length} critical news items from last hour`);
+        } else {
+          console.warn(`⚠️  WARNING: No critical news from last hour. Oldest critical news may be stale.`);
+        }
+      }
 
       // Merge with historical items (keep for 1 week)
       const now = Date.now();
