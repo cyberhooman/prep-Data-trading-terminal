@@ -726,10 +726,32 @@ class FinancialJuiceScraper {
           console.log(`  ${i + 1}. [${timeStr}] ${item.headline.substring(0, 100)}`);
         });
         console.log(`=========================================================\n`);
+
+        // SPECIFIC DEBUG: Check for Supreme Court / tariff news
+        const supremeCourtNews = criticalItems.filter(item =>
+          item.headline.toLowerCase().includes('supreme court') ||
+          item.headline.toLowerCase().includes('tariff')
+        );
+        if (supremeCourtNews.length > 0) {
+          console.log(`✅ CAPTURED Supreme Court/Tariff news: ${supremeCourtNews.length} items`);
+        }
       } else {
         console.warn(`⚠️  WARNING: NO CRITICAL NEWS FOUND - This may indicate a scraping issue!`);
         console.warn(`   Total elements scanned: ${result.debug.totalElements}`);
         console.warn(`   Selector used: ${result.debug.selectorUsed}`);
+      }
+
+      // ADDITIONAL DEBUG: Check ALL news (including non-critical) for Supreme Court
+      const allSupremeCourt = newsItems.filter(item =>
+        item.headline.toLowerCase().includes('supreme court') ||
+        item.headline.toLowerCase().includes('tariff')
+      );
+      if (allSupremeCourt.length > 0 && allSupremeCourt.some(item => !item.isCritical)) {
+        console.warn(`⚠️  FOUND Supreme Court/Tariff news but NOT marked critical:`);
+        allSupremeCourt.filter(item => !item.isCritical).forEach((item, i) => {
+          console.warn(`  ${i + 1}. [${item.timestamp}] ${item.headline.substring(0, 100)}`);
+          console.warn(`     isCritical: ${item.isCritical}, className: ${item.className}`);
+        });
       }
 
       // Deduplicate based on headline and timestamp
