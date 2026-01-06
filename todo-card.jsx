@@ -9,7 +9,7 @@ function TodoCard() {
   const [dateInfo, setDateInfo] = useState({ date: "", time: "" });
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(true); // Default to true so form is visible
   const [currencyTrend, setCurrencyTrend] = useState(null);
   const [editFormData, setEditFormData] = useState({
     pair: '',
