@@ -589,6 +589,26 @@ class FinancialJuiceScraper {
           const isCritical = hasCriticalClass || hasRedInStyle || hasRedInParent ||
                             hasRedComputed || hasRedInParentComputed || hasCriticalBadge;
 
+          // ============================================================================
+          // HIGH-IMPACT KEYWORD DETECTION (SEPARATE FROM CRITICAL)
+          // Market-moving events that should be tracked separately
+          // ============================================================================
+          const highImpactKeywords = [
+            'supreme court', 'scotus', 'court ruling',
+            'tariff', 'tariffs', 'trade war',
+            'executive order', 'presidential decree',
+            'emergency', 'breaking:', 'urgent:',
+            'central bank decision', 'rate decision',
+            'war', 'military action', 'invasion',
+            'sanctions', 'embargo',
+            'bankruptcy', 'default', 'bailout'
+          ];
+
+          const textLower = text.toLowerCase();
+          const isHighImpact = highImpactKeywords.some(keyword =>
+            textLower.includes(keyword)
+          );
+
           // Debug: collect class names and styles for first 20 items to understand structure
           if (debugClasses.size < 20) {
             const bgInfo = computedBgColor ? `BG:${computedBgColor}` : 'BG:none';
@@ -696,6 +716,7 @@ class FinancialJuiceScraper {
             link: link,
             rawText: text.trim(),
             isCritical: isCritical,
+            isHighImpact: isHighImpact, // Market-moving keyword detection
             sentiment: sentiment, // 'bullish', 'bearish', or null
             className: className
           });

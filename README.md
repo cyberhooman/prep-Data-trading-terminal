@@ -35,7 +35,23 @@ AlphaLabs is a full-stack trading intelligence platform that combines:
 - Comprehensive logging of ALL critical headlines with timestamps
 - Recency failsafe: Alerts if no critical news from last hour
 
-### 2. **Central Bank Speech Analysis**
+### 2. **High Impact News Dashboard**
+- **Keyword-based detection**: Automatically flags market-moving events
+- **Multiple categories**: Supreme Court decisions, tariffs, executive orders, wars, CB decisions, sanctions, emergencies
+- **Real-time tracking**: Updates every 2 minutes
+- **Independent from red marks**: Separate from Critical Market News feed
+- **AI analysis**: Integrated market impact assessment
+- **Categories tracked**:
+  - ⚖️ Supreme Court decisions & court rulings
+  - 📊 Tariffs & trade wars
+  - 🏛️ Executive orders & presidential decrees
+  - 💣 Military actions, wars, invasions
+  - 🏦 Central bank decisions & rate decisions
+  - 📉 Bankruptcies, defaults, bailouts
+  - ⚡ Sanctions & embargoes
+  - 🚨 Emergency declarations & breaking news
+
+### 3. **Central Bank Speech Analysis**
 - **G8 Central Bank coverage**: Fed, ECB, BOE, BOJ, BOC, RBA, RBNZ, SNB
 - **AI policy analysis**: Hawkish/dovish stance with policy path reweighting
 - **Speaker tracking**: Monitors key central bank officials
@@ -48,7 +64,7 @@ AlphaLabs is a full-stack trading intelligence platform that combines:
 - Confidence disclaimers for interpretation-based insights
 - Ultra-concise output (80 words) optimized for mobile
 
-### 3. **AI-Powered Market Analysis**
+### 4. **AI-Powered Market Analysis**
 
 **Two-Mode Analysis:**
 
@@ -88,20 +104,20 @@ AlphaLabs is a full-stack trading intelligence platform that combines:
 - ✅ Structured JSON output for traceability
 - ✅ Confidence notes when interpreting vs stating facts
 
-### 4. **Economic Calendar**
+### 5. **Economic Calendar**
 - **Real-time data**: Major economic releases (GDP, CPI, Employment, etc.)
 - **Surprise detection**: Actual vs Forecast comparison
 - **Impact classification**: High/Medium/Low importance
 - **Historical tracking**: 7-day news retention
 - **Multi-currency coverage**: USD, EUR, GBP, JPY, CAD, AUD, NZD, CHF
 
-### 5. **Currency Strength Dashboard**
+### 6. **Currency Strength Dashboard**
 - **Real-time FX rates** via Twelve Data API
 - **Relative strength analysis** across major pairs
 - **Visual heatmaps** for quick pattern recognition
 - **Cross-pair analysis** for trading opportunities
 
-### 6. **User Management**
+### 7. **User Management**
 - **Google OAuth 2.0** authentication
 - **Session management** with secure cookies
 - **User preferences** and watchlists
@@ -293,8 +309,9 @@ services/
 └── database.js                # SQLite news history management
 
 pages/
-├── financial-news.jsx         # Critical market news UI
-├── cb-speech-analysis.jsx     # Central bank speech dashboard
+├── financial-news.jsx         # Critical market news UI (red marks only)
+├── high-impact-news.jsx       # High impact news dashboard (keyword detection)
+├── cb-speech-analysis.jsx     # Central bank speech analysis
 ├── currency-strength.jsx      # FX strength heatmap
 └── macro-ai-analysis.jsx      # AI analysis interface
 
