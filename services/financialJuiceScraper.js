@@ -569,18 +569,49 @@ class FinancialJuiceScraper {
             parentComputedBg.toLowerCase().includes(pattern.toLowerCase())
           );
 
-          // Check for critical class markers
+          // ============================================================================
+          // CRITICAL NEWS DETECTION - MULTI-LAYER APPROACH (6 DETECTION METHODS)
+          // ============================================================================
+          // Layer 1: CSS Class markers
           const hasCriticalClass = className.includes('active-critical') ||
                                   className.includes('critical') ||
                                   className.includes('high-impact');
 
-          // FAILSAFE: Also check for "CRITICAL" badge in text
+          // Layer 2: CRITICAL badge in text
           const hasCriticalBadge = text.includes('🔴 CRITICAL') ||
                                    text.includes('CRITICAL') ||
                                    element.querySelector('.critical-badge, .high-impact-badge');
 
+          // Layer 3-5: Red color detection (inline styles, parent styles, computed styles)
+          // Already computed above: hasRedInStyle, hasRedInParent, hasRedComputed, hasRedInParentComputed
+
+          // Layer 6: ULTRA-FAILSAFE - High-impact keyword detection
+          // Force mark certain keywords as critical even if visual detection fails
+          // This catches Supreme Court, tariffs, executive orders, etc.
+          const highImpactKeywords = [
+            'supreme court', 'scotus', 'court ruling',
+            'tariff', 'tariffs', 'trade war',
+            'executive order', 'presidential decree',
+            'emergency', 'breaking:', 'urgent:',
+            'central bank decision', 'rate decision',
+            'war', 'military action', 'invasion',
+            'sanctions', 'embargo',
+            'bankruptcy', 'default', 'bailout'
+          ];
+
+          const textLower = text.toLowerCase();
+          const hasHighImpactKeyword = highImpactKeywords.some(keyword =>
+            textLower.includes(keyword)
+          );
+
           const isCritical = hasCriticalClass || hasRedInStyle || hasRedInParent ||
-                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge;
+                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge ||
+                            hasHighImpactKeyword;
+
+          // Log keyword-triggered critical flags for debugging
+          if (hasHighImpactKeyword && !hasCriticalClass && !hasRedInStyle && !hasRedInParent) {
+            console.log(`🔥 HIGH-IMPACT KEYWORD TRIGGERED: "${text.substring(0, 80)}..."`);
+          }
 
           // Debug: collect class names and styles for first 20 items to understand structure
           if (debugClasses.size < 20) {
