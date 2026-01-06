@@ -4927,9 +4927,9 @@ app.get('/api/financial-news', async (req, res) => {
     let news = [];
     let source = 'unknown';
 
-    // Create timeout promise (20 seconds for scraping)
+    // Create timeout promise (45 seconds for scraping - increased for reliability)
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Timeout')), 20000)
+      setTimeout(() => reject(new Error('Timeout')), 45000)
     );
 
     // Use web scraping only (X API disabled)
@@ -4943,9 +4943,16 @@ app.get('/api/financial-news', async (req, res) => {
       console.log(`Successfully fetched ${news.length} items from web scraping`);
     } catch (scrapingErr) {
       console.error('Scraping failed:', scrapingErr.message);
-      // Return empty array instead of crashing
-      news = [];
-      source = 'failed';
+
+      // Try to get cached data as fallback
+      if (financialJuiceScraper.newsCacheCritical && financialJuiceScraper.newsCacheCritical.length > 0) {
+        news = financialJuiceScraper.newsCacheCritical;
+        source = 'cache_fallback';
+        console.log(`Using ${news.length} cached items as fallback`);
+      } else {
+        news = [];
+        source = 'failed';
+      }
     }
 
     res.json({

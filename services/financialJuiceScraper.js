@@ -401,8 +401,8 @@ class FinancialJuiceScraper {
         // Continue anyway - page may have loaded enough
       }
 
-      // Wait for page to stabilize
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Wait for page to stabilize (reduced from 3s to 2s)
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Force-close any login/signup modals by removing them from DOM
       console.log('Removing any modal overlays...');
@@ -411,11 +411,11 @@ class FinancialJuiceScraper {
         document.body.classList.remove('modal-open');
         document.body.style.overflow = 'auto';
       });
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Scroll to trigger lazy loading of feed items
       await page.evaluate(() => window.scrollBy(0, 500));
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Wait for the news feed to appear (with reasonable timeout for JS rendering)
       try {

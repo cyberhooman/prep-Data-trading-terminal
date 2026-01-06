@@ -44,6 +44,9 @@ function FinancialNewsFeed() {
         setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
         if (criticalNews.length === 0 && data.source === 'failed') {
           setError('News source temporarily unavailable');
+        } else if (data.source === 'cache_fallback') {
+          // Show cached data but indicate it might be slightly stale
+          setError(null); // Clear any previous errors - cache data is still valid
         }
       } else {
         setError('Failed to load news');
