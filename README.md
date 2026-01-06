@@ -16,12 +16,21 @@ AlphaLabs is a full-stack trading intelligence platform that combines:
 ### 1. **Critical Market News Feed**
 - **Zero-miss guarantee**: Advanced scraping with multiple redundant detection methods
 - **1-minute cache refresh** for breaking news
-- **Critical news detection**: Red border/badge recognition with 13+ pattern matching
+- **6-layer critical detection**: Multi-method approach ensures no missed news
 - **AI-powered analysis**: DeepSeek integration for instant market impact assessment
 - **Policy path framework**: Analyzes news via institutional reweighting methodology
 - **Source**: FinancialJuice integration with automated login
 
+**6-Layer Critical News Detection:**
+1. **CSS class markers**: active-critical, critical, high-impact
+2. **CRITICAL badge text**: 🔴 CRITICAL badge detection
+3. **Inline red styles**: 13+ red color pattern matching
+4. **Parent red styles**: Red background/border on parent elements
+5. **Computed red styles**: Browser-computed background/border colors
+6. **High-impact keywords**: Supreme Court, tariffs, executive orders, war, sanctions, etc.
+
 **Recent Improvements:**
+- **Keyword-based failsafe**: Never miss Supreme Court, tariff, or other critical news
 - Reduced cache timeout: 2min → 1min for faster breaking news
 - Increased scroll iterations: 3/6 → 5/10 to catch late-breaking items
 - Enhanced critical detection with 13 red color patterns
@@ -360,6 +369,7 @@ Check logs for:
 ## 📝 Recent Updates
 
 ### January 2026
+- ✅ **Keyword-based failsafe**: 6th detection layer for Supreme Court, tariffs, etc.
 - ✅ Implemented policy path framework for AI analysis
 - ✅ Eliminated AI hallucination with anti-consensus rules
 - ✅ Structured JSON output for market news
