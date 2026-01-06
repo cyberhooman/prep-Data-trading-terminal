@@ -118,45 +118,57 @@ class DeepSeekAI {
       return cached.data;
     }
 
-    const systemPrompt = `You are a macro policy analyst specializing in central bank communication.
+    const systemPrompt = `You are a macro policy analyst specializing in central bank communication and market statements.
 
 CORE PRINCIPLE:
 You do NOT infer numeric expectations unless explicitly stated.
-You reason in terms of POLICY PATHS, not forecasts.
-Markets price distributions of policy paths, not single outcomes.
-Surprise = CHANGE IN RELATIVE WEIGHT between plausible paths.
+For policy statements: reason in POLICY PATHS, not forecasts.
+For commodity/sector statements: analyze DIRECT MARKET IMPACT on the specific asset mentioned.
 
 FORBIDDEN:
 - Do NOT claim "market expected X rate cuts"
 - Do NOT invent consensus numbers
-- Do NOT use absolutes unless explicitly stated by central bank
+- Do NOT force hawkish/dovish labels on non-monetary statements
 
 REQUIRED: Return analysis as markdown text (NOT JSON) following this EXACT format:
 
 # [Speaker] - [Date]
 
-🟥/🟩/🟨 **[HAWKISH/DOVISH/NEUTRAL]**
+🟥/🟩/🟨 **[HAWKISH/DOVISH/NEUTRAL or BULLISH/BEARISH for specific assets]**
 
-**Path Shift:** [Which path gained/lost credibility]
-**Market Impact:** [USD, bonds, equities transmission]
+**Impact:** [State which specific asset is affected - e.g., "Bearish for OIL", "Bullish for USD", etc.]
+**Reasoning:** [1-2 sentences explaining why]
 
 **Note:** [Confidence disclaimer if interpretation-based]
 
-Keep ultra-concise (max 80 words). Use: "reinforces", "de-emphasizes", "raises bar".`;
+CRITICAL RULES:
+- If statement mentions OIL/energy drilling → analyze impact on OIL prices specifically
+- If statement mentions TARIFFS/trade → analyze impact on affected currencies/sectors
+- If statement mentions TECH/AI → analyze impact on tech sector
+- If statement mentions GOLD/commodities → analyze those specific assets
+- Only use hawkish/dovish for actual monetary policy statements
+- Be specific about which asset is affected
+
+Max 80 words. Direct and specific.`;
 
     const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-    const userPrompt = `${centralBank} speech by ${speaker} (${date}):
+    const userPrompt = `Statement by ${speaker} (${date}):
 
 ${speechText}
 
-ANALYZE (Policy Path Framework):
-1. Pre-event paths: What was plausible BEFORE (pause/easing/tightening scenarios)?
-2. Communication signals: What language shifted path weights?
-3. Path reweighting: Which gained/lost credibility?
-4. Asset transmission: Impact via policy path shift
+ANALYZE:
+1. Identify PRIMARY ASSET MENTIONED (oil, gold, USD, tech stocks, bonds, tariffs, etc.)
+2. If commodity/sector specific → state bullish/bearish for THAT ASSET
+3. If monetary policy → use hawkish/dovish framework
+4. Be specific: "Bearish for OIL" not "neutral for markets"
 
-Output in markdown format, max 80 words, NO invented expectations.`;
+Example outputs:
+- "Bearish for OIL" (drilling increases supply)
+- "Bullish for USD" (tariff talk strengthens dollar)
+- "Hawkish" (only for rate/policy talk)
+
+Output in markdown format, max 80 words, NO invented expectations. Be asset-specific.`;
 
     try {
       const response = await this.makeRequest([
@@ -166,19 +178,27 @@ Output in markdown format, max 80 words, NO invented expectations.`;
 
       const content = response.choices[0].message.content;
 
-      // Extract sentiment from the markdown badge
+      // Extract sentiment from the markdown badge - handle both policy and asset-specific labels
       let sentiment = 'NEUTRAL';
       let score = 0;
 
-      if (content.includes('🟥 HAWKISH')) {
+      if (content.includes('🟥 HAWKISH') || content.includes('🟥 **HAWKISH')) {
         sentiment = 'HAWKISH';
         score = 60;
-      } else if (content.includes('🟩 DOVISH')) {
+      } else if (content.includes('🟩 DOVISH') || content.includes('🟩 **DOVISH')) {
         sentiment = 'DOVISH';
         score = -60;
-      } else if (content.includes('🟨 NEUTRAL')) {
+      } else if (content.includes('🟨 NEUTRAL') || content.includes('🟨 **NEUTRAL')) {
         sentiment = 'NEUTRAL';
         score = 0;
+      } else if (content.match(/🟥.*BEARISH/i)) {
+        // Bearish for specific asset (e.g., "Bearish for OIL")
+        sentiment = 'BEARISH';
+        score = -60;
+      } else if (content.match(/🟩.*BULLISH/i)) {
+        // Bullish for specific asset
+        sentiment = 'BULLISH';
+        score = 60;
       }
 
       // Create analysis object with markdown content
