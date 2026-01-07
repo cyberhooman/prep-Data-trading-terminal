@@ -586,8 +586,28 @@ class FinancialJuiceScraper {
           // Layer 3-5: Red color detection (inline styles, parent styles, computed styles)
           // Already computed above: hasRedInStyle, hasRedInParent, hasRedComputed, hasRedInParentComputed
 
-          const isCritical = hasCriticalClass || hasRedInStyle || hasRedInParent ||
-                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge;
+          // Check if this is routine market data (settlements, futures contracts)
+          // These should NEVER be marked critical even if they have red styling
+          const isRoutineSettlement = text.match(/\b(NYMEX|COMEX|futures?|settle[ds]?)\b/i) &&
+                                      text.match(/\b(February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i);
+
+          // Calculate critical flag, but exclude routine settlements
+          let isCritical = (hasCriticalClass || hasRedInStyle || hasRedInParent ||
+                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && !isRoutineSettlement;
+
+          // DEBUG: Log why NYMEX/energy futures are being marked critical
+          if ((hasCriticalClass || hasRedInStyle || hasRedInParent || hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && text.toLowerCase().includes('nymex')) {
+            console.log(`🔍 NYMEX item - Debug info:`);
+            console.log(`  Headline: ${text.substring(0, 100)}`);
+            console.log(`  isRoutineSettlement: ${isRoutineSettlement}`);
+            console.log(`  isCritical (after filter): ${isCritical}`);
+            console.log(`  hasCriticalClass: ${hasCriticalClass} (className: ${className})`);
+            console.log(`  hasRedInStyle: ${hasRedInStyle}`);
+            console.log(`  hasRedInParent: ${hasRedInParent}`);
+            console.log(`  hasRedComputed: ${hasRedComputed} (bg: ${computedBgColor}, border: ${computedBorderColor})`);
+            console.log(`  hasRedInParentComputed: ${hasRedInParentComputed}`);
+            console.log(`  hasCriticalBadge: ${hasCriticalBadge}`);
+          }
 
           // ============================================================================
           // HIGH-IMPACT KEYWORD DETECTION (SEPARATE FROM CRITICAL)
