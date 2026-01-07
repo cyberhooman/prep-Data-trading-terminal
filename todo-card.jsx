@@ -238,25 +238,24 @@ function TodoCard() {
       transition: 'all 0.2s'
     },
     content: {
-      padding: '16px',
+      padding: '12px',
       backgroundColor: 'var(--sidebar)',
-      maxHeight: 'calc(100vh - 180px)',
       overflowY: 'auto'
     },
     title: {
-      fontSize: '16px',
+      fontSize: '14px',
       fontWeight: '700',
       color: 'var(--text)',
-      marginBottom: '16px',
+      marginBottom: '10px',
       fontFamily: "'Space Grotesk', sans-serif"
     },
     alertBox: {
-      padding: '10px 12px',
-      borderRadius: '8px',
-      marginBottom: '12px',
+      padding: '8px 10px',
+      borderRadius: '6px',
+      marginBottom: '8px',
       display: 'flex',
       alignItems: 'flex-start',
-      gap: '8px'
+      gap: '6px'
     },
     infoAlert: {
       backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -267,78 +266,78 @@ function TodoCard() {
       border: '1px solid rgba(245, 158, 11, 0.25)'
     },
     alertIcon: {
-      width: '18px',
-      height: '18px',
+      width: '16px',
+      height: '16px',
       flexShrink: 0,
-      marginTop: '2px'
+      marginTop: '1px'
     },
     alertTitle: {
-      fontSize: '13px',
+      fontSize: '12px',
       fontWeight: '600',
-      marginBottom: '4px'
+      marginBottom: '2px'
     },
     alertText: {
-      fontSize: '12px',
-      lineHeight: '1.5'
+      fontSize: '11px',
+      lineHeight: '1.4'
     },
     form: {
-      padding: '12px',
+      padding: '10px',
       backgroundColor: 'var(--block)',
       border: '1px solid var(--border)',
-      borderRadius: '8px',
-      marginBottom: '12px'
+      borderRadius: '6px',
+      marginBottom: '8px'
     },
     formGrid2: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '10px',
-      marginBottom: '10px'
+      gap: '8px',
+      marginBottom: '8px'
     },
     formGrid3: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr 1fr',
-      gap: '10px',
-      marginBottom: '12px'
+      gap: '8px',
+      marginBottom: '8px'
     },
     label: {
       display: 'block',
-      fontSize: '11px',
+      fontSize: '10px',
       fontWeight: '500',
       color: 'var(--muted)',
-      marginBottom: '6px',
+      marginBottom: '4px',
       textTransform: 'uppercase',
       letterSpacing: '0.5px'
     },
     input: {
       width: '100%',
-      padding: '8px 10px',
+      padding: '6px 8px',
       backgroundColor: 'var(--bg)',
       border: '1px solid var(--border)',
-      borderRadius: '6px',
-      fontSize: '13px',
+      borderRadius: '4px',
+      fontSize: '12px',
       color: 'var(--text)',
       outline: 'none',
       transition: 'border-color 0.2s, box-shadow 0.2s'
     },
     select: {
       width: '100%',
-      padding: '8px 10px',
+      padding: '6px 8px',
       backgroundColor: 'var(--bg)',
       border: '1px solid var(--border)',
-      borderRadius: '6px',
-      fontSize: '13px',
+      borderRadius: '4px',
+      fontSize: '12px',
       color: 'var(--text)',
       outline: 'none',
       cursor: 'pointer'
     },
     submitBtn: {
       width: '100%',
-      padding: '10px',
+      padding: '8px',
       backgroundColor: '#6366f1',
       color: 'white',
       border: 'none',
-      borderRadius: '8px',
-      fontSize: '13px',
+      borderRadius: '6px',
+      fontSize: '12px',
       fontWeight: '600',
       cursor: 'pointer',
       transition: 'all 0.2s'
