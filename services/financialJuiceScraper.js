@@ -544,30 +544,49 @@ class FinancialJuiceScraper {
             }
           } catch (e) {}
 
-          // Enhanced red detection - check ALL possible red shades and formats
-          const redPatterns = [
-            'red', '#8B0000', '#B22222', '#DC143C', '#FF0000', '#CD5C5C',
-            'rgb(139', 'rgb(178', 'rgb(220', 'rgb(255, 0, 0)', 'rgb(205',
-            'rgba(139', 'rgba(178', 'rgba(220', 'rgba(255, 0, 0)', 'rgba(205',
-            'darkred', 'firebrick', 'crimson'
-          ];
+          // STRICT RED BACKGROUND DETECTION for FinancialJuice
+          // FinancialJuice uses DARK RED BACKGROUND (#8B0000 or similar) for critical news
+          // Normal news has dark blue/gray background
+          // We need to detect ONLY actual red backgrounds, not any color that happens to have red component
 
-          const hasRedInStyle = redPatterns.some(pattern =>
-            style.toLowerCase().includes(pattern.toLowerCase())
-          );
+          // Helper function to check if a color is actually RED (not just has red component)
+          const isActualRedColor = (colorStr) => {
+            if (!colorStr) return false;
+            const lower = colorStr.toLowerCase().trim();
 
-          const hasRedInParent = redPatterns.some(pattern =>
-            parentStyle.toLowerCase().includes(pattern.toLowerCase())
-          );
+            // Check for named red colors
+            if (lower === 'red' || lower === 'darkred' || lower === 'firebrick' ||
+                lower === 'crimson' || lower === 'maroon') {
+              return true;
+            }
 
-          const hasRedComputed = redPatterns.some(pattern =>
-            computedBgColor.toLowerCase().includes(pattern.toLowerCase()) ||
-            computedBorderColor.toLowerCase().includes(pattern.toLowerCase())
-          );
+            // Check for hex red colors (dark reds used by FinancialJuice)
+            if (lower.includes('#8b0000') || lower.includes('#800000') ||
+                lower.includes('#a00000') || lower.includes('#b22222') ||
+                lower.includes('#dc143c') || lower.includes('#990000') ||
+                lower.includes('#aa0000') || lower.includes('#cc0000')) {
+              return true;
+            }
 
-          const hasRedInParentComputed = redPatterns.some(pattern =>
-            parentComputedBg.toLowerCase().includes(pattern.toLowerCase())
-          );
+            // Check for RGB - must be predominantly RED (R high, G and B low)
+            const rgbMatch = lower.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+            if (rgbMatch) {
+              const r = parseInt(rgbMatch[1]);
+              const g = parseInt(rgbMatch[2]);
+              const b = parseInt(rgbMatch[3]);
+              // RED if: R > 120, G < 60, B < 60 (dark red background)
+              if (r > 120 && g < 60 && b < 60) {
+                return true;
+              }
+            }
+
+            return false;
+          };
+
+          const hasRedInStyle = isActualRedColor(style);
+          const hasRedInParent = isActualRedColor(parentStyle);
+          const hasRedComputed = isActualRedColor(computedBgColor);
+          const hasRedInParentComputed = isActualRedColor(parentComputedBg);
 
           // ============================================================================
           // CRITICAL NEWS DETECTION - RED MARK ONLY (5 DETECTION METHODS)
