@@ -238,8 +238,10 @@ function TodoCard() {
       transition: 'all 0.2s'
     },
     content: {
-      padding: '20px',
-      backgroundColor: 'var(--sidebar)'
+      padding: '16px',
+      backgroundColor: 'var(--sidebar)',
+      maxHeight: 'calc(100vh - 180px)',
+      overflowY: 'auto'
     },
     title: {
       fontSize: '16px',
@@ -249,12 +251,12 @@ function TodoCard() {
       fontFamily: "'Space Grotesk', sans-serif"
     },
     alertBox: {
-      padding: '12px 14px',
+      padding: '10px 12px',
       borderRadius: '8px',
-      marginBottom: '16px',
+      marginBottom: '12px',
       display: 'flex',
       alignItems: 'flex-start',
-      gap: '10px'
+      gap: '8px'
     },
     infoAlert: {
       backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -280,23 +282,23 @@ function TodoCard() {
       lineHeight: '1.5'
     },
     form: {
-      padding: '16px',
+      padding: '12px',
       backgroundColor: 'var(--block)',
       border: '1px solid var(--border)',
       borderRadius: '8px',
-      marginBottom: '16px'
+      marginBottom: '12px'
     },
     formGrid2: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '12px',
-      marginBottom: '12px'
+      gap: '10px',
+      marginBottom: '10px'
     },
     formGrid3: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr 1fr',
-      gap: '12px',
-      marginBottom: '16px'
+      gap: '10px',
+      marginBottom: '12px'
     },
     label: {
       display: 'block',
@@ -309,7 +311,7 @@ function TodoCard() {
     },
     input: {
       width: '100%',
-      padding: '10px 12px',
+      padding: '8px 10px',
       backgroundColor: 'var(--bg)',
       border: '1px solid var(--border)',
       borderRadius: '6px',
@@ -320,7 +322,7 @@ function TodoCard() {
     },
     select: {
       width: '100%',
-      padding: '10px 12px',
+      padding: '8px 10px',
       backgroundColor: 'var(--bg)',
       border: '1px solid var(--border)',
       borderRadius: '6px',
@@ -331,7 +333,7 @@ function TodoCard() {
     },
     submitBtn: {
       width: '100%',
-      padding: '12px',
+      padding: '10px',
       backgroundColor: '#6366f1',
       color: 'white',
       border: 'none',
