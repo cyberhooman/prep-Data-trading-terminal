@@ -586,20 +586,26 @@ class FinancialJuiceScraper {
           // Layer 3-5: Red color detection (inline styles, parent styles, computed styles)
           // Already computed above: hasRedInStyle, hasRedInParent, hasRedComputed, hasRedInParentComputed
 
-          // Check if this is routine market data (settlements, futures contracts)
+          // Check if this is routine market data (settlements, futures contracts, MOO/MOC imbalance)
           // These should NEVER be marked critical even if they have red styling
-          const isRoutineSettlement = text.match(/\b(NYMEX|COMEX|futures?|settle[ds]?)\b/i) &&
-                                      text.match(/\b(February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i);
+          const isRoutineMarketData = (text.match(/\b(NYMEX|COMEX|futures?|settle[ds]?)\b/i) &&
+                                       text.match(/\b(February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i)) ||
+                                       text.match(/\b(MOO|MOC)\s+(Imbalance|imbalance)\b/i);
 
-          // Calculate critical flag, but exclude routine settlements
+          // Calculate critical flag, but exclude routine market data
           let isCritical = (hasCriticalClass || hasRedInStyle || hasRedInParent ||
-                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && !isRoutineSettlement;
+                            hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && !isRoutineMarketData;
 
-          // DEBUG: Log why NYMEX/energy futures are being marked critical
+          // DEBUG: Log when routine market data is being filtered out
+          if ((hasCriticalClass || hasRedInStyle || hasRedInParent || hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && isRoutineMarketData) {
+            console.log(`🚫 EXCLUDED routine market data: ${text.substring(0, 80)}`);
+          }
+
+          // DEBUG: Log NYMEX items for investigation
           if ((hasCriticalClass || hasRedInStyle || hasRedInParent || hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && text.toLowerCase().includes('nymex')) {
             console.log(`🔍 NYMEX item - Debug info:`);
             console.log(`  Headline: ${text.substring(0, 100)}`);
-            console.log(`  isRoutineSettlement: ${isRoutineSettlement}`);
+            console.log(`  isRoutineMarketData: ${isRoutineMarketData}`);
             console.log(`  isCritical (after filter): ${isCritical}`);
             console.log(`  hasCriticalClass: ${hasCriticalClass} (className: ${className})`);
             console.log(`  hasRedInStyle: ${hasRedInStyle}`);
