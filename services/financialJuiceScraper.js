@@ -601,18 +601,25 @@ class FinancialJuiceScraper {
             console.log(`🚫 EXCLUDED routine market data: ${text.substring(0, 80)}`);
           }
 
-          // DEBUG: Log NYMEX items for investigation
-          if ((hasCriticalClass || hasRedInStyle || hasRedInParent || hasRedComputed || hasRedInParentComputed || hasCriticalBadge) && text.toLowerCase().includes('nymex')) {
-            console.log(`🔍 NYMEX item - Debug info:`);
-            console.log(`  Headline: ${text.substring(0, 100)}`);
-            console.log(`  isRoutineMarketData: ${isRoutineMarketData}`);
-            console.log(`  isCritical (after filter): ${isCritical}`);
-            console.log(`  hasCriticalClass: ${hasCriticalClass} (className: ${className})`);
+          // CRITICAL DEBUG: Log ALL items to see what colors/styles FinancialJuice is using
+          // This will help identify why red-marked news isn't being detected
+          if (debugClasses.size < 5) {
+            console.log(`\n📋 ITEM ${debugClasses.size + 1} FULL DEBUG:`);
+            console.log(`  Headline: ${text.substring(0, 80)}`);
+            console.log(`  className: ${className}`);
+            console.log(`  inline style: ${style}`);
+            console.log(`  parent style: ${parentStyle}`);
+            console.log(`  computed BG: ${computedBgColor}`);
+            console.log(`  computed Border: ${computedBorderColor}`);
+            console.log(`  parent computed BG: ${parentComputedBg}`);
+            console.log(`  hasCriticalClass: ${hasCriticalClass}`);
             console.log(`  hasRedInStyle: ${hasRedInStyle}`);
             console.log(`  hasRedInParent: ${hasRedInParent}`);
-            console.log(`  hasRedComputed: ${hasRedComputed} (bg: ${computedBgColor}, border: ${computedBorderColor})`);
+            console.log(`  hasRedComputed: ${hasRedComputed}`);
             console.log(`  hasRedInParentComputed: ${hasRedInParentComputed}`);
             console.log(`  hasCriticalBadge: ${hasCriticalBadge}`);
+            console.log(`  isCritical: ${isCritical}`);
+            console.log(`  isRoutineMarketData: ${isRoutineMarketData}`);
           }
 
           // ============================================================================
