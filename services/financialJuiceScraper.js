@@ -357,6 +357,7 @@ class FinancialJuiceScraper {
 
   /**
    * Internal scraping method with configurable filtering
+   * Uses cache-first approach: returns cached/history data immediately, refreshes in background
    */
   async _scrapeNews({ filterCriticalOnly = true }) {
     let page = null;
@@ -365,12 +366,44 @@ class FinancialJuiceScraper {
       // Check cache first - use separate cache for critical vs all news
       const lastFetch = filterCriticalOnly ? this.lastFetchCritical : this.lastFetchAll;
       const newsCache = filterCriticalOnly ? this.newsCacheCritical : this.newsCacheAll;
+      const now = Date.now();
+      const cacheAge = now - (lastFetch || 0);
+      const cacheExpired = cacheAge > this.cacheTimeout;
 
-      if (lastFetch && Date.now() - lastFetch < this.cacheTimeout) {
-        console.log(`Returning cached ${filterCriticalOnly ? 'critical' : 'all'} news data (${newsCache.length} items)`);
+      // If cache is fresh, return immediately
+      if (lastFetch && !cacheExpired) {
+        console.log(`Returning cached ${filterCriticalOnly ? 'critical' : 'all'} news data (${newsCache.length} items, ${Math.round(cacheAge/1000)}s old)`);
         return newsCache;
       }
 
+      // Skip cache-first logic if this is a forced refresh (background update)
+      if (!this._isForcedRefresh) {
+        // If we have cached data but it's expired, return it AND refresh in background
+        if (newsCache && newsCache.length > 0 && cacheExpired) {
+          console.log(`Returning ${newsCache.length} cached items (stale), refreshing in background...`);
+          // Trigger background refresh (non-blocking)
+          this._refreshInBackground(filterCriticalOnly);
+          return newsCache;
+        }
+
+        // If no cache but we have history, return history AND refresh in background
+        if (this.newsHistory && this.newsHistory.size > 0) {
+          const historyItems = Array.from(this.newsHistory.values());
+          const filteredHistory = filterCriticalOnly
+            ? historyItems.filter(item => item.isCritical)
+            : historyItems;
+
+          if (filteredHistory.length > 0) {
+            console.log(`Returning ${filteredHistory.length} items from history, refreshing in background...`);
+            filteredHistory.sort((a, b) => (b.firstSeenAt || 0) - (a.firstSeenAt || 0));
+            // Trigger background refresh (non-blocking)
+            this._refreshInBackground(filterCriticalOnly);
+            return filteredHistory;
+          }
+        }
+      }
+
+      // No cache and no history - must fetch synchronously
       console.log(`Fetching fresh ${filterCriticalOnly ? 'critical' : 'all'} market news...`);
       const browser = await this.getBrowser();
 
@@ -933,7 +966,23 @@ class FinancialJuiceScraper {
         return fallbackCache;
       }
 
-      // If no cache available, return empty array instead of throwing
+      // If no cache but we have history, use history as fallback
+      if (this.newsHistory && this.newsHistory.size > 0) {
+        const historyItems = Array.from(this.newsHistory.values());
+        // For critical-only mode, filter to critical items
+        const filteredHistory = filterCriticalOnly
+          ? historyItems.filter(item => item.isCritical)
+          : historyItems;
+
+        if (filteredHistory.length > 0) {
+          console.log(`Scraping failed, returning ${filteredHistory.length} items from history as fallback`);
+          // Sort by firstSeenAt descending
+          filteredHistory.sort((a, b) => (b.firstSeenAt || 0) - (a.firstSeenAt || 0));
+          return filteredHistory;
+        }
+      }
+
+      // If no cache and no history available, return empty array instead of throwing
       console.log('No cached data available, returning empty array');
       return [];
     } finally {
@@ -978,6 +1027,51 @@ class FinancialJuiceScraper {
     }
 
     return timeText;
+  }
+
+  /**
+   * Background refresh (non-blocking)
+   */
+  async _refreshInBackground(filterCriticalOnly) {
+    // Prevent multiple simultaneous refreshes
+    if (this._isRefreshing) {
+      console.log('Background refresh already in progress, skipping...');
+      return;
+    }
+
+    this._isRefreshing = true;
+    console.log(`Starting background refresh for ${filterCriticalOnly ? 'critical' : 'all'} news...`);
+
+    try {
+      await this._fetchFresh(filterCriticalOnly);
+      console.log('Background refresh completed successfully');
+    } catch (err) {
+      console.error('Background refresh failed:', err.message);
+    } finally {
+      this._isRefreshing = false;
+    }
+  }
+
+  /**
+   * Fetch fresh news (actual scraping logic - bypasses cache check)
+   */
+  async _fetchFresh(filterCriticalOnly) {
+    // Force a fresh scrape by temporarily clearing cache timestamps
+    if (filterCriticalOnly) {
+      this.lastFetchCritical = null;
+    } else {
+      this.lastFetchAll = null;
+    }
+
+    // Now call _scrapeNews which will do actual fetch since cache is cleared
+    // But we need to avoid infinite loop - set a flag
+    this._isForcedRefresh = true;
+    try {
+      const result = await this._scrapeNews({ filterCriticalOnly });
+      return result;
+    } finally {
+      this._isForcedRefresh = false;
+    }
   }
 
   /**
