@@ -24,9 +24,12 @@ function FinancialNewsFeed() {
         // Keep ALL items from the past 7 days - no limit
         const criticalNews = data.data.filter(item => item.isCritical);
 
-        // Sort by timestamp (most recent first)
+        // Sort by actual news timestamp (most recent first)
+        // Use timestamp (news release date) NOT firstSeenAt (scrape date)
         criticalNews.sort((a, b) => {
-          return (b.firstSeenAt || 0) - (a.firstSeenAt || 0);
+          const timeA = a.timestamp ? new Date(a.timestamp).getTime() : (a.firstSeenAt || 0);
+          const timeB = b.timestamp ? new Date(b.timestamp).getTime() : (b.firstSeenAt || 0);
+          return timeB - timeA;
         });
 
         // Show ALL critical news from past 7 days - no 50 item limit

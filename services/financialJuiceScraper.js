@@ -938,8 +938,13 @@ class FinancialJuiceScraper {
       // Return all items from history (includes current + items from last week)
       const allItems = Array.from(this.newsHistory.values());
 
-      // Sort by first seen timestamp (newest first)
-      allItems.sort((a, b) => b.firstSeenAt - a.firstSeenAt);
+      // Sort by actual news timestamp (newest first) - NOT firstSeenAt
+      // Use timestamp (news release date) for proper chronological order
+      allItems.sort((a, b) => {
+        const timeA = a.timestamp ? new Date(a.timestamp).getTime() : a.firstSeenAt;
+        const timeB = b.timestamp ? new Date(b.timestamp).getTime() : b.firstSeenAt;
+        return timeB - timeA;
+      });
 
       console.log(`Returning ${allItems.length} items (including ${allItems.length - processedItems.length} from history)`);
 
