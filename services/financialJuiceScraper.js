@@ -906,8 +906,8 @@ class FinancialJuiceScraper {
       }
 
       // Merge with historical items (keep for 1 week)
-      const now = Date.now();
-      const oneWeekAgo = now - (this.retentionDays * 24 * 60 * 60 * 1000);
+      const currentTime = Date.now();
+      const oneWeekAgo = currentTime - (this.retentionDays * 24 * 60 * 60 * 1000);
 
       // Add new items to history with first seen timestamp
       // Filter out items containing promotional branding
@@ -923,7 +923,7 @@ class FinancialJuiceScraper {
         if (!this.newsHistory.has(key)) {
           this.newsHistory.set(key, {
             ...item,
-            firstSeenAt: now
+            firstSeenAt: currentTime
           });
         }
       });
