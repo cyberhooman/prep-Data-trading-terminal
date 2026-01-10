@@ -403,10 +403,56 @@ class CBSpeechScraper {
 
   /**
    * Fetch all CB content (speeches + press conferences + Trump)
+   * Returns cached data immediately if available, refreshes in background
    */
   async fetchAllContent(fjScraper, trumpScraper = null) {
     // Clean old data first
     this.cleanOldData();
+
+    // Return cached data immediately if we have history
+    const hasHistory = this.cbContentHistory.size > 0;
+    const now = Date.now();
+    const cacheAge = now - (this.lastFetchTime || 0);
+    const cacheExpired = cacheAge > this.cacheTimeout;
+
+    // If we have cached data and cache is still fresh, return it
+    if (hasHistory && !cacheExpired) {
+      console.log(`CB Speeches: Returning ${this.cbContentHistory.size} cached items (${Math.round(cacheAge/1000)}s old)`);
+      return Array.from(this.cbContentHistory.values())
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    // If we have cached data but it's expired, return cached AND refresh in background
+    if (hasHistory && cacheExpired) {
+      console.log(`CB Speeches: Returning ${this.cbContentHistory.size} cached items, refreshing in background...`);
+
+      // Trigger background refresh (non-blocking)
+      this.refreshInBackground(fjScraper, trumpScraper);
+
+      return Array.from(this.cbContentHistory.values())
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    // No cache - must fetch synchronously
+    return await this.fetchFresh(fjScraper, trumpScraper);
+  }
+
+  /**
+   * Background refresh (non-blocking)
+   */
+  async refreshInBackground(fjScraper, trumpScraper) {
+    try {
+      await this.fetchFresh(fjScraper, trumpScraper);
+    } catch (err) {
+      console.error('Background refresh failed:', err.message);
+    }
+  }
+
+  /**
+   * Fetch fresh CB content from scrapers
+   */
+  async fetchFresh(fjScraper, trumpScraper) {
+    this.lastFetchTime = Date.now();
 
     try {
       // Get ALL news from Financial Juice (not just critical items)
