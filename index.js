@@ -5437,7 +5437,10 @@ JSX_FILES.forEach(({ route }) => {
     const content = jsxFileCache.get(route);
     if (content) {
       res.setHeader('Content-Type', 'application/javascript');
-      res.setHeader('Cache-Control', 'public, max-age=300'); // Browser cache 5 min
+      // Disable aggressive browser caching - allow stale content but revalidate
+      // This ensures browser checks for updates without completely disabling cache benefits
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.setHeader('ETag', `"${Date.now()}-${route}"`); // Simple ETag for change detection
       res.send(content);
     } else {
       res.status(404).send('File not found');
