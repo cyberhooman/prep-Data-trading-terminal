@@ -6842,80 +6842,12 @@ app.get('/', async (req, res) => {
         // Make function globally available
         window.switchCalendarView = switchCalendarView;
 
-        // Shared news data for both components
-        let criticalNewsData = [];
-
-        // Modified FinancialNewsFeed wrapper to share data
-        const SharedFinancialNewsFeed = () => {
-          const [news, setNews] = React.useState([]);
-          const [loading, setLoading] = React.useState(true);
-          const [error, setError] = React.useState(null);
-          const [lastUpdate, setLastUpdate] = React.useState('');
-
-          const fetchNews = async () => {
-            try {
-              setLoading(true);
-              setError(null);
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 25000);
-              const response = await fetch('/api/financial-news', { signal: controller.signal });
-              clearTimeout(timeoutId);
-              const data = await response.json();
-
-              if (data.success) {
-                // Filter to show critical news, items with economic data, sentiment, or tags
-                const criticalNews = data.data.filter(item =>
-                  item.isCritical ||
-                  item.sentiment ||
-                  item.economicData ||
-                  item.isActive ||
-                  (item.tags && item.tags.length > 0)
-                );
-
-                // Sort by importance: critical first, then economic data, then by timestamp
-                criticalNews.sort((a, b) => {
-                  if (a.isCritical && !b.isCritical) return -1;
-                  if (!a.isCritical && b.isCritical) return 1;
-                  if (a.economicData && !b.economicData) return -1;
-                  if (!a.economicData && b.economicData) return 1;
-                  return (b.firstSeenAt || 0) - (a.firstSeenAt || 0);
-                });
-
-                setNews(criticalNews.slice(0, 50));
-                criticalNewsData = criticalNews.slice(0, 50); // Share data globally
-                setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
-
-                if (criticalNews.length === 0 && data.source === 'failed') {
-                  setError('News source temporarily unavailable');
-                }
-              } else {
-                setError('Failed to load news');
-              }
-            } catch (err) {
-              if (err.name === 'AbortError') {
-                setError('Request timeout - news source may be slow');
-              } else {
-                setError('Error fetching news feed');
-              }
-              console.error(err);
-            } finally {
-              setLoading(false);
-            }
-          };
-
-          React.useEffect(() => {
-            fetchNews();
-            const interval = setInterval(fetchNews, 5 * 60 * 1000); // 5 min (reduced CPU)
-            return () => clearInterval(interval);
-          }, []);
-
-          return React.createElement(FinancialNewsFeed);
-        };
-
+        // Render FinancialNewsFeed component directly (now has WebSocket support built-in)
         try {
           const fnroot = ReactDOM.createRoot(document.getElementById('financial-news-root'));
           if (fnroot && typeof FinancialNewsFeed !== 'undefined') {
-            fnroot.render(React.createElement(SharedFinancialNewsFeed));
+            fnroot.render(React.createElement(FinancialNewsFeed));
+            console.log('[Dashboard] FinancialNewsFeed component mounted successfully');
           } else {
             console.error('FinancialNewsFeed not defined or root not found');
             document.getElementById('financial-news-root').innerHTML = '<div style="padding:1rem;color:#ff6b6b;">Error loading Critical Market News component</div>';
