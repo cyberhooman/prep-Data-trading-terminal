@@ -5437,10 +5437,7 @@ JSX_FILES.forEach(({ route }) => {
     const content = jsxFileCache.get(route);
     if (content) {
       res.setHeader('Content-Type', 'application/javascript');
-      // Disable aggressive browser caching - allow stale content but revalidate
-      // This ensures browser checks for updates without completely disabling cache benefits
-      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
-      res.setHeader('ETag', `"${Date.now()}-${route}"`); // Simple ETag for change detection
+      res.setHeader('Cache-Control', 'public, max-age=300'); // Browser cache 5 min
       res.send(content);
     } else {
       res.status(404).send('File not found');
@@ -6842,12 +6839,80 @@ app.get('/', async (req, res) => {
         // Make function globally available
         window.switchCalendarView = switchCalendarView;
 
-        // Render FinancialNewsFeed component directly (now has WebSocket support built-in)
+        // Shared news data for both components
+        let criticalNewsData = [];
+
+        // Modified FinancialNewsFeed wrapper to share data
+        const SharedFinancialNewsFeed = () => {
+          const [news, setNews] = React.useState([]);
+          const [loading, setLoading] = React.useState(true);
+          const [error, setError] = React.useState(null);
+          const [lastUpdate, setLastUpdate] = React.useState('');
+
+          const fetchNews = async () => {
+            try {
+              setLoading(true);
+              setError(null);
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 25000);
+              const response = await fetch('/api/financial-news', { signal: controller.signal });
+              clearTimeout(timeoutId);
+              const data = await response.json();
+
+              if (data.success) {
+                // Filter to show critical news, items with economic data, sentiment, or tags
+                const criticalNews = data.data.filter(item =>
+                  item.isCritical ||
+                  item.sentiment ||
+                  item.economicData ||
+                  item.isActive ||
+                  (item.tags && item.tags.length > 0)
+                );
+
+                // Sort by importance: critical first, then economic data, then by timestamp
+                criticalNews.sort((a, b) => {
+                  if (a.isCritical && !b.isCritical) return -1;
+                  if (!a.isCritical && b.isCritical) return 1;
+                  if (a.economicData && !b.economicData) return -1;
+                  if (!a.economicData && b.economicData) return 1;
+                  return (b.firstSeenAt || 0) - (a.firstSeenAt || 0);
+                });
+
+                setNews(criticalNews.slice(0, 50));
+                criticalNewsData = criticalNews.slice(0, 50); // Share data globally
+                setLastUpdate(new Date(data.lastUpdated).toLocaleTimeString());
+
+                if (criticalNews.length === 0 && data.source === 'failed') {
+                  setError('News source temporarily unavailable');
+                }
+              } else {
+                setError('Failed to load news');
+              }
+            } catch (err) {
+              if (err.name === 'AbortError') {
+                setError('Request timeout - news source may be slow');
+              } else {
+                setError('Error fetching news feed');
+              }
+              console.error(err);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          React.useEffect(() => {
+            fetchNews();
+            const interval = setInterval(fetchNews, 5 * 60 * 1000); // 5 min (reduced CPU)
+            return () => clearInterval(interval);
+          }, []);
+
+          return React.createElement(FinancialNewsFeed);
+        };
+
         try {
           const fnroot = ReactDOM.createRoot(document.getElementById('financial-news-root'));
           if (fnroot && typeof FinancialNewsFeed !== 'undefined') {
-            fnroot.render(React.createElement(FinancialNewsFeed));
-            console.log('[Dashboard] FinancialNewsFeed component mounted successfully');
+            fnroot.render(React.createElement(SharedFinancialNewsFeed));
           } else {
             console.error('FinancialNewsFeed not defined or root not found');
             document.getElementById('financial-news-root').innerHTML = '<div style="padding:1rem;color:#ff6b6b;">Error loading Critical Market News component</div>';
@@ -7217,71 +7282,19 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   }, 2 * 60 * 1000); // 2 minutes
 
   console.log('Auto-save enabled: Todos will be backed up every 2 minutes');
-
-  // Proactive scraping: Keep Critical Market News cache fresh with 2-minute updates
-  // This ensures frontend always gets instant response from cache without waiting for scrape
-  console.log('[Critical News] Starting proactive background scraper (2-minute interval)...');
-
-  // Initial scrape on startup (non-blocking)
-  financialJuiceScraper.getLatestNews()
-    .then(() => console.log('[Critical News] Initial cache populated'))
-    .catch(err => console.error('[Critical News] Initial scrape failed:', err.message));
-
-  // Track last news count to detect new items
-  let lastNewsCount = 0;
-  let lastNewsHeadlines = new Set();
-
-  // Periodic scraping every 2 minutes
-  setInterval(async () => {
-    try {
-      console.log('[Critical News] Background scrape starting...');
-      const news = await financialJuiceScraper.getLatestNews();
-      console.log(`[Critical News] Background scrape completed - ${news.length} items in cache`);
-
-      // Detect new critical news items
-      const currentHeadlines = new Set(news.map(item => `${item.headline}-${item.timestamp}`));
-      const newItems = news.filter(item => {
-        const key = `${item.headline}-${item.timestamp}`;
-        return !lastNewsHeadlines.has(key);
-      });
-
-      // If we have new critical news, push update to all connected clients via WebSocket
-      if (newItems.length > 0 && lastNewsHeadlines.size > 0) {
-        console.log(`[Critical News] Detected ${newItems.length} NEW critical news items!`);
-        newItems.forEach(item => {
-          console.log(`  - [NEW] ${item.headline.substring(0, 80)}...`);
-        });
-
-        // Push full news list to clients (they'll handle deduplication on their end)
-        notifyNewsCriticalUpdate(news);
-      }
-
-      // Update tracking
-      lastNewsCount = news.length;
-      lastNewsHeadlines = currentHeadlines;
-    } catch (err) {
-      console.error('[Critical News] Background scrape failed:', err.message);
-      // Continue with next scheduled scrape - cache will serve stale data as fallback
-    }
-  }, 2 * 60 * 1000); // 2 minutes
-
-  console.log('[Critical News] Proactive scraper enabled: Cache will refresh every 2 minutes');
 });
 
-// WebSocket server for live reload and real-time news updates
+// WebSocket server for live reload
 const wss = new WebSocketServer({ server });
 const wsClients = new Set();
 
 wss.on('connection', (ws) => {
-  console.log('WebSocket client connected');
+  console.log('Live reload client connected');
   wsClients.add(ws);
-
-  // Send welcome message with connection confirmation
-  ws.send(JSON.stringify({ type: 'connected', timestamp: Date.now() }));
 
   ws.on('close', () => {
     wsClients.delete(ws);
-    console.log('WebSocket client disconnected');
+    console.log('Live reload client disconnected');
   });
 });
 
@@ -7292,27 +7305,6 @@ function notifyReload() {
     }
   });
   console.log(`Sent reload signal to ${wsClients.size} client(s)`);
-}
-
-// Notify all connected clients about new critical news
-function notifyNewsCriticalUpdate(newsData) {
-  const message = JSON.stringify({
-    type: 'news_update',
-    data: newsData,
-    timestamp: Date.now()
-  });
-
-  let sentCount = 0;
-  wsClients.forEach((client) => {
-    if (client.readyState === 1) { // WebSocket.OPEN
-      client.send(message);
-      sentCount++;
-    }
-  });
-
-  if (sentCount > 0) {
-    console.log(`[Critical News] Pushed update to ${sentCount} client(s) - ${newsData.length} items`);
-  }
 }
 
 // Watch JSX and CSS files for changes
