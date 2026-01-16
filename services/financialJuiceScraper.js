@@ -12,7 +12,7 @@ class FinancialJuiceScraper {
     this.newsCacheAll = [];
     this.lastFetchCritical = null;
     this.lastFetchAll = null;
-    this.cacheTimeout = 1 * 60 * 1000; // 1 minute cache - shorter to catch breaking news faster
+    this.cacheTimeout = 5 * 60 * 1000; // 5 minute cache - aligned with frontend polling interval
     this.browser = null;
     this.isLoggedIn = false;
     this.newsHistory = new Map(); // Store news with first seen timestamp
@@ -1002,7 +1002,7 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Parse timestamp from various formats
+   * Parse timestamp from various formats with timezone and year boundary handling
    */
   parseTimestamp(timeText) {
     if (!timeText) return null;
@@ -1012,13 +1012,42 @@ class FinancialJuiceScraper {
       const match = timeText.match(/(\d{1,2}:\d{2})\s+(\w+)\s+(\d{1,2})/);
       if (match) {
         const [_, time, month, day] = match;
-        const year = new Date().getFullYear();
         const monthMap = {
           'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
           'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
         };
+
+        const newsMonth = monthMap[month];
+        const newsDay = parseInt(day);
         const [hours, minutes] = time.split(':');
-        const date = new Date(year, monthMap[month], parseInt(day), parseInt(hours), parseInt(minutes));
+
+        // Get current date in EST/EDT (US market timezone)
+        const now = new Date();
+        const estOffset = -5; // EST is UTC-5 (adjust to -4 for EDT if needed)
+        const utcNow = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const estNow = new Date(utcNow + (3600000 * estOffset));
+
+        const currentMonth = estNow.getMonth();
+        const currentYear = estNow.getFullYear();
+
+        // Year boundary handling:
+        // If news month is December (11) but current month is January (0), use previous year
+        // If news month is January (0) but current month is December (11), use next year
+        let year = currentYear;
+        if (newsMonth === 11 && currentMonth === 0) {
+          // News from December, but we're in January -> use previous year
+          year = currentYear - 1;
+        } else if (newsMonth === 0 && currentMonth === 11) {
+          // News from January, but we're still in December -> use next year
+          year = currentYear + 1;
+        }
+
+        // Create date in EST timezone
+        // Note: Date constructor uses local timezone, so we'll create UTC then adjust
+        const date = new Date(Date.UTC(year, newsMonth, newsDay, parseInt(hours), parseInt(minutes)));
+        // Adjust from EST to UTC (add 5 hours for EST, 4 for EDT)
+        date.setUTCHours(date.getUTCHours() + 5);
+
         return date.toISOString();
       }
 

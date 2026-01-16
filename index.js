@@ -7282,19 +7282,71 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   }, 2 * 60 * 1000); // 2 minutes
 
   console.log('Auto-save enabled: Todos will be backed up every 2 minutes');
+
+  // Proactive scraping: Keep Critical Market News cache fresh with 2-minute updates
+  // This ensures frontend always gets instant response from cache without waiting for scrape
+  console.log('[Critical News] Starting proactive background scraper (2-minute interval)...');
+
+  // Initial scrape on startup (non-blocking)
+  financialJuiceScraper.getLatestNews()
+    .then(() => console.log('[Critical News] Initial cache populated'))
+    .catch(err => console.error('[Critical News] Initial scrape failed:', err.message));
+
+  // Track last news count to detect new items
+  let lastNewsCount = 0;
+  let lastNewsHeadlines = new Set();
+
+  // Periodic scraping every 2 minutes
+  setInterval(async () => {
+    try {
+      console.log('[Critical News] Background scrape starting...');
+      const news = await financialJuiceScraper.getLatestNews();
+      console.log(`[Critical News] Background scrape completed - ${news.length} items in cache`);
+
+      // Detect new critical news items
+      const currentHeadlines = new Set(news.map(item => `${item.headline}-${item.timestamp}`));
+      const newItems = news.filter(item => {
+        const key = `${item.headline}-${item.timestamp}`;
+        return !lastNewsHeadlines.has(key);
+      });
+
+      // If we have new critical news, push update to all connected clients via WebSocket
+      if (newItems.length > 0 && lastNewsHeadlines.size > 0) {
+        console.log(`[Critical News] Detected ${newItems.length} NEW critical news items!`);
+        newItems.forEach(item => {
+          console.log(`  - [NEW] ${item.headline.substring(0, 80)}...`);
+        });
+
+        // Push full news list to clients (they'll handle deduplication on their end)
+        notifyNewsCriticalUpdate(news);
+      }
+
+      // Update tracking
+      lastNewsCount = news.length;
+      lastNewsHeadlines = currentHeadlines;
+    } catch (err) {
+      console.error('[Critical News] Background scrape failed:', err.message);
+      // Continue with next scheduled scrape - cache will serve stale data as fallback
+    }
+  }, 2 * 60 * 1000); // 2 minutes
+
+  console.log('[Critical News] Proactive scraper enabled: Cache will refresh every 2 minutes');
 });
 
-// WebSocket server for live reload
+// WebSocket server for live reload and real-time news updates
 const wss = new WebSocketServer({ server });
 const wsClients = new Set();
 
 wss.on('connection', (ws) => {
-  console.log('Live reload client connected');
+  console.log('WebSocket client connected');
   wsClients.add(ws);
+
+  // Send welcome message with connection confirmation
+  ws.send(JSON.stringify({ type: 'connected', timestamp: Date.now() }));
 
   ws.on('close', () => {
     wsClients.delete(ws);
-    console.log('Live reload client disconnected');
+    console.log('WebSocket client disconnected');
   });
 });
 
@@ -7305,6 +7357,27 @@ function notifyReload() {
     }
   });
   console.log(`Sent reload signal to ${wsClients.size} client(s)`);
+}
+
+// Notify all connected clients about new critical news
+function notifyNewsCriticalUpdate(newsData) {
+  const message = JSON.stringify({
+    type: 'news_update',
+    data: newsData,
+    timestamp: Date.now()
+  });
+
+  let sentCount = 0;
+  wsClients.forEach((client) => {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      client.send(message);
+      sentCount++;
+    }
+  });
+
+  if (sentCount > 0) {
+    console.log(`[Critical News] Pushed update to ${sentCount} client(s) - ${newsData.length} items`);
+  }
 }
 
 // Watch JSX and CSS files for changes

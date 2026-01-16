@@ -5,6 +5,8 @@ function FinancialNewsFeed() {
   const [lastUpdate, setLastUpdate] = React.useState('');
   const [analyzing, setAnalyzing] = React.useState({});
   const [analyses, setAnalyses] = React.useState({});
+  const [wsConnected, setWsConnected] = React.useState(false);
+  const [newNewsFlash, setNewNewsFlash] = React.useState(false);
 
   const fetchNews = async () => {
     try {
@@ -60,7 +62,70 @@ function FinancialNewsFeed() {
     fetchNews();
     // Refresh every 5 minutes (reduced from 2 min to lower CPU usage)
     const interval = setInterval(fetchNews, 5 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    // WebSocket for real-time news updates
+    const ws = new WebSocket(`ws://${window.location.host}`);
+
+    ws.onopen = () => {
+      console.log('[Critical News] WebSocket connected - real-time updates enabled');
+      setWsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        // Handle both string messages (reload) and JSON messages (news updates)
+        if (event.data === 'reload') {
+          window.location.reload();
+          return;
+        }
+
+        const message = JSON.parse(event.data);
+
+        if (message.type === 'connected') {
+          console.log('[Critical News] WebSocket connection confirmed');
+          setWsConnected(true);
+        } else if (message.type === 'news_update') {
+          console.log('[Critical News] Received real-time update via WebSocket');
+
+          // Update news immediately with data from WebSocket
+          const criticalNews = message.data.filter(item => item.isCritical);
+
+          // Sort by actual news timestamp (most recent first)
+          criticalNews.sort((a, b) => {
+            const timeA = a.timestamp ? new Date(a.timestamp).getTime() : (a.firstSeenAt || 0);
+            const timeB = b.timestamp ? new Date(b.timestamp).getTime() : (b.firstSeenAt || 0);
+            return timeB - timeA;
+          });
+
+          setNews(criticalNews);
+          setLastUpdate(new Date().toLocaleTimeString());
+          setError(null);
+
+          // Flash indicator for new news
+          setNewNewsFlash(true);
+          setTimeout(() => setNewNewsFlash(false), 3000);
+
+          console.log(`[Critical News] Updated UI with ${criticalNews.length} items from WebSocket`);
+        }
+      } catch (err) {
+        console.error('[Critical News] WebSocket message parse error:', err);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('[Critical News] WebSocket error:', error);
+      setWsConnected(false);
+    };
+
+    ws.onclose = () => {
+      console.log('[Critical News] WebSocket disconnected');
+      setWsConnected(false);
+    };
+
+    return () => {
+      clearInterval(interval);
+      ws.close();
+    };
   }, []);
 
   const formatTimestamp = (timestamp) => {
@@ -239,6 +304,33 @@ function FinancialNewsFeed() {
           alignItems: 'center'
         }
       },
+        // WebSocket status indicator
+        wsConnected && React.createElement('div', {
+          style: {
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.4rem 0.8rem',
+            background: newNewsFlash ? 'rgba(16, 185, 129, 0.3)' : 'rgba(16, 185, 129, 0.15)',
+            border: newNewsFlash ? '1px solid rgba(16, 185, 129, 0.6)' : '1px solid rgba(16, 185, 129, 0.3)',
+            borderRadius: '8px',
+            fontSize: '0.85rem',
+            fontWeight: 600,
+            color: '#10b981',
+            transition: 'all 0.3s'
+          }
+        },
+          React.createElement('span', {
+            style: {
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: '#10b981',
+              animation: newNewsFlash ? 'pulse 1s ease-in-out' : 'none'
+            }
+          }),
+          newNewsFlash ? 'NEW UPDATE!' : 'Live'
+        ),
         React.createElement('button', {
           onClick: fetchNews,
           disabled: loading,
@@ -749,4 +841,22 @@ function FinancialNewsFeed() {
           )
     )
   );
+}
+
+// Add CSS animation for WebSocket live indicator pulse
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+      }
+    }
+  `;
+  document.head.appendChild(style);
 }
