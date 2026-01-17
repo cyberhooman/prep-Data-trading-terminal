@@ -3517,9 +3517,9 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Navigate to squawk page
+      // Squawk - Toggle floating widget (placeholder - full widget only on Dashboard)
       function toggleSquawk() {
-        window.location.href = '/squawk';
+        window.location.href = '/';
       }
       // Apply saved theme
       (function() {
@@ -3843,9 +3843,9 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Navigate to squawk page
+      // Squawk - Toggle floating widget (placeholder - full widget only on Dashboard)
       function toggleSquawk() {
-        window.location.href = '/squawk';
+        window.location.href = '/';
       }
       // Apply saved theme
       (function() {
@@ -4120,9 +4120,9 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Navigate to squawk page
+      // Squawk - Toggle floating widget (placeholder - full widget only on Dashboard)
       function toggleSquawk() {
-        window.location.href = '/squawk';
+        window.location.href = '/';
       }
       // Apply saved theme
       (function() {
@@ -4377,9 +4377,9 @@ app.get('/news-feed', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Navigate to squawk page
+      // Squawk - Toggle floating widget (placeholder - full widget only on Dashboard)
       function toggleSquawk() {
-        window.location.href = '/squawk';
+        window.location.href = '/';
       }
       // Apply saved theme
       (function() {
@@ -4636,9 +4636,9 @@ app.get('/critical-news', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Navigate to squawk page
+      // Squawk - Toggle floating widget (placeholder - full widget only on Dashboard)
       function toggleSquawk() {
-        window.location.href = '/squawk';
+        window.location.href = '/';
       }
       // Apply saved theme
       (function() {
@@ -6900,10 +6900,46 @@ app.get('/', async (req, res) => {
         // MacroAI component removed - AI analysis now integrated into Critical Market News
       </script>
 
+      <!-- Floating Squawk Widget -->
+      <div id="squawk-widget" style="display:none;position:fixed;bottom:20px;right:20px;width:320px;height:400px;background:#1a1a1a;border:1px solid #333;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#222;border-bottom:1px solid #333;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+          <h1 style="font-size:14px;font-weight:600;color:#fff;margin:0;">Live Squawk</h1>
+          <div style="width:8px;height:8px;background:#ef4444;border-radius:50%;box-shadow:0 0 10px rgba(239,68,68,0.8);margin-left:auto;animation:pulse 1.5s infinite;"></div>
+          <button onclick="toggleSquawk()" style="background:none;border:none;color:#999;cursor:pointer;padding:4px;margin-left:8px;font-size:18px;line-height:1;">×</button>
+        </div>
+        <iframe id="squawk-iframe" src="/squawk" style="width:100%;height:calc(100% - 48px);border:none;"></iframe>
+      </div>
+
       <script>
-        // Squawk - Navigate to squawk page (no popup)
+        // Squawk - Toggle floating widget
         function toggleSquawk() {
-          window.location.href = '/squawk';
+          const widget = document.getElementById('squawk-widget');
+          const iframe = document.getElementById('squawk-iframe');
+          const indicator = document.getElementById('squawk-indicator');
+          const text = document.getElementById('squawk-text');
+          const icon = document.getElementById('squawk-icon');
+
+          if (widget.style.display === 'none') {
+            widget.style.display = 'block';
+            // Load iframe only when opened (saves resources)
+            if (!iframe.src) {
+              iframe.src = '/squawk';
+            }
+            if (indicator) indicator.style.display = 'block';
+            if (text) text.style.color = '#ef4444';
+            if (icon) icon.style.stroke = '#ef4444';
+          } else {
+            widget.style.display = 'none';
+            if (indicator) indicator.style.display = 'none';
+            if (text) text.style.color = '';
+            if (icon) icon.style.stroke = '';
+          }
         }
       </script>
 
