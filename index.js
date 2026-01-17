@@ -7282,6 +7282,24 @@ const server = app.listen(PORT, '0.0.0.0', async () => {
   }, 2 * 60 * 1000); // 2 minutes
 
   console.log('Auto-save enabled: Todos will be backed up every 2 minutes');
+
+  // Background scraping: Keep Critical Market News cache fresh
+  // This runs server-side only, doesn't affect frontend rendering
+  console.log('[Critical News] Starting background cache refresh (every 90 seconds)...');
+
+  // Initial scrape after 10 seconds (let server fully start)
+  setTimeout(() => {
+    financialJuiceScraper.getLatestNews()
+      .then(news => console.log(`[Critical News] Initial cache: ${news.length} items`))
+      .catch(err => console.error('[Critical News] Initial scrape error:', err.message));
+  }, 10000);
+
+  // Refresh cache every 90 seconds (slightly offset from 1-min frontend polling)
+  setInterval(() => {
+    financialJuiceScraper.getLatestNews()
+      .then(news => console.log(`[Critical News] Cache refreshed: ${news.length} items`))
+      .catch(err => console.error('[Critical News] Background scrape error:', err.message));
+  }, 90 * 1000); // 90 seconds
 });
 
 // WebSocket server for live reload

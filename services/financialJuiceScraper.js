@@ -1002,7 +1002,7 @@ class FinancialJuiceScraper {
   }
 
   /**
-   * Parse timestamp from various formats
+   * Parse timestamp from various formats with year boundary handling
    */
   parseTimestamp(timeText) {
     if (!timeText) return null;
@@ -1012,13 +1012,22 @@ class FinancialJuiceScraper {
       const match = timeText.match(/(\d{1,2}:\d{2})\s+(\w+)\s+(\d{1,2})/);
       if (match) {
         const [_, time, month, day] = match;
-        const year = new Date().getFullYear();
         const monthMap = {
           'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
           'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
         };
         const [hours, minutes] = time.split(':');
-        const date = new Date(year, monthMap[month], parseInt(day), parseInt(hours), parseInt(minutes));
+        const newsMonth = monthMap[month];
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        let year = now.getFullYear();
+
+        // Year boundary fix: if news month is Dec but current month is Jan, use previous year
+        if (newsMonth === 11 && currentMonth === 0) {
+          year = year - 1;
+        }
+
+        const date = new Date(year, newsMonth, parseInt(day), parseInt(hours), parseInt(minutes));
         return date.toISOString();
       }
 
