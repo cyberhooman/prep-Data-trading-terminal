@@ -1115,7 +1115,7 @@ app.get('/login', (req, res) => {
                   <path d="M4 34L24 44L44 34" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
                 </svg>
               </div>
-              <div class="subtitle">Welcome Back</div>
+              <div class="subtitle">Welcome Back to Alphalabs</div>
               <div class="subtitle-2">Enter your credentials to access your account.</div>
 
               <!-- Error Message Area -->
