@@ -3517,14 +3517,9 @@ app.get('/cb-speeches', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Opens in separate window
-      var squawkWindow = null;
+      // Squawk - Navigate to squawk page
       function toggleSquawk() {
-        if (squawkWindow && !squawkWindow.closed) {
-          squawkWindow.focus();
-          return;
-        }
-        squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
+        window.location.href = '/squawk';
       }
       // Apply saved theme
       (function() {
@@ -3848,14 +3843,9 @@ app.get('/weekly-calendar', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Opens in separate window
-      var squawkWindow = null;
+      // Squawk - Navigate to squawk page
       function toggleSquawk() {
-        if (squawkWindow && !squawkWindow.closed) {
-          squawkWindow.focus();
-          return;
-        }
-        squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
+        window.location.href = '/squawk';
       }
       // Apply saved theme
       (function() {
@@ -4130,14 +4120,9 @@ app.get('/currency-strength', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Opens in separate window
-      var squawkWindow = null;
+      // Squawk - Navigate to squawk page
       function toggleSquawk() {
-        if (squawkWindow && !squawkWindow.closed) {
-          squawkWindow.focus();
-          return;
-        }
-        squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
+        window.location.href = '/squawk';
       }
       // Apply saved theme
       (function() {
@@ -4392,14 +4377,9 @@ app.get('/news-feed', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Opens in separate window
-      var squawkWindow = null;
+      // Squawk - Navigate to squawk page
       function toggleSquawk() {
-        if (squawkWindow && !squawkWindow.closed) {
-          squawkWindow.focus();
-          return;
-        }
-        squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
+        window.location.href = '/squawk';
       }
       // Apply saved theme
       (function() {
@@ -4656,14 +4636,9 @@ app.get('/critical-news', ensureAuthenticated, async (req, res) => {
           dropdown.classList.remove('show');
         }
       });
-      // Squawk - Opens in separate window
-      var squawkWindow = null;
+      // Squawk - Navigate to squawk page
       function toggleSquawk() {
-        if (squawkWindow && !squawkWindow.closed) {
-          squawkWindow.focus();
-          return;
-        }
-        squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
+        window.location.href = '/squawk';
       }
       // Apply saved theme
       (function() {
@@ -6926,39 +6901,9 @@ app.get('/', async (req, res) => {
       </script>
 
       <script>
-        // Squawk - Opens in separate window to persist across navigation
-        var squawkWindow = null;
-
+        // Squawk - Navigate to squawk page (no popup)
         function toggleSquawk() {
-          var indicator = document.getElementById('squawk-indicator');
-          var text = document.getElementById('squawk-text');
-          var icon = document.getElementById('squawk-icon');
-
-          // Check if window exists and is open
-          if (squawkWindow && !squawkWindow.closed) {
-            squawkWindow.focus();
-            return;
-          }
-
-          // Open squawk in new popup window
-          squawkWindow = window.open('/squawk', 'AlphaLabsSquawk', 'width=320,height=400,resizable=yes,scrollbars=no,status=no,toolbar=no,menubar=no,location=no');
-
-          if (squawkWindow) {
-            if (indicator) indicator.style.display = 'block';
-            if (text) text.style.color = '#ef4444';
-            if (icon) icon.style.stroke = '#ef4444';
-
-            // Monitor if window is closed
-            var checkClosed = setInterval(function() {
-              if (squawkWindow.closed) {
-                clearInterval(checkClosed);
-                if (indicator) indicator.style.display = 'none';
-                if (text) text.style.color = '';
-                if (icon) icon.style.stroke = '';
-                squawkWindow = null;
-              }
-            }, 500);
-          }
+          window.location.href = '/squawk';
         }
       </script>
 
