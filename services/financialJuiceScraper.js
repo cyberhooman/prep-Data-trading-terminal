@@ -52,11 +52,12 @@ class FinancialJuiceScraper {
       const historyArray = await this.database.loadNewsHistory();
 
       // Convert array back to Map using normalized keys to prevent duplicates
+      // Use headline ONLY as key (not timestamp) since same news can have varying timestamps
       this.newsHistory = new Map();
       historyArray.forEach(item => {
         const normalizedHeadline = this.normalizeHeadline(item.headline);
-        const key = `${normalizedHeadline}-${item.timestamp}`;
-        // Only keep the first occurrence (older items win)
+        const key = normalizedHeadline; // Headline only, not timestamp
+        // Only keep the first occurrence (older items win - they have earlier firstSeenAt)
         if (!this.newsHistory.has(key)) {
           this.newsHistory.set(key, item);
         }
@@ -874,16 +875,17 @@ class FinancialJuiceScraper {
 
       // Deduplicate based on headline similarity (not just exact match)
       // This catches near-duplicates like "UK" vs "United Kingdom" in same news
+      // Use ONLY normalized headline as key - don't include timestamp since the same
+      // news can be scraped multiple times with slightly different timestamps
       const seen = new Set();
       const dedupedItems = newsItems.filter(item => {
-        // Create normalized key for similarity matching
+        // Create normalized key for similarity matching (headline only)
         const normalizedHeadline = this.normalizeHeadline(item.headline);
-        const key = `${normalizedHeadline}-${item.timestamp}`;
-        if (seen.has(key)) {
+        if (seen.has(normalizedHeadline)) {
           console.log(`Filtered duplicate: "${item.headline.substring(0, 60)}..."`);
           return false;
         }
-        seen.add(key);
+        seen.add(normalizedHeadline);
         return true;
       });
 
@@ -920,10 +922,11 @@ class FinancialJuiceScraper {
 
       // Add new items to history with first seen timestamp
       // Filter out items containing promotional branding
-      // Use normalized keys to prevent near-duplicates
+      // Use normalized headline ONLY as key (not timestamp) to prevent re-scrapes
+      // from creating duplicates
       processedItems.forEach(item => {
         const normalizedHeadline = this.normalizeHeadline(item.headline);
-        const key = `${normalizedHeadline}-${item.timestamp}`;
+        const key = normalizedHeadline; // Use headline only, not timestamp
         const text = `${item.headline} ${item.rawText || ''}`.toLowerCase();
 
         // Skip items containing promotional branding
@@ -931,6 +934,7 @@ class FinancialJuiceScraper {
           return;
         }
 
+        // Only add if not already in history (preserves original firstSeenAt)
         if (!this.newsHistory.has(key)) {
           this.newsHistory.set(key, {
             ...item,
