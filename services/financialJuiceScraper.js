@@ -51,13 +51,18 @@ class FinancialJuiceScraper {
     try {
       const historyArray = await this.database.loadNewsHistory();
 
-      // Convert array back to Map
-      this.newsHistory = new Map(historyArray.map(item => [
-        `${item.headline}-${item.timestamp}`,
-        item
-      ]));
+      // Convert array back to Map using normalized keys to prevent duplicates
+      this.newsHistory = new Map();
+      historyArray.forEach(item => {
+        const normalizedHeadline = this.normalizeHeadline(item.headline);
+        const key = `${normalizedHeadline}-${item.timestamp}`;
+        // Only keep the first occurrence (older items win)
+        if (!this.newsHistory.has(key)) {
+          this.newsHistory.set(key, item);
+        }
+      });
 
-      console.log(`Loaded ${this.newsHistory.size} news items from history`);
+      console.log(`Loaded ${this.newsHistory.size} news items from history (deduplicated)`);
     } catch (error) {
       console.error('Error loading news history:', error.message);
       this.newsHistory = new Map();
@@ -867,11 +872,15 @@ class FinancialJuiceScraper {
         });
       }
 
-      // Deduplicate based on headline and timestamp
+      // Deduplicate based on headline similarity (not just exact match)
+      // This catches near-duplicates like "UK" vs "United Kingdom" in same news
       const seen = new Set();
       const dedupedItems = newsItems.filter(item => {
-        const key = `${item.headline}-${item.timestamp}`;
+        // Create normalized key for similarity matching
+        const normalizedHeadline = this.normalizeHeadline(item.headline);
+        const key = `${normalizedHeadline}-${item.timestamp}`;
         if (seen.has(key)) {
+          console.log(`Filtered duplicate: "${item.headline.substring(0, 60)}..."`);
           return false;
         }
         seen.add(key);
@@ -911,8 +920,10 @@ class FinancialJuiceScraper {
 
       // Add new items to history with first seen timestamp
       // Filter out items containing promotional branding
+      // Use normalized keys to prevent near-duplicates
       processedItems.forEach(item => {
-        const key = `${item.headline}-${item.timestamp}`;
+        const normalizedHeadline = this.normalizeHeadline(item.headline);
+        const key = `${normalizedHeadline}-${item.timestamp}`;
         const text = `${item.headline} ${item.rawText || ''}`.toLowerCase();
 
         // Skip items containing promotional branding
@@ -999,6 +1010,25 @@ class FinancialJuiceScraper {
         }
       }
     }
+  }
+
+  /**
+   * Normalize headline for deduplication (catches near-duplicates)
+   */
+  normalizeHeadline(headline) {
+    if (!headline) return '';
+    return headline
+      .toLowerCase()
+      .replace(/\bthe united kingdom\b/g, 'uk')
+      .replace(/\bthe uk\b/g, 'uk')
+      .replace(/\bunited kingdom\b/g, 'uk')
+      .replace(/\bthe netherlands\b/g, 'netherlands')
+      .replace(/\s*-\s*truth social\b/gi, '')
+      .replace(/\s*-\s*x\b/gi, '')
+      .replace(/\s*-\s*twitter\b/gi, '')
+      .replace(/[^\w\s]/g, '') // Remove punctuation
+      .replace(/\s+/g, ' ')    // Normalize whitespace
+      .trim();
   }
 
   /**

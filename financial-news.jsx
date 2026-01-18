@@ -310,7 +310,7 @@ function FinancialNewsFeed() {
           }, 'No high-impact market news at the moment')
         : news.map((item, index) =>
             React.createElement('div', {
-              key: index,
+              key: `${item.headline}-${item.timestamp}-${item.firstSeenAt || index}`,
               className: `news-item ${item.isCritical ? 'critical' : item.isActive ? 'active' : ''}`,
               style: {
                 background: item.isCritical ? 'rgba(255, 107, 107, 0.1)' : 'rgba(255, 255, 255, 0.03)',
